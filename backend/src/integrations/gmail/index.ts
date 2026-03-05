@@ -34,6 +34,7 @@ export class GmailAdapter implements IntegrationAdapter {
     return client.authorizationUrl({
       scope: 'openid email https://www.googleapis.com/auth/gmail.readonly',
       state,
+      redirect_uri: `${process.env.API_URL}/api/integrations/gmail/callback`,
       access_type: 'offline',
       prompt: 'consent',
     });

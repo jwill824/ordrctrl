@@ -27,6 +27,7 @@ export async function getGoogleAuthorizationUrl(state: string): Promise<string> 
   return client.authorizationUrl({
     scope: 'openid email profile',
     state,
+    redirect_uri: `${process.env.API_URL}/api/auth/google/callback`,
     access_type: 'offline',
     prompt: 'consent',
   });
