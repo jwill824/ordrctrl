@@ -119,7 +119,51 @@ cd frontend && pnpm test:e2e
 4. Click the link → you should reach the onboarding screen
 5. The integration cards for Gmail, Apple Reminders, Microsoft Tasks, and Apple Calendar should all appear
 
-## Common Issues
+---
+
+## 8. Testing Integrations Locally
+
+### Gmail
+
+**Prerequisites**: `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` set; your email added as a test user on the OAuth consent screen (see Appendix).
+
+1. On the onboarding screen, click **Connect** on the Gmail card
+2. Choose a sync mode (Starred/flagged only recommended for first test)
+3. You will be redirected to Google sign-in — authorize the app
+4. On success you land back on `/onboarding?connected=gmail` and the card shows **Connected**
+5. Click **Go to feed** — Gmail messages matching your sync mode should appear under the Gmail source label
+
+**Verify sync**: The backend logs will show `"Gmail sync complete"` with item counts. You can also trigger a manual sync from Settings → Integrations.
+
+---
+
+### Microsoft Tasks
+
+**Prerequisites**: `MICROSOFT_CLIENT_ID` and `MICROSOFT_CLIENT_SECRET` set; app registration configured for personal + org accounts with `requestedAccessTokenVersion: 2` (see Appendix).
+
+1. On the onboarding screen, click **Connect** on the Microsoft Tasks card
+2. You will be redirected to Microsoft sign-in — sign in with your Microsoft account and grant permission
+3. On success you land back on `/onboarding?connected=microsoft_tasks` and the card shows **Connected**
+4. Tasks from Microsoft To Do / Outlook Tasks appear in your feed
+
+**Note**: The redirect URI registered in Azure must use an underscore: `http://localhost:4000/api/integrations/microsoft_tasks/callback`
+
+---
+
+### Apple Reminders / Apple Calendar
+
+These integrations require an Apple Developer account ($99/year) and an HTTPS callback URL (Apple does not allow plain `http://localhost`). For local testing, use [ngrok](https://ngrok.com) to tunnel:
+
+```bash
+ngrok http 4000
+# Note the https://xxxx.ngrok.io URL — use it as your API_URL in .env
+# and register https://xxxx.ngrok.io/api/integrations/apple_reminders/callback
+# in your Apple Developer portal
+```
+
+See the Apple OAuth section in the Appendix for full setup steps. These integrations can be deferred — Gmail + Microsoft Tasks provide a complete test of the sync pipeline.
+
+
 
 | Problem | Fix |
 |---------|-----|
@@ -130,7 +174,8 @@ cd frontend && pnpm test:e2e
 | Port 3000/4000 already in use | `lsof -ti:3000 \| xargs kill` |
 | "Access blocked: This app's request is invalid" (Google) | Your Google account is not in the test user list. Go to **Google Cloud Console → APIs & Services → OAuth consent screen → Test users** and add your email. |
 | `redirect_uri_mismatch` (Error 400, Google) | The redirect URI in the request doesn't match any registered URI. Ensure **both** `http://localhost:4000/api/auth/google/callback` and `http://localhost:4000/api/integrations/gmail/callback` are added under **Authorized redirect URIs** on your OAuth client. |
-| Gmail integration syncs 0 items | The Gmail API may not be enabled. Go to **APIs & Services → Library → Gmail API → Enable**. |
+| `unauthorized_client` (Microsoft) | App registration **Supported account types** is set to org-only. Go to **Authentication**, select "Accounts in any organizational directory and personal Microsoft accounts". If you get a manifest error first, set `"requestedAccessTokenVersion": 2` in the app **Manifest**, save, then retry. |
+| `invalid_request: redirect_uri is not valid` (Microsoft) | Registered URI uses a hyphen (`microsoft-tasks`) but the code sends an underscore (`microsoft_tasks`). Update the Azure registered URI to `http://localhost:4000/api/integrations/microsoft_tasks/callback`. |
 
 ---
 
@@ -226,16 +271,27 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 ---
 
-### Microsoft OAuth — Phase 4 only, not needed for Phase 1–3
+### Microsoft OAuth — needed for Microsoft Tasks integration
 
 **`MICROSOFT_CLIENT_ID`** + **`MICROSOFT_CLIENT_SECRET`**
 
 1. Go to [portal.azure.com](https://portal.azure.com) → **Microsoft Entra ID → App registrations → New registration**
    - Name: `ordrctrl-dev`
-   - Redirect URI: `http://localhost:4000/api/auth/microsoft/callback`
+   - Supported account types: **"Accounts in any organizational directory (Any Azure AD directory – Multitenant) and personal Microsoft accounts (e.g. Skype, Xbox)"**
+     > ⚠️ If you see "Property api.requestedAccessTokenVersion is invalid" when selecting this option, go to **Manifest**, change `"requestedAccessTokenVersion"` from `null` to `2`, save, then return to Authentication and change the account type.
+   - Redirect URI platform: **Web**; URI:
+     ```
+     http://localhost:4000/api/integrations/microsoft_tasks/callback
+     ```
+     > ⚠️ Use `microsoft_tasks` with an **underscore** — the service ID in code uses underscore, not a hyphen. Using a hyphen will cause `invalid_request: redirect_uri is not valid`.
+
 2. After creation: **Overview** → copy **Application (client) ID** → `MICROSOFT_CLIENT_ID`
+
 3. **Certificates & secrets → New client secret** → copy the value → `MICROSOFT_CLIENT_SECRET`
-4. **API permissions → Add → Microsoft Graph → Delegated**: `Tasks.ReadWrite`, `User.Read`
+
+4. **API permissions → Add a permission → Microsoft Graph → Delegated permissions**: add `Tasks.Read`, `Tasks.ReadWrite`, `User.Read`, `offline_access`
+
+> **Personal vs work accounts.** The "multitenant + personal" account type allows sign-in with personal Microsoft accounts (Outlook, Hotmail, Live, Xbox). If you only need work/school accounts, "Any organizational directory" is sufficient — but the `requestedAccessTokenVersion: 2` manifest change is still required.
 
 ---
 
@@ -250,4 +306,4 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 | `RESEND_API_KEY` | ❌ Optional | Links are logged to console when not set |
 | `GOOGLE_CLIENT_ID/SECRET` | ⚠️ Needed for Google button | Google Cloud Console |
 | `APPLE_*` | ❌ Defer | Requires paid Apple Developer account |
-| `MICROSOFT_*` | ❌ Phase 4 only | Azure Portal |
+| `MICROSOFT_*` | ⚠️ Needed for Microsoft Tasks | Azure Portal |

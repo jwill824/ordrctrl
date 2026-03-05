@@ -10,6 +10,43 @@ Follow the setup steps in [README.md](README.md) to get the project running loca
 
 ---
 
+## Development workflow (speckit)
+
+This project uses a spec-driven workflow. New features always start with a spec, not code.
+
+```
+specify → clarify → plan → tasks → implement → analyze
+```
+
+Run these as slash commands in GitHub Copilot Chat (VS Code):
+
+| Command | Purpose |
+|---------|---------|
+| `/speckit.specify` | Write or update the feature spec |
+| `/speckit.clarify` | Resolve underspecified areas with targeted questions |
+| `/speckit.plan` | Generate technical design artifacts |
+| `/speckit.tasks` | Produce a dependency-ordered task list |
+| `/speckit.implement` | Execute the task list — writes all code |
+| `/speckit.analyze` | Consistency check across all artifacts |
+
+**Rule**: No code may be written for a new feature until `tasks.md` exists and `/speckit.analyze` passes. This is a constitution-level requirement.
+
+---
+
+## Testing integrations locally
+
+Before working on integration code, you need valid OAuth credentials for the service. See [`specs/001-mvp-core/quickstart.md`](specs/001-mvp-core/quickstart.md) — **Section 8: Testing Integrations Locally** — for step-by-step instructions per integration.
+
+Quick summary:
+
+| Integration | Required env vars | Key gotcha |
+|-------------|------------------|-----------|
+| Gmail | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Add yourself as a test user on the OAuth consent screen; register **both** redirect URIs on the same client |
+| Microsoft Tasks | `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET` | Set `requestedAccessTokenVersion: 2` in app manifest; use **underscore** in redirect URI (`microsoft_tasks`) |
+| Apple Reminders / Calendar | `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` | Requires Apple Developer account + HTTPS callback (use ngrok for local dev) |
+
+---
+
 ## Branching
 
 We use a feature-branch workflow:

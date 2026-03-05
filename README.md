@@ -126,6 +126,39 @@ cd frontend && pnpm test:e2e
 
 ---
 
+## Development workflow (speckit)
+
+This project uses [speckit](https://github.com/speckit) — a spec-driven development workflow built on top of GitHub Copilot. All features go through a structured pipeline before any code is written.
+
+### Slash commands (in Copilot Chat)
+
+| Command | What it does |
+|---------|-------------|
+| `/speckit.specify` | Create or update the feature spec from a natural-language description |
+| `/speckit.clarify` | Ask targeted clarifying questions to resolve ambiguity in the spec |
+| `/speckit.plan` | Generate the technical design (architecture, data model, API contracts) |
+| `/speckit.tasks` | Break the plan into a dependency-ordered task list |
+| `/speckit.implement` | Execute the task list — writes all code, phase by phase |
+| `/speckit.analyze` | Cross-artifact consistency check across spec, plan, and tasks |
+| `/speckit.checklist` | Generate a custom quality checklist for the feature |
+
+### Typical feature flow
+
+```
+specify → clarify → plan → tasks → implement → analyze
+```
+
+1. **Specify**: Describe the feature in plain English — speckit creates `specs/<feature>/spec.md`
+2. **Clarify**: Resolve any underspecified areas before design begins
+3. **Plan**: Generates `plan.md`, `data-model.md`, and API `contracts/`
+4. **Tasks**: Generates `tasks.md` — an ordered, dependency-aware implementation checklist
+5. **Implement**: Executes the tasks; marks each `[X]` as it completes
+6. **Analyze**: Validates consistency across all artifacts
+
+Design documents live in `specs/001-mvp-core/`. Do not edit `tasks.md` manually while `implement` is running.
+
+---
+
 ## Adding a new integration
 
 Each integration is an isolated plugin implementing the `IntegrationAdapter` interface:
