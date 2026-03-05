@@ -1,5 +1,5 @@
 import { Queue, Worker, type Processor, type Job } from 'bullmq';
-import { redis } from './redis.js';
+import IORedis from 'ioredis';
 import { logger } from './logger.js';
 
 export const QUEUE_NAMES = {
@@ -8,9 +8,20 @@ export const QUEUE_NAMES = {
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
 
-// Shared queue connection options
+// BullMQ requires its own IORedis connection (not the shared singleton).
+// Sharing the singleton causes "already connecting/connected" errors because
+// BullMQ calls connect() internally when a Queue/Worker is instantiated.
+const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+
+function createBullConnection(): IORedis {
+  return new IORedis(REDIS_URL, {
+    maxRetriesPerRequest: null, // required by BullMQ
+    enableReadyCheck: false,
+  });
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const connection = redis as any;
+const connection = createBullConnection() as any;
 
 /**
  * Creates a BullMQ queue for the given queue name.
