@@ -286,6 +286,12 @@ task, verify it appears in the feed labeled "ordrctrl," mark it complete, and ve
 - Social login (Sign in with Google, Sign in with Apple) creates an ordrctrl-managed account;
   social provider tokens are used only for identity — not pre-authorized for Gmail/Calendar
   integration access. Gmail/Calendar connections require a separate OAuth authorization step.
+- Both Sign in with Google and the Gmail integration share a single Google OAuth 2.0 client
+  (`GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`), but use distinct redirect URIs:
+  `/api/auth/google/callback` (authentication) and `/api/integrations/gmail/callback`
+  (Gmail integration). Both URIs must be registered on the same Google Cloud Console client.
+  While the app's OAuth consent screen status is **Testing**, only explicitly listed test users
+  may authorize either flow; this is a Google-enforced restriction, not an app-level gate.
 - Sync runs automatically on login and every 15 minutes in the background. A manual
   refresh option is available on the feed at any time.
 - Data retention for sync cache defaults to 24 hours per the constitution's security policy.

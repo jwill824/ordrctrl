@@ -73,7 +73,7 @@ The minimum set to run locally:
 | `TOKEN_ENCRYPTION_KEY` | Same command as above |
 | `DATABASE_URL` | Pre-filled in `.env.example` — works with Docker Compose |
 | `REDIS_URL` | Pre-filled in `.env.example` — works with Docker Compose |
-| `GOOGLE_CLIENT_ID/SECRET` | [Google Cloud Console](https://console.cloud.google.com) — needed for Google sign-in |
+| `GOOGLE_CLIENT_ID/SECRET` | [Google Cloud Console](https://console.cloud.google.com) — used for both Sign in with Google **and** Gmail integration. Register two redirect URIs on the same client: `http://localhost:4000/api/auth/google/callback` and `http://localhost:4000/api/integrations/gmail/callback`. Add yourself as a test user on the OAuth consent screen while the app is in Testing mode. |
 | `RESEND_API_KEY` | Optional in dev — verification links are logged to console instead |
 
 See [`specs/001-mvp-core/quickstart.md`](specs/001-mvp-core/quickstart.md) for the full setup guide including Apple and Microsoft OAuth credentials.

@@ -127,7 +127,10 @@ cd frontend && pnpm test:e2e
 | Postgres keeps restarting | Run `docker system prune -f` to free Docker disk space, then `docker compose up -d` |
 | `TOKEN_ENCRYPTION_KEY` error | Generate with: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 | Apple OAuth private key format | Paste the full `.p8` contents including `-----BEGIN PRIVATE KEY-----` |
-| Port 3000/4000 already in use | `lsof -ti:3000 | xargs kill` |
+| Port 3000/4000 already in use | `lsof -ti:3000 \| xargs kill` |
+| "Access blocked: This app's request is invalid" (Google) | Your Google account is not in the test user list. Go to **Google Cloud Console → APIs & Services → OAuth consent screen → Test users** and add your email. |
+| `redirect_uri_mismatch` (Error 400, Google) | The redirect URI in the request doesn't match any registered URI. Ensure **both** `http://localhost:4000/api/auth/google/callback` and `http://localhost:4000/api/integrations/gmail/callback` are added under **Authorized redirect URIs** on your OAuth client. |
+| Gmail integration syncs 0 items | The Gmail API may not be enabled. Go to **APIs & Services → Library → Gmail API → Enable**. |
 
 ---
 
@@ -165,15 +168,37 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 **`GOOGLE_CLIENT_ID`** + **`GOOGLE_CLIENT_SECRET`**
 
 1. Go to [console.cloud.google.com](https://console.cloud.google.com) → create a new project (e.g. `ordrctrl-dev`)
+
 2. **APIs & Services → OAuth consent screen**
    - User type: **External**
-   - App name: `ordrctrl`; add your email as a test user
-   - Scopes: `email`, `profile`, `openid`
-3. **APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID**
+   - App name: `ordrctrl`; Developer contact: your email
+   - Scopes: add `email`, `profile`, `openid`, and `https://www.googleapis.com/auth/gmail.readonly`
+   - Publishing status: leave as **Testing** for local development
+
+3. **Add yourself as a test user** (required while app is in Testing status):
+   - On the OAuth consent screen page scroll to **Test users → Add Users**
+   - Add your Google account email (e.g. `you@gmail.com`)
+   - Click **Save**
+   > ⚠️ Without this step you will see "Access blocked: This app's request is invalid" when trying to sign in or connect Gmail, even if all credentials are correct.
+
+4. **APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID**
    - Application type: **Web application**
-   - Authorized redirect URIs: `http://localhost:4000/api/auth/google/callback`
-4. Copy **Client ID** → `GOOGLE_CLIENT_ID`; copy **Client Secret** → `GOOGLE_CLIENT_SECRET`
-5. **Library → enable Gmail API** (required for Phase 4 Gmail integration)
+   - **Authorized redirect URIs** — add **both** of the following:
+     ```
+     http://localhost:4000/api/auth/google/callback
+     http://localhost:4000/api/integrations/gmail/callback
+     ```
+   - The first URI handles Sign in with Google; the second handles the Gmail integration connect flow. Both are required.
+   - Click **Create**
+
+5. Copy **Client ID** → `GOOGLE_CLIENT_ID`; copy **Client Secret** → `GOOGLE_CLIENT_SECRET`
+
+6. **APIs & Services → Library → search "Gmail API" → Enable**
+   - Required for the Gmail integration sync to work. Sign in with Google does not require it.
+
+> **Single client for both flows.** ordrctrl uses one OAuth 2.0 client for both authentication (Sign in with Google) and Gmail integration. The two flows use different redirect URIs but the same `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`. Ensure both redirect URIs are registered on the same client.
+
+> **Production note.** To allow users outside your test list to sign in, change the publishing status from **Testing** to **Production** on the OAuth consent screen page. Google will require app verification for sensitive scopes (like Gmail read access).
 
 ---
 
