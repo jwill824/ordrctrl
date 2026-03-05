@@ -1,0 +1,256 @@
+// T036 — Microsoft Tasks Integration Adapter
+// Microsoft Graph API OAuth 2.0 + To Do tasks endpoint
+
+import { prisma } from '../../lib/db.js';
+import { encrypt, decrypt } from '../../lib/encryption.js';
+import { logger } from '../../lib/logger.js';
+import {
+  type IntegrationAdapter,
+  type NormalizedItem,
+  type ConnectOptions,
+  TokenRefreshError,
+} from '../_adapter/types.js';
+
+const MS_TOKEN_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
+const MS_GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
+
+export class MicrosoftTasksAdapter implements IntegrationAdapter {
+  readonly serviceId = 'microsoft_tasks' as const;
+
+  async getAuthorizationUrl(state: string, _options?: ConnectOptions): Promise<string> {
+    const clientId = process.env.MICROSOFT_CLIENT_ID!;
+    const redirectUri = encodeURIComponent(
+      `${process.env.API_URL}/api/integrations/microsoft_tasks/callback`
+    );
+    const scope = encodeURIComponent(
+      'offline_access Tasks.Read Tasks.ReadWrite'
+    );
+    const tenantId = process.env.MICROSOFT_TENANT_ID || 'common';
+    return (
+      `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize` +
+      `?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}` +
+      `&scope=${scope}&state=${state}&response_mode=query`
+    );
+  }
+
+  async connect(
+    userId: string,
+    authCode: string,
+    _options?: ConnectOptions
+  ): Promise<{ integrationId: string }> {
+    const clientId = process.env.MICROSOFT_CLIENT_ID!;
+    const clientSecret = process.env.MICROSOFT_CLIENT_SECRET!;
+    const redirectUri = `${process.env.API_URL}/api/integrations/microsoft_tasks/callback`;
+    const tenantId = process.env.MICROSOFT_TENANT_ID || 'common';
+
+    const params = new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      redirect_uri: redirectUri,
+      grant_type: 'authorization_code',
+      code: authCode,
+      scope: 'offline_access Tasks.Read Tasks.ReadWrite',
+    });
+
+    const res = await fetch(
+      `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString(),
+      }
+    );
+
+    if (!res.ok) {
+      throw new Error(`Microsoft token exchange failed: ${await res.text()}`);
+    }
+
+    const tokenData = (await res.json()) as {
+      access_token: string;
+      refresh_token?: string;
+      expires_in?: number;
+    };
+
+    const expiresAt = tokenData.expires_in
+      ? new Date(Date.now() + tokenData.expires_in * 1000)
+      : null;
+
+    const integration = await prisma.integration.upsert({
+      where: { userId_serviceId: { userId, serviceId: 'microsoft_tasks' } },
+      create: {
+        userId,
+        serviceId: 'microsoft_tasks',
+        status: 'connected',
+        encryptedAccessToken: encrypt(tokenData.access_token),
+        encryptedRefreshToken: tokenData.refresh_token
+          ? encrypt(tokenData.refresh_token)
+          : null,
+        tokenExpiresAt: expiresAt,
+        lastSyncError: null,
+      },
+      update: {
+        status: 'connected',
+        encryptedAccessToken: encrypt(tokenData.access_token),
+        encryptedRefreshToken: tokenData.refresh_token
+          ? encrypt(tokenData.refresh_token)
+          : null,
+        tokenExpiresAt: expiresAt,
+        lastSyncError: null,
+      },
+    });
+
+    return { integrationId: integration.id };
+  }
+
+  async disconnect(integrationId: string): Promise<void> {
+    const integration = await prisma.integration.findUnique({
+      where: { id: integrationId },
+    });
+    if (!integration) return;
+
+    // Microsoft doesn't support server-side token revocation via a simple endpoint
+    // Tokens expire naturally; we clear locally
+
+    await prisma.$transaction([
+      prisma.syncCacheItem.deleteMany({ where: { integrationId } }),
+      prisma.integration.update({
+        where: { id: integrationId },
+        data: {
+          status: 'disconnected',
+          encryptedAccessToken: '',
+          encryptedRefreshToken: null,
+          tokenExpiresAt: null,
+        },
+      }),
+    ]);
+  }
+
+  async sync(integrationId: string): Promise<NormalizedItem[]> {
+    const integration = await prisma.integration.findUnique({
+      where: { id: integrationId },
+    });
+    if (!integration || integration.status !== 'connected') return [];
+
+    const accessToken = decrypt(integration.encryptedAccessToken);
+
+    try {
+      // Fetch all task lists
+      const listsRes = await fetch(`${MS_GRAPH_BASE}/me/todo/lists`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      if (listsRes.status === 401) {
+        throw new TokenRefreshError(integrationId, 'Access token expired');
+      }
+
+      if (!listsRes.ok) return [];
+
+      const listsData = (await listsRes.json()) as {
+        value: Array<{ id: string; displayName: string }>;
+      };
+
+      const items: NormalizedItem[] = [];
+
+      for (const list of listsData.value) {
+        const tasksRes = await fetch(
+          `${MS_GRAPH_BASE}/me/todo/lists/${list.id}/tasks?$filter=status ne 'completed'&$top=50`,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+        if (!tasksRes.ok) continue;
+
+        const tasksData = (await tasksRes.json()) as {
+          value: Array<{
+            id: string;
+            title: string;
+            dueDateTime?: { dateTime: string; timeZone: string };
+            status: string;
+          }>;
+        };
+
+        for (const task of tasksData.value) {
+          let dueAt: Date | null = null;
+          if (task.dueDateTime?.dateTime) {
+            dueAt = new Date(task.dueDateTime.dateTime);
+          }
+
+          items.push({
+            externalId: task.id,
+            itemType: 'task',
+            title: task.title,
+            dueAt,
+            startAt: null,
+            endAt: null,
+            rawPayload: { listId: list.id, status: task.status },
+          });
+        }
+      }
+
+      return items;
+    } catch (err) {
+      if (err instanceof TokenRefreshError) throw err;
+      logger.error('Microsoft Tasks sync error', {
+        integrationId,
+        error: (err as Error).message,
+      });
+      return [];
+    }
+  }
+
+  async refreshToken(integrationId: string): Promise<void> {
+    const integration = await prisma.integration.findUnique({
+      where: { id: integrationId },
+    });
+    if (!integration?.encryptedRefreshToken) {
+      throw new TokenRefreshError(integrationId, 'No refresh token stored');
+    }
+
+    try {
+      const clientId = process.env.MICROSOFT_CLIENT_ID!;
+      const clientSecret = process.env.MICROSOFT_CLIENT_SECRET!;
+      const tenantId = process.env.MICROSOFT_TENANT_ID || 'common';
+      const refreshToken = decrypt(integration.encryptedRefreshToken);
+
+      const params = new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: 'refresh_token',
+        refresh_token: refreshToken,
+        scope: 'offline_access Tasks.Read Tasks.ReadWrite',
+      });
+
+      const res = await fetch(
+        `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: params.toString(),
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error(`Token refresh failed: ${await res.text()}`);
+      }
+
+      const tokenData = (await res.json()) as {
+        access_token: string;
+        refresh_token?: string;
+        expires_in?: number;
+      };
+
+      await prisma.integration.update({
+        where: { id: integrationId },
+        data: {
+          encryptedAccessToken: encrypt(tokenData.access_token),
+          encryptedRefreshToken: tokenData.refresh_token
+            ? encrypt(tokenData.refresh_token)
+            : integration.encryptedRefreshToken,
+          tokenExpiresAt: tokenData.expires_in
+            ? new Date(Date.now() + tokenData.expires_in * 1000)
+            : null,
+        },
+      });
+    } catch (err) {
+      throw new TokenRefreshError(integrationId, (err as Error).message);
+    }
+  }
+}

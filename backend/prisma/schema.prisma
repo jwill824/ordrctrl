@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AuthProvider {
+  email
+  google
+  apple
+}
+
+enum ServiceId {
+  gmail
+  apple_reminders
+  microsoft_tasks
+  apple_calendar
+}
+
+enum IntegrationStatus {
+  connected
+  error
+  disconnected
+}
+
+enum GmailSyncMode {
+  all_unread
+  starred_only
+}
+
+enum ItemType {
+  task
+  event
+  message
+}
+
+model User {
+  id                  String    @id @default(uuid())
+  email               String    @unique
+  passwordHash        String?
+  authProvider        AuthProvider
+  providerAccountId   String?
+  emailVerified       Boolean   @default(false)
+  emailVerifyToken    String?
+  passwordResetToken  String?
+  passwordResetExpiry DateTime?
+  loginAttempts       Int       @default(0)
+  lockedUntil         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  integrations  Integration[]
+  nativeTasks   NativeTask[]
+
+  @@index([email])
+}
+
+model Integration {
+  id                    String            @id @default(uuid())
+  userId                String
+  serviceId             ServiceId
+  status                IntegrationStatus @default(connected)
+  encryptedAccessToken  String
+  encryptedRefreshToken String?
+  tokenExpiresAt        DateTime?
+  gmailSyncMode         GmailSyncMode?
+  lastSyncAt            DateTime?
+  lastSyncError         String?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  syncCacheItems SyncCacheItem[]
+
+  @@unique([userId, serviceId])
+  @@index([userId])
+  @@index([status])
+}
+
+model SyncCacheItem {
+  id                   String    @id @default(uuid())
+  integrationId        String
+  userId               String
+  itemType             ItemType
+  externalId           String
+  title                String
+  dueAt                DateTime?
+  startAt              DateTime?
+  endAt                DateTime?
+  completedInOrdrctrl  Boolean   @default(false)
+  completedAt          DateTime?
+  syncedAt             DateTime  @default(now())
+  expiresAt            DateTime
+  rawPayload           Json
+
+  integration Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@unique([integrationId, externalId])
+  @@index([userId])
+  @@index([userId, completedInOrdrctrl])
+  @@index([expiresAt])
+}
+
+model NativeTask {
+  id          String    @id @default(uuid())
+  userId      String
+  title       String    @db.VarChar(500)
+  dueAt       DateTime?
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, completed])
+}
