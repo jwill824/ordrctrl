@@ -95,17 +95,17 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
       const { code, state, error: oauthError } = request.query;
 
       if (!isValidServiceId(serviceId)) {
-        return reply.redirect(302, `/onboarding?error=${serviceId}&reason=invalid`);
+        return reply.redirect(302, `${process.env.APP_URL}/onboarding?error=${serviceId}&reason=invalid`);
       }
 
       if (oauthError || !code) {
-        return reply.redirect(302, `/onboarding?error=${serviceId}&reason=denied`);
+        return reply.redirect(302, `${process.env.APP_URL}/onboarding?error=${serviceId}&reason=denied`);
       }
 
       try {
         validateState(state, request.session.oauthState);
       } catch {
-        return reply.redirect(302, `/onboarding?error=${serviceId}&reason=state_mismatch`);
+        return reply.redirect(302, `${process.env.APP_URL}/onboarding?error=${serviceId}&reason=state_mismatch`);
       }
 
       try {
@@ -116,13 +116,13 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
         request.session.oauthState = undefined;
         request.session.gmailSyncMode = undefined;
 
-        return reply.redirect(302, `/onboarding?connected=${serviceId}`);
+        return reply.redirect(302, `${process.env.APP_URL}/onboarding?connected=${serviceId}`);
       } catch (err) {
         logger.error('Integration callback error', {
           serviceId,
           error: (err as Error).message,
         });
-        return reply.redirect(302, `/onboarding?error=${serviceId}&reason=server_error`);
+        return reply.redirect(302, `${process.env.APP_URL}/onboarding?error=${serviceId}&reason=server_error`);
       }
     }
   );
@@ -138,17 +138,17 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
       const { code, state, error: oauthError } = request.body ?? {};
 
       if (!isValidServiceId(serviceId)) {
-        return reply.redirect(302, `/onboarding?error=${serviceId}&reason=invalid`);
+        return reply.redirect(302, `${process.env.APP_URL}/onboarding?error=${serviceId}&reason=invalid`);
       }
 
       if (oauthError || !code) {
-        return reply.redirect(302, `/onboarding?error=${serviceId}&reason=denied`);
+        return reply.redirect(302, `${process.env.APP_URL}/onboarding?error=${serviceId}&reason=denied`);
       }
 
       try {
         validateState(state, request.session.oauthState);
       } catch {
-        return reply.redirect(302, `/onboarding?error=${serviceId}&reason=state_mismatch`);
+        return reply.redirect(302, `${process.env.APP_URL}/onboarding?error=${serviceId}&reason=state_mismatch`);
       }
 
       try {
@@ -157,13 +157,13 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
         request.session.oauthState = undefined;
         request.session.gmailSyncMode = undefined;
 
-        return reply.redirect(302, `/onboarding?connected=${serviceId}`);
+        return reply.redirect(302, `${process.env.APP_URL}/onboarding?connected=${serviceId}`);
       } catch (err) {
         logger.error('Integration POST callback error', {
           serviceId,
           error: (err as Error).message,
         });
-        return reply.redirect(302, `/onboarding?error=${serviceId}&reason=server_error`);
+        return reply.redirect(302, `${process.env.APP_URL}/onboarding?error=${serviceId}&reason=server_error`);
       }
     }
   );
