@@ -15,6 +15,7 @@ interface UseFeedReturn {
   refreshing: boolean;
   refresh: () => Promise<void>;
   completeItem: (itemId: string) => Promise<void>;
+  uncompleteItem: (itemId: string) => Promise<void>;
 }
 
 const POLL_INTERVAL_MS = 60 * 1000; // 60 seconds
@@ -82,6 +83,41 @@ export function useFeed(): UseFeedReturn {
     []
   );
 
+  const uncompleteItem = useCallback(
+    async (itemId: string) => {
+      // Snapshot for rollback
+      let snapshot: typeof data | null = null;
+      setData((prev) => {
+        snapshot = prev;
+        const item = prev.completed.find((i) => i.id === itemId);
+        if (!item) return prev;
+        return {
+          ...prev,
+          completed: prev.completed.filter((i) => i.id !== itemId),
+          items: [{ ...item, completed: false, completedAt: null }, ...prev.items],
+        };
+      });
+
+      try {
+        const result = await feedService.uncompleteItem(itemId);
+        if (result.isLocalOverride) {
+          // Mark the item as just reopened so the inline notice renders
+          setData((prev) => ({
+            ...prev,
+            items: prev.items.map((i) =>
+              i.id === itemId ? { ...i, isJustReopened: true } : i
+            ),
+          }));
+        }
+      } catch (err) {
+        // Roll back optimistic update
+        if (snapshot) setData(snapshot);
+        setError((err as Error).message);
+      }
+    },
+    []
+  );
+
   return {
     items: data.items,
     completed: data.completed,
@@ -91,5 +127,6 @@ export function useFeed(): UseFeedReturn {
     error,
     refresh,
     completeItem,
+    uncompleteItem,
   };
 }

@@ -1,5 +1,5 @@
 // T068 — Unit tests for FeedService
-// Ordering rules, duplicate detection, completed separation
+// Ordering rules, duplicate detection, completed separation, uncomplete logic
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -165,5 +165,116 @@ describe('FeedService — completed separation', () => {
 
     expect(completed[0].id).toBe('newer');
     expect(completed[1].id).toBe('older');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T018 — Unit tests for uncomplete logic
+// Using vi.mock to isolate Prisma interactions
+// ---------------------------------------------------------------------------
+
+vi.mock('../../src/lib/db.js', () => ({
+  prisma: {
+    nativeTask: {
+      findFirst: vi.fn(),
+      update: vi.fn(),
+    },
+    syncCacheItem: {
+      findFirst: vi.fn(),
+      update: vi.fn(),
+    },
+    syncOverride: {
+      upsert: vi.fn(),
+    },
+  },
+}));
+
+import { prisma } from '../../src/lib/db.js';
+import { uncompleteNativeTask, uncompleteSyncItem } from '../../src/feed/feed.service.js';
+
+const mockPrisma = prisma as unknown as {
+  nativeTask: { findFirst: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
+  syncCacheItem: { findFirst: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
+  syncOverride: { upsert: ReturnType<typeof vi.fn> };
+};
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
+
+describe('uncompleteNativeTask()', () => {
+  it('returns uncompleted feed item on success', async () => {
+    mockPrisma.nativeTask.findFirst.mockResolvedValue({ id: 'task-1', userId: 'user-1', completed: true, completedAt: new Date() });
+    mockPrisma.nativeTask.update.mockResolvedValue({ id: 'task-1', title: 'My task', dueAt: null, completed: false, completedAt: null });
+
+    const result = await uncompleteNativeTask('task-1', 'user-1');
+
+    expect(result.id).toBe('native:task-1');
+    expect(result.completed).toBe(false);
+    expect(result.completedAt).toBeNull();
+    expect(result.isLocalOverride).toBe(false);
+  });
+
+  it('throws when task not found', async () => {
+    mockPrisma.nativeTask.findFirst.mockResolvedValue(null);
+
+    await expect(uncompleteNativeTask('missing', 'user-1')).rejects.toThrow('Task not found');
+  });
+
+  it('throws when task is already open', async () => {
+    mockPrisma.nativeTask.findFirst.mockResolvedValue({ id: 'task-1', userId: 'user-1', completed: false, completedAt: null });
+
+    await expect(uncompleteNativeTask('task-1', 'user-1')).rejects.toThrow('Task is not completed');
+  });
+});
+
+describe('uncompleteSyncItem()', () => {
+  it('returns uncompleted feed item with isLocalOverride=true on success', async () => {
+    mockPrisma.syncCacheItem.findFirst.mockResolvedValue({
+      id: 'item-1', userId: 'user-1', completedInOrdrctrl: true,
+      integration: { serviceId: 'gmail' },
+    });
+    mockPrisma.syncCacheItem.update.mockResolvedValue({});
+    mockPrisma.syncOverride.upsert.mockResolvedValue({});
+
+    const result = await uncompleteSyncItem('item-1', 'user-1');
+
+    expect(result.id).toBe('sync:item-1');
+    expect(result.completed).toBe(false);
+    expect(result.completedAt).toBeNull();
+    expect(result.isLocalOverride).toBe(true);
+  });
+
+  it('creates a SyncOverride(REOPENED) record', async () => {
+    mockPrisma.syncCacheItem.findFirst.mockResolvedValue({
+      id: 'item-1', userId: 'user-1', completedInOrdrctrl: true,
+      integration: { serviceId: 'gmail' },
+    });
+    mockPrisma.syncCacheItem.update.mockResolvedValue({});
+    mockPrisma.syncOverride.upsert.mockResolvedValue({});
+
+    await uncompleteSyncItem('item-1', 'user-1');
+
+    expect(mockPrisma.syncOverride.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { syncCacheItemId_overrideType: { syncCacheItemId: 'item-1', overrideType: 'REOPENED' } },
+        create: expect.objectContaining({ overrideType: 'REOPENED' }),
+      })
+    );
+  });
+
+  it('throws when item not found', async () => {
+    mockPrisma.syncCacheItem.findFirst.mockResolvedValue(null);
+
+    await expect(uncompleteSyncItem('missing', 'user-1')).rejects.toThrow('Item not found');
+  });
+
+  it('throws when item is already open', async () => {
+    mockPrisma.syncCacheItem.findFirst.mockResolvedValue({
+      id: 'item-1', userId: 'user-1', completedInOrdrctrl: false,
+      integration: { serviceId: 'gmail' },
+    });
+
+    await expect(uncompleteSyncItem('item-1', 'user-1')).rejects.toThrow('Item is not completed');
   });
 });

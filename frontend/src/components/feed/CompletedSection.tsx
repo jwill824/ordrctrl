@@ -9,9 +9,10 @@ import type { FeedItem } from '@/services/feed.service';
 
 interface CompletedSectionProps {
   items: FeedItem[];
+  onUncomplete: (itemId: string) => void;
 }
 
-export function CompletedSection({ items }: CompletedSectionProps) {
+export function CompletedSection({ items, onUncomplete }: CompletedSectionProps) {
   const [open, setOpen] = useState(false);
 
   if (items.length === 0) return null;
@@ -43,7 +44,8 @@ export function CompletedSection({ items }: CompletedSectionProps) {
             <FeedItemRow
               key={item.id}
               item={item}
-              onComplete={() => {}} // completed items can't be re-completed
+              onComplete={() => {}} // completed items can't be re-completed via this handler
+              onUncomplete={onUncomplete}
             />
           ))}
         </div>

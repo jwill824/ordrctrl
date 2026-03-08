@@ -13,6 +13,7 @@ export interface FeedItem {
   completed: boolean;
   completedAt: string | null;
   isDuplicateSuspect: boolean;
+  isJustReopened?: boolean;
 }
 
 export interface SyncStatusEntry {
@@ -43,6 +44,20 @@ export async function completeItem(itemId: string): Promise<void> {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.message || 'Failed to complete item');
   }
+}
+
+export async function uncompleteItem(
+  itemId: string
+): Promise<{ id: string; completed: false; completedAt: null; isLocalOverride: boolean }> {
+  const res = await fetch(`${API_URL}/api/feed/items/${itemId}/uncomplete`, {
+    method: 'PATCH',
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to reopen item');
+  }
+  return res.json();
 }
 
 export async function triggerSync(): Promise<void> {

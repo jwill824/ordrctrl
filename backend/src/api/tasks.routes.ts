@@ -9,6 +9,7 @@ import {
   createTask,
   updateTask,
   deleteTask,
+  uncompleteTask,
 } from '../tasks/task.service.js';
 
 function requireAuth(request: FastifyRequest, reply: FastifyReply): string | null {
@@ -104,6 +105,31 @@ export async function registerTaskRoutes(app: FastifyInstance): Promise<void> {
         const msg = (err as Error).message;
         if (msg.includes('not found')) {
           return reply.status(404).send({ error: 'Not Found', message: msg });
+        }
+        throw err;
+      }
+    }
+  );
+
+  // PATCH /api/tasks/:id/uncomplete
+  app.patch(
+    '/api/tasks/:id/uncomplete',
+    async (request: FastifyRequest<{ Params: { id: string } }>, reply) => {
+      const userId = requireAuth(request, reply);
+      if (!userId) return;
+
+      const { id } = request.params;
+
+      try {
+        const task = await uncompleteTask(userId, id);
+        return reply.send(task);
+      } catch (err) {
+        const msg = (err as Error).message;
+        if (msg.includes('not found')) {
+          return reply.status(404).send({ error: 'Not Found', message: msg });
+        }
+        if (msg.includes('not completed')) {
+          return reply.status(400).send({ error: 'Bad Request', code: 'ITEM_NOT_COMPLETED', message: msg });
         }
         throw err;
       }
