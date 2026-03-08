@@ -2,6 +2,7 @@
 
 // T051 — FeedItem component
 
+import { useState } from 'react';
 import type { FeedItem as FeedItemType } from '@/services/feed.service';
 
 const SOURCE_COLORS: Record<string, string> = {
@@ -37,10 +38,12 @@ function formatTime(iso: string | null): string {
 interface FeedItemProps {
   item: FeedItemType;
   onComplete: (id: string) => void;
+  onUncomplete?: (id: string) => void;
   onClick?: (item: FeedItemType) => void;
 }
 
-export function FeedItemRow({ item, onComplete, onClick }: FeedItemProps) {
+export function FeedItemRow({ item, onComplete, onUncomplete, onClick }: FeedItemProps) {
+  const [noticeDismissed, setNoticeDismissed] = useState(false);
   const sourceColor = SOURCE_COLORS[item.source] ?? '#a1a1aa';
   const dateStr = item.dueAt
     ? formatDate(item.dueAt)
@@ -56,11 +59,17 @@ export function FeedItemRow({ item, onComplete, onClick }: FeedItemProps) {
       {/* Checkbox */}
       <button
         type="button"
-        aria-label={item.completed ? 'Completed' : 'Mark complete'}
-        onClick={() => !item.completed && onComplete(item.id)}
+        aria-label={item.completed ? 'Reopen task' : 'Mark complete'}
+        onClick={() => {
+          if (item.completed) {
+            onUncomplete?.(item.id);
+          } else {
+            onComplete(item.id);
+          }
+        }}
         className={`w-[1.125rem] h-[1.125rem] border flex-shrink-0 mt-0.5 flex items-center justify-center p-0 ${
           item.completed
-            ? 'border-zinc-400 bg-zinc-400 cursor-default'
+            ? 'border-zinc-400 bg-zinc-400 cursor-pointer hover:bg-zinc-300 hover:border-zinc-300'
             : 'border-zinc-300 bg-white cursor-pointer'
         }`}
       >
@@ -121,6 +130,21 @@ export function FeedItemRow({ item, onComplete, onClick }: FeedItemProps) {
           )}
         </div>
       </div>
+
+      {/* Inline local-override notice for reopened sync items */}
+      {item.isJustReopened && !noticeDismissed && item.source !== 'ordrctrl' && (
+        <div className="flex items-center gap-1.5 mt-1 ml-[1.875rem] text-[0.7rem] text-zinc-400">
+          <span>This change is local to ordrctrl and won't update {item.source}.</span>
+          <button
+            type="button"
+            aria-label="Dismiss notice"
+            onClick={() => setNoticeDismissed(true)}
+            className="bg-transparent border-0 p-0 cursor-pointer text-zinc-400 leading-none"
+          >
+            ×
+          </button>
+        </div>
+      )}
     </div>
   );
 }

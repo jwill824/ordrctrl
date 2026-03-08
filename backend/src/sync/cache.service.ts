@@ -12,6 +12,12 @@ const CACHE_TTL_HOURS = 24;
  * Upsert a batch of NormalizedItems into SyncCacheItem for a given integration.
  * Sets expiresAt = now + 24h.
  * Uses upsert on [integrationId, externalId] to avoid duplicates.
+ *
+ * NOTE: The update block intentionally omits `completedInOrdrctrl` and `completedAt`.
+ * Local completion state is owned by ordrctrl and must never be overwritten by sync.
+ * A SyncOverride(REOPENED) record is the explicit signal that the user has locally
+ * reopened an item — sync must always respect it. If two-way sync (issue #10) ever
+ * needs to push source completion state, it must first check for a SyncOverride.
  */
 export async function persistCacheItems(
   integrationId: string,

@@ -37,6 +37,10 @@ enum ItemType {
   message
 }
 
+enum OverrideType {
+  REOPENED
+}
+
 model User {
   id                  String    @id @default(uuid())
   email               String    @unique
@@ -54,6 +58,7 @@ model User {
 
   integrations  Integration[]
   nativeTasks   NativeTask[]
+  syncOverrides SyncOverride[]
 
   @@index([email])
 }
@@ -97,6 +102,7 @@ model SyncCacheItem {
   rawPayload           Json
 
   integration Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  syncOverrides SyncOverride[]
 
   @@unique([integrationId, externalId])
   @@index([userId])
@@ -118,4 +124,18 @@ model NativeTask {
 
   @@index([userId])
   @@index([userId, completed])
+}
+
+model SyncOverride {
+  id              String       @id @default(uuid())
+  userId          String
+  syncCacheItemId String
+  overrideType    OverrideType
+  createdAt       DateTime     @default(now())
+
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  syncCacheItem SyncCacheItem @relation(fields: [syncCacheItemId], references: [id], onDelete: Cascade)
+
+  @@unique([syncCacheItemId, overrideType])
+  @@index([userId])
 }

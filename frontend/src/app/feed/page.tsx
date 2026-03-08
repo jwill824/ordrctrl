@@ -17,7 +17,7 @@ import { EditTaskModal } from '@/components/tasks/EditTaskModal';
 import type { FeedItem } from '@/services/feed.service';
 
 export default function FeedPage() {
-  const { items, completed, syncStatus, loading, refreshing, error, refresh, completeItem } =
+  const { items, completed, syncStatus, loading, refreshing, error, refresh, completeItem, uncompleteItem } =
     useFeed();
   const { create, update, remove } = useNativeTasks(refresh);
 
@@ -146,7 +146,7 @@ export default function FeedPage() {
         )}
 
         {/* Completed section */}
-        <CompletedSection items={completed} />
+        <CompletedSection items={completed} onUncomplete={uncompleteItem} />
       </main>
 
       {/* Floating Action Button — Add task */}
