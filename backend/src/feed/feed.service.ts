@@ -177,6 +177,7 @@ function buildSyncStatus(
 
 /**
  * Mark a sync cache item as complete in ordrctrl.
+ * Deletes any existing REOPENED SyncOverride for this item.
  * Returns the updated FeedItem fields.
  */
 export async function completeSyncItem(
@@ -194,6 +195,11 @@ export async function completeSyncItem(
   if (updated.count === 0) {
     throw new Error('Item not found or already completed');
   }
+
+  // Delete any REOPENED override — user is re-completing the item
+  await prisma.syncOverride.deleteMany({
+    where: { syncCacheItemId: itemId, overrideType: 'REOPENED' },
+  });
 
   const item = await prisma.syncCacheItem.findUnique({ where: { id: itemId } });
 
@@ -226,5 +232,79 @@ export async function completeNativeTask(
     id: `native:${taskId}`,
     completed: true,
     completedAt: task!.completedAt!.toISOString(),
+  };
+}
+
+/**
+ * Reopen a completed native task (uncheck).
+ */
+export async function uncompleteNativeTask(
+  taskId: string,
+  userId: string
+): Promise<{ id: string; completed: boolean; completedAt: null; isLocalOverride: false }> {
+  const item = await prisma.nativeTask.findFirst({
+    where: { id: taskId, userId },
+  });
+  if (!item) {
+    throw new Error('Task not found');
+  }
+  if (!item.completed) {
+    throw new Error('Task is not completed');
+  }
+
+  await prisma.nativeTask.update({
+    where: { id: taskId },
+    data: { completed: false, completedAt: null },
+  });
+
+  return {
+    id: `native:${taskId}`,
+    completed: false,
+    completedAt: null,
+    isLocalOverride: false,
+  };
+}
+
+/**
+ * Reopen a completed sync-sourced task (uncheck).
+ * Creates a SyncOverride(REOPENED) to preserve the user's intent across future sync cycles.
+ */
+export async function uncompleteSyncItem(
+  itemId: string,
+  userId: string
+): Promise<{ id: string; completed: boolean; completedAt: null; isLocalOverride: true }> {
+  const item = await prisma.syncCacheItem.findFirst({
+    where: { id: itemId, userId },
+    include: { integration: { select: { serviceId: true } } },
+  });
+  if (!item) {
+    throw new Error('Item not found');
+  }
+  if (!item.completedInOrdrctrl) {
+    throw new Error('Item is not completed');
+  }
+
+  await prisma.syncCacheItem.update({
+    where: { id: itemId },
+    data: { completedInOrdrctrl: false, completedAt: null },
+  });
+
+  // Upsert SyncOverride so re-calling this is idempotent
+  await prisma.syncOverride.upsert({
+    where: {
+      syncCacheItemId_overrideType: {
+        syncCacheItemId: itemId,
+        overrideType: 'REOPENED',
+      },
+    },
+    create: { userId, syncCacheItemId: itemId, overrideType: 'REOPENED' },
+    update: { createdAt: new Date() },
+  });
+
+  return {
+    id: `sync:${itemId}`,
+    completed: false,
+    completedAt: null,
+    isLocalOverride: true,
   };
 }

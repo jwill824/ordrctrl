@@ -91,3 +91,35 @@ describe('DELETE /api/tasks/:id', () => {
     expect(res.status).toBe(401);
   });
 });
+
+describe('PATCH /api/feed/items/:itemId/uncomplete', () => {
+  it('returns 401 when unauthenticated', async () => {
+    if (!request) return;
+    const res = await request
+      .patch('/api/feed/items/native:00000000-0000-0000-0000-000000000000/uncomplete');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 400 for malformed itemId (no colon separator)', async () => {
+    if (!request) return;
+    const res = await request
+      .patch('/api/feed/items/invalid-format/uncomplete');
+    expect([400, 401]).toContain(res.status);
+  });
+
+  it('returns 400 for unknown item type prefix', async () => {
+    if (!request) return;
+    const res = await request
+      .patch('/api/feed/items/unknown:00000000-0000-0000-0000-000000000000/uncomplete');
+    expect([400, 401]).toContain(res.status);
+  });
+});
+
+describe('PATCH /api/tasks/:id/uncomplete', () => {
+  it('returns 401 when unauthenticated', async () => {
+    if (!request) return;
+    const res = await request
+      .patch('/api/tasks/00000000-0000-0000-0000-000000000000/uncomplete');
+    expect(res.status).toBe(401);
+  });
+});

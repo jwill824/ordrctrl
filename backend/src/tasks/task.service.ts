@@ -109,3 +109,24 @@ export async function completeTask(
   });
   return toFeedItem(task);
 }
+
+export async function uncompleteTask(
+  userId: string,
+  taskId: string
+): Promise<NativeTaskResult> {
+  const existing = await prisma.nativeTask.findFirst({
+    where: { id: taskId, userId },
+  });
+  if (!existing) {
+    throw new Error('Task not found');
+  }
+  if (!existing.completed) {
+    throw new Error('Task is not completed');
+  }
+
+  const task = await prisma.nativeTask.update({
+    where: { id: taskId },
+    data: { completed: false, completedAt: null },
+  });
+  return toFeedItem(task);
+}
