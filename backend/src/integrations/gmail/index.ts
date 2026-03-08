@@ -9,6 +9,7 @@ import {
   type IntegrationAdapter,
   type NormalizedItem,
   type ConnectOptions,
+  type SubSource,
   TokenRefreshError,
 } from '../_adapter/types.js';
 
@@ -128,6 +129,8 @@ export class GmailAdapter implements IntegrationAdapter {
 
     const accessToken = decrypt(integration.encryptedAccessToken);
     const syncMode = integration.gmailSyncMode ?? 'starred_only';
+    const importEverything = integration.importEverything ?? true;
+    const selectedSubSourceIds = integration.selectedSubSourceIds ?? [];
 
     // Build Gmail query based on sync mode
     const q = syncMode === 'all_unread' ? 'is:unread' : 'is:starred is:unread';
@@ -158,6 +161,7 @@ export class GmailAdapter implements IntegrationAdapter {
         if (!msgRes.ok) continue;
         const msgData = (await msgRes.json()) as {
           id: string;
+          labelIds?: string[];
           payload?: { headers?: Array<{ name: string; value: string }> };
           internalDate?: string;
         };
@@ -167,6 +171,7 @@ export class GmailAdapter implements IntegrationAdapter {
           headers.find((h) => h.name === 'Subject')?.value ?? '(no subject)';
         const dateHeader = headers.find((h) => h.name === 'Date')?.value;
         const dueAt = dateHeader ? new Date(dateHeader) : null;
+        const subSourceId = msgData.labelIds?.[0];
 
         items.push({
           externalId: msgData.id,
@@ -175,6 +180,7 @@ export class GmailAdapter implements IntegrationAdapter {
           dueAt,
           startAt: null,
           endAt: null,
+          subSourceId,
           rawPayload: { id: msgData.id, internalDate: msgData.internalDate },
         });
       } catch (err) {
@@ -182,7 +188,43 @@ export class GmailAdapter implements IntegrationAdapter {
       }
     }
 
+    // Apply selective import filter
+    if (!importEverything) {
+      if (selectedSubSourceIds.length === 0) return [];
+      return items.filter(
+        (item) => item.subSourceId && selectedSubSourceIds.includes(item.subSourceId)
+      );
+    }
+
     return items;
+  }
+
+  async listSubSources(integrationId: string): Promise<SubSource[]> {
+    try {
+      const integration = await prisma.integration.findUnique({
+        where: { id: integrationId },
+      });
+      if (!integration) return [];
+
+      const accessToken = decrypt(integration.encryptedAccessToken);
+      const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/labels', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      if (!res.ok) return [];
+
+      const data = (await res.json()) as {
+        labels?: Array<{ id: string; name: string }>;
+      };
+
+      return (data.labels ?? []).map((label) => ({
+        id: label.id,
+        label: label.name,
+        type: 'label' as const,
+      }));
+    } catch {
+      return [];
+    }
   }
 
   async refreshToken(integrationId: string): Promise<void> {

@@ -15,3 +15,12 @@ export const connectQuerySchema = z.object({
 export const gmailSyncModeSchema = z.object({
   syncMode: z.enum(['all_unread', 'starred_only']),
 });
+
+export const importFilterBodySchema = z.object({
+  importEverything: z.boolean(),
+  selectedSubSourceIds: z.array(z.string()).default([]),
+}).refine(
+  (data) => data.importEverything || data.selectedSubSourceIds.length > 0,
+  { message: 'Must select at least one sub-source or enable Import Everything' }
+);
+export type ImportFilterBody = z.infer<typeof importFilterBodySchema>;

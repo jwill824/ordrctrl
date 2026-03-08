@@ -8,6 +8,7 @@ import {
   type IntegrationAdapter,
   type NormalizedItem,
   type ConnectOptions,
+  type SubSource,
   TokenRefreshError,
 } from '../_adapter/types.js';
 
@@ -132,6 +133,8 @@ export class MicrosoftTasksAdapter implements IntegrationAdapter {
     if (!integration || integration.status !== 'connected') return [];
 
     const accessToken = decrypt(integration.encryptedAccessToken);
+    const importEverything = integration.importEverything ?? true;
+    const selectedSubSourceIds = integration.selectedSubSourceIds ?? [];
 
     try {
       // Fetch all task lists
@@ -148,6 +151,9 @@ export class MicrosoftTasksAdapter implements IntegrationAdapter {
       const listsData = (await listsRes.json()) as {
         value: Array<{ id: string; displayName: string }>;
       };
+
+      // If selective import with no selections, return early without any fetching
+      if (!importEverything && selectedSubSourceIds.length === 0) return [];
 
       const items: NormalizedItem[] = [];
 
@@ -180,9 +186,15 @@ export class MicrosoftTasksAdapter implements IntegrationAdapter {
             dueAt,
             startAt: null,
             endAt: null,
+            subSourceId: list.id,
             rawPayload: { listId: list.id, status: task.status },
           });
         }
+      }
+
+      // Post-fetch filter by selectedSubSourceIds
+      if (!importEverything) {
+        return items.filter((item) => item.subSourceId && selectedSubSourceIds.includes(item.subSourceId));
       }
 
       return items;
@@ -192,6 +204,34 @@ export class MicrosoftTasksAdapter implements IntegrationAdapter {
         integrationId,
         error: (err as Error).message,
       });
+      return [];
+    }
+  }
+
+  async listSubSources(integrationId: string): Promise<SubSource[]> {
+    try {
+      const integration = await prisma.integration.findUnique({
+        where: { id: integrationId },
+      });
+      if (!integration) return [];
+
+      const accessToken = decrypt(integration.encryptedAccessToken);
+      const res = await fetch(`${MS_GRAPH_BASE}/me/todo/lists`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      if (!res.ok) return [];
+
+      const data = (await res.json()) as {
+        value: Array<{ id: string; displayName: string }>;
+      };
+
+      return data.value.map((list) => ({
+        id: list.id,
+        label: list.displayName,
+        type: 'list' as const,
+      }));
+    } catch {
       return [];
     }
   }

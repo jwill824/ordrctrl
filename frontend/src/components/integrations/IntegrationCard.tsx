@@ -3,7 +3,8 @@
 // T041 — IntegrationCard component
 import { useState } from 'react';
 import { GmailSyncModeSelector } from './GmailSyncModeSelector';
-import { getConnectUrl } from '@/services/integrations.service';
+import { SubSourceSelector } from './SubSourceSelector';
+import { getConnectUrl, updateImportFilter } from '@/services/integrations.service';
 import type { ServiceId } from '@/services/integrations.service';
 
 const SERVICE_META: Record<
@@ -54,7 +55,10 @@ interface IntegrationCardProps {
   lastSyncAt?: string | null;
   lastSyncError?: string | null;
   gmailSyncMode?: 'all_unread' | 'starred_only' | null;
+  importEverything?: boolean;
+  selectedSubSourceIds?: string[];
   onDisconnect?: () => Promise<void>;
+  onRefresh?: () => void;
   /** If true, shows a simplified "Connect" CTA without disconnect action (onboarding view) */
   onboardingMode?: boolean;
 }
@@ -65,7 +69,10 @@ export function IntegrationCard({
   lastSyncAt,
   lastSyncError,
   gmailSyncMode,
+  importEverything = true,
+  selectedSubSourceIds = [],
   onDisconnect,
+  onRefresh,
   onboardingMode = false,
 }: IntegrationCardProps) {
   const [disconnecting, setDisconnecting] = useState(false);
@@ -73,6 +80,7 @@ export function IntegrationCard({
     gmailSyncMode ?? 'starred_only'
   );
   const [showGmailSelector, setShowGmailSelector] = useState(false);
+  const [showImportFilter, setShowImportFilter] = useState(false);
   const meta = SERVICE_META[serviceId];
 
   const statusBadgeClass =
@@ -142,6 +150,21 @@ export function IntegrationCard({
         <GmailSyncModeSelector value={gmailMode} onChange={setGmailMode} />
       )}
 
+      {/* Import filter panel */}
+      {showImportFilter && status === 'connected' && (
+        <SubSourceSelector
+          serviceId={serviceId}
+          importEverything={importEverything}
+          selectedSubSourceIds={selectedSubSourceIds}
+          onSave={async (filter) => {
+            await updateImportFilter(serviceId, filter);
+            setShowImportFilter(false);
+            onRefresh?.();
+          }}
+          onCancel={() => setShowImportFilter(false)}
+        />
+      )}
+
       {/* Actions */}
       <div className="flex gap-2 flex-wrap mt-3.5">
         {status === 'disconnected' && (
@@ -172,6 +195,13 @@ export function IntegrationCard({
                 Sync mode
               </button>
             )}
+            <button
+              type="button"
+              className={btnSmall}
+              onClick={() => setShowImportFilter((v) => !v)}
+            >
+              {showImportFilter ? 'Hide filter' : 'Edit import filter'}
+            </button>
             <a href={reconnectHref} className={btnSmall}>
               Reconnect
             </a>
