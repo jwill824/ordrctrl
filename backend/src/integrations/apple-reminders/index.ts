@@ -8,6 +8,7 @@ import {
   type IntegrationAdapter,
   type NormalizedItem,
   type ConnectOptions,
+  type SubSource,
   TokenRefreshError,
 } from '../_adapter/types.js';
 
@@ -173,37 +174,49 @@ export class AppleRemindersAdapter implements IntegrationAdapter {
     if (!integration || integration.status !== 'connected') return [];
 
     const accessToken = decrypt(integration.encryptedAccessToken);
+    const importEverything = integration.importEverything ?? true;
+    const selectedSubSourceIds = integration.selectedSubSourceIds ?? [];
 
     try {
-      // Query iCloud CalDAV for VTODO items (reminders)
+      // PROPFIND to discover VTODO collections
       const propfindBody = `<?xml version="1.0" encoding="UTF-8"?>
-<A:propfind xmlns:A="DAV:">
+<A:propfind xmlns:A="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
   <A:prop>
     <A:resourcetype/>
     <A:displayname/>
+    <C:supported-calendar-component-set/>
   </A:prop>
 </A:propfind>`;
 
-      // First PROPFIND to discover the principal URL
-      const principalRes = await fetch(`${CALDAV_BASE}/`, {
+      const propfindRes = await fetch(`${CALDAV_BASE}/`, {
         method: 'PROPFIND',
         headers: {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/xml; charset=utf-8',
-          Depth: '0',
+          Depth: '1',
         },
         body: propfindBody,
       });
 
-      if (!principalRes.ok) {
+      if (!propfindRes.ok) {
         logger.warn('Apple Reminders CalDAV discovery failed', {
           integrationId,
-          status: principalRes.status,
+          status: propfindRes.status,
         });
         return [];
       }
 
-      // Query VTODO items via REPORT
+      const propfindText = await propfindRes.text();
+      const collections = parseCalDAVCollections(propfindText, 'VTODO');
+
+      // Apply selective import filter
+      if (!importEverything && selectedSubSourceIds.length === 0) return [];
+
+      const filteredCollections = importEverything
+        ? collections
+        : collections.filter((c) => selectedSubSourceIds.includes(c.href));
+
+      // REPORT body for VTODO items
       const reportBody = `<?xml version="1.0" encoding="UTF-8"?>
 <C:calendar-query xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
   <D:prop>
@@ -221,25 +234,82 @@ export class AppleRemindersAdapter implements IntegrationAdapter {
   </C:filter>
 </C:calendar-query>`;
 
-      const calRes = await fetch(`${CALDAV_BASE}/`, {
-        method: 'REPORT',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/xml; charset=utf-8',
-          Depth: '1',
-        },
-        body: reportBody,
-      });
+      const items: NormalizedItem[] = [];
 
-      if (!calRes.ok) return [];
+      for (const collection of filteredCollections) {
+        try {
+          const calRes = await fetch(`${CALDAV_BASE}${collection.href}`, {
+            method: 'REPORT',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/xml; charset=utf-8',
+              Depth: '1',
+            },
+            body: reportBody,
+          });
 
-      const calText = await calRes.text();
-      return parseVTodoItems(calText);
+          if (!calRes.ok) continue;
+
+          const calText = await calRes.text();
+          const collectionItems = parseVTodoItems(calText, collection.href);
+          items.push(...collectionItems);
+        } catch (err) {
+          logger.warn('Apple Reminders collection fetch failed', {
+            href: collection.href,
+            error: (err as Error).message,
+          });
+        }
+      }
+
+      return items;
     } catch (err) {
       logger.error('Apple Reminders sync error', {
         integrationId,
         error: (err as Error).message,
       });
+      return [];
+    }
+  }
+
+  async listSubSources(integrationId: string): Promise<SubSource[]> {
+    try {
+      const integration = await prisma.integration.findUnique({
+        where: { id: integrationId },
+      });
+      if (!integration) return [];
+
+      const accessToken = decrypt(integration.encryptedAccessToken);
+
+      const propfindBody = `<?xml version="1.0" encoding="UTF-8"?>
+<A:propfind xmlns:A="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+  <A:prop>
+    <A:resourcetype/>
+    <A:displayname/>
+    <C:supported-calendar-component-set/>
+  </A:prop>
+</A:propfind>`;
+
+      const res = await fetch(`${CALDAV_BASE}/`, {
+        method: 'PROPFIND',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/xml; charset=utf-8',
+          Depth: '1',
+        },
+        body: propfindBody,
+      });
+
+      if (!res.ok) return [];
+
+      const text = await res.text();
+      const collections = parseCalDAVCollections(text, 'VTODO');
+
+      return collections.map((c) => ({
+        id: c.href,
+        label: c.displayName,
+        type: 'list' as const,
+      }));
+    } catch {
       return [];
     }
   }
@@ -294,8 +364,23 @@ export class AppleRemindersAdapter implements IntegrationAdapter {
   }
 }
 
+// Parse CalDAV collection list from PROPFIND XML response
+function parseCalDAVCollections(xmlText: string, componentType: 'VTODO' | 'VEVENT'): Array<{ href: string; displayName: string }> {
+  const collections: Array<{ href: string; displayName: string }> = [];
+  const responseBlocks = xmlText.split(/<[Dd]:response[^>]*>/);
+  for (const block of responseBlocks.slice(1)) {
+    const hrefMatch = block.match(/<[Dd]:href[^>]*>\s*([^<]+)\s*<\/[Dd]:href>/);
+    const nameMatch = block.match(/<[Dd]:displayname[^>]*>\s*([^<]+)\s*<\/[Dd]:displayname>/);
+    const compMatch = block.match(new RegExp(`name="${componentType}"`, 'i'));
+    if (hrefMatch && nameMatch && compMatch) {
+      collections.push({ href: hrefMatch[1].trim(), displayName: nameMatch[1].trim() });
+    }
+  }
+  return collections;
+}
+
 // Parse VTODO items from CalDAV REPORT XML response
-function parseVTodoItems(xmlText: string): NormalizedItem[] {
+function parseVTodoItems(xmlText: string, subSourceId?: string): NormalizedItem[] {
   const items: NormalizedItem[] = [];
 
   // Simple regex-based parsing for MVP (production would use a proper XML/iCal parser)
@@ -336,6 +421,7 @@ function parseVTodoItems(xmlText: string): NormalizedItem[] {
       dueAt,
       startAt: null,
       endAt: null,
+      subSourceId,
       rawPayload: { calData: '[redacted]' },
     });
   }

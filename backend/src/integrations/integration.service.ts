@@ -7,6 +7,7 @@ import { syncQueue } from '../lib/queue.js';
 import { getAdapter } from '../integrations/index.js';
 import type { ServiceId } from '../integrations/_adapter/types.js';
 import type { ConnectOptions } from '../integrations/_adapter/types.js';
+import type { SubSource } from '../integrations/_adapter/types.js';
 
 export type IntegrationStatus = 'connected' | 'error' | 'disconnected';
 
@@ -16,6 +17,8 @@ export interface IntegrationStatusItem {
   lastSyncAt: string | null;
   lastSyncError: string | null;
   gmailSyncMode: 'all_unread' | 'starred_only' | null;
+  importEverything: boolean;
+  selectedSubSourceIds: string[];
 }
 
 const ALL_SERVICE_IDS: ServiceId[] = [
@@ -38,6 +41,8 @@ export async function listIntegrations(userId: string): Promise<IntegrationStatu
       lastSyncAt: true,
       lastSyncError: true,
       gmailSyncMode: true,
+      importEverything: true,
+      selectedSubSourceIds: true,
     },
   });
 
@@ -56,6 +61,8 @@ export async function listIntegrations(userId: string): Promise<IntegrationStatu
           : found?.gmailSyncMode === 'starred_only'
           ? 'starred_only'
           : null,
+      importEverything: found?.importEverything ?? true,
+      selectedSubSourceIds: found?.selectedSubSourceIds ?? [],
     };
   });
 }
@@ -145,4 +152,74 @@ export async function triggerManualSync(userId: string): Promise<number> {
   }
 
   return integrations.length;
+}
+
+/**
+ * Get available sub-sources for a connected integration.
+ */
+export async function getSubSources(userId: string, serviceId: ServiceId): Promise<SubSource[]> {
+  const integration = await prisma.integration.findUnique({
+    where: { userId_serviceId: { userId, serviceId } },
+  });
+  if (!integration || integration.status !== 'connected') {
+    const err = new Error(`Integration not found: ${serviceId}`);
+    (err as any).code = 'INTEGRATION_NOT_FOUND';
+    throw err;
+  }
+  const adapter = getAdapter(serviceId);
+  if (!adapter.listSubSources) return [];
+  try {
+    return await adapter.listSubSources(integration.id);
+  } catch (err) {
+    const provErr = new Error((err as Error).message);
+    (provErr as any).code = 'PROVIDER_ERROR';
+    throw provErr;
+  }
+}
+
+/**
+ * Update import filter (importEverything + selectedSubSourceIds) for an integration.
+ */
+export async function updateImportFilter(
+  userId: string,
+  serviceId: ServiceId,
+  importEverything: boolean,
+  selectedSubSourceIds: string[]
+): Promise<IntegrationStatusItem> {
+  const integration = await prisma.integration.findUnique({
+    where: { userId_serviceId: { userId, serviceId } },
+  });
+  if (!integration || integration.status !== 'connected') {
+    const err = new Error(`Integration not found: ${serviceId}`);
+    (err as any).code = 'INTEGRATION_NOT_FOUND';
+    throw err;
+  }
+  const updated = await prisma.integration.update({
+    where: { userId_serviceId: { userId, serviceId } },
+    data: { importEverything, selectedSubSourceIds },
+    select: {
+      serviceId: true,
+      status: true,
+      lastSyncAt: true,
+      lastSyncError: true,
+      gmailSyncMode: true,
+      importEverything: true,
+      selectedSubSourceIds: true,
+      updatedAt: true,
+    },
+  });
+  return {
+    serviceId: updated.serviceId as ServiceId,
+    status: updated.status as IntegrationStatus,
+    lastSyncAt: updated.lastSyncAt?.toISOString() ?? null,
+    lastSyncError: updated.lastSyncError ?? null,
+    gmailSyncMode:
+      updated.gmailSyncMode === 'all_unread'
+        ? 'all_unread'
+        : updated.gmailSyncMode === 'starred_only'
+        ? 'starred_only'
+        : null,
+    importEverything: updated.importEverything,
+    selectedSubSourceIds: updated.selectedSubSourceIds,
+  };
 }

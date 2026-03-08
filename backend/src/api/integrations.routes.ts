@@ -14,10 +14,13 @@ import {
   connectIntegration,
   disconnectIntegration,
   triggerManualSync,
+  getSubSources,
+  updateImportFilter,
 } from '../integrations/integration.service.js';
 import type { ServiceId } from '../integrations/_adapter/types.js';
 import { generateState, validateState } from '../lib/csrf.js';
 import { logger } from '../lib/logger.js';
+import { importFilterBodySchema } from './schemas/integrations.schemas.js';
 
 const VALID_SERVICE_IDS = ['gmail', 'apple_reminders', 'microsoft_tasks', 'apple_calendar'];
 
@@ -228,4 +231,63 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
     }
     return reply.status(202).send({ message: 'Sync queued', count });
   });
+
+  // GET /api/integrations/:serviceId/sub-sources — list available sub-sources
+  app.get(
+    '/api/integrations/:serviceId/sub-sources',
+    async (request: FastifyRequest<{ Params: { serviceId: string } }>, reply) => {
+      const userId = requireAuth(request, reply);
+      if (!userId) return;
+      const { serviceId } = request.params;
+      if (!isValidServiceId(serviceId)) {
+        return reply.status(400).send({ error: 'Bad Request', message: 'Unknown serviceId' });
+      }
+      try {
+        const subSources = await getSubSources(userId, serviceId);
+        return reply.send({ subSources });
+      } catch (err: any) {
+        if (err.code === 'INTEGRATION_NOT_FOUND') {
+          return reply.status(404).send({ error: 'NotFound', message: err.message });
+        }
+        if (err.code === 'PROVIDER_ERROR') {
+          return reply.status(502).send({ error: 'SubSourceFetchError', message: err.message });
+        }
+        logger.error('getSubSources error', { error: err.message });
+        return reply.status(502).send({ error: 'SubSourceFetchError', message: err.message });
+      }
+    }
+  );
+
+  // PUT /api/integrations/:serviceId/import-filter — update import filter
+  app.put(
+    '/api/integrations/:serviceId/import-filter',
+    async (request: FastifyRequest<{ Params: { serviceId: string } }>, reply) => {
+      const userId = requireAuth(request, reply);
+      if (!userId) return;
+      const { serviceId } = request.params;
+      if (!isValidServiceId(serviceId)) {
+        return reply.status(400).send({ error: 'Bad Request', message: 'Unknown serviceId' });
+      }
+      const parsed = importFilterBodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply
+          .status(400)
+          .send({ error: 'ValidationError', message: parsed.error.errors[0]?.message });
+      }
+      try {
+        const result = await updateImportFilter(
+          userId,
+          serviceId,
+          parsed.data.importEverything,
+          parsed.data.selectedSubSourceIds
+        );
+        return reply.send(result);
+      } catch (err: any) {
+        if (err.code === 'INTEGRATION_NOT_FOUND') {
+          return reply.status(404).send({ error: 'NotFound', message: err.message });
+        }
+        return reply.status(500).send({ error: 'InternalError', message: err.message });
+      }
+    }
+  );
 }

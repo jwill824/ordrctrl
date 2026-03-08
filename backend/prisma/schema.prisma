@@ -72,6 +72,8 @@ model Integration {
   encryptedRefreshToken String?
   tokenExpiresAt        DateTime?
   gmailSyncMode         GmailSyncMode?
+  importEverything      Boolean        @default(true)
+  selectedSubSourceIds  String[]       @default([])
   lastSyncAt            DateTime?
   lastSyncError         String?
   createdAt             DateTime          @default(now())

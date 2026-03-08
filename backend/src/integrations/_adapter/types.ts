@@ -20,7 +20,14 @@ export interface NormalizedItem {
   dueAt: Date | null;
   startAt: Date | null; // calendar events only
   endAt: Date | null;   // calendar events only
+  subSourceId?: string;
   rawPayload: Record<string, unknown>; // never exposed in API responses
+}
+
+export interface SubSource {
+  id: string;
+  label: string;
+  type: 'list' | 'calendar' | 'label' | 'folder';
 }
 
 export interface ConnectOptions {
@@ -63,6 +70,12 @@ export interface IntegrationAdapter {
    * Returns the OAuth authorization URL for this integration.
    */
   getAuthorizationUrl(state: string, options?: ConnectOptions): Promise<string>;
+
+  /**
+   * Lists available sub-sources (labels, lists, calendars) for this integration.
+   * Optional — adapters that do not support sub-sources may omit this.
+   */
+  listSubSources?(integrationId: string): Promise<SubSource[]>;
 }
 
 export class TokenRefreshError extends Error {
