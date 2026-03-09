@@ -57,8 +57,9 @@ export type OAuthPayload = {
   authCode: string;
 };
 
-/** Credential flow (Apple Reminders, Apple Calendar): carries a validated
- *  iCloud email address and an App-Specific Password (dashes stripped). */
+/** Credential flow (Apple Calendar): carries a validated
+ *  iCloud email address and an App-Specific Password (dashes stripped).
+ *  *(Originally listed Apple Reminders here — removed 2026-03-09)* */
 export type CredentialPayload = {
   type: 'credential';
   email: string;
@@ -182,13 +183,17 @@ No new relationships introduced.
 
 ## Field Semantics by ServiceId
 
-| Field | gmail | apple_reminders | apple_calendar | microsoft_tasks |
+> **⚠️ Scope Revision (2026-03-09)**: `apple_reminders` removed from `ServiceId`. Current type is:
+> `export type ServiceId = 'gmail' | 'microsoft_tasks' | 'apple_calendar';`
+> `UseExistingPayload` is retained in the codebase but dormant — see research.md Section 6.
+
+| Field | gmail | ~~apple_reminders~~ | apple_calendar | microsoft_tasks |
 |-------|-------|----------------|----------------|-----------------|
-| `encryptedAccessToken` | OAuth access token | Encrypted iCloud email | Encrypted iCloud email | OAuth access token |
-| `encryptedRefreshToken` | OAuth refresh token | Encrypted ASP (no dashes) | Encrypted ASP (no dashes) | OAuth refresh token |
-| `tokenExpiresAt` | Token expiry | `null` always | `null` always | Token expiry |
-| `gmailSyncMode` | Set | `null` | `null` | `null` |
-| `calendarEventWindowDays` | `30` (ignored) | `30` (ignored) | User-configured | `30` (ignored) |
+| `encryptedAccessToken` | OAuth access token | ~~Encrypted iCloud email~~ | Encrypted iCloud email | OAuth access token |
+| `encryptedRefreshToken` | OAuth refresh token | ~~Encrypted ASP (no dashes)~~ | Encrypted ASP (no dashes) | OAuth refresh token |
+| `tokenExpiresAt` | Token expiry | ~~`null` always~~ | `null` always | Token expiry |
+| `gmailSyncMode` | Set | ~~`null`~~ | `null` | `null` |
+| `calendarEventWindowDays` | `30` (ignored) | ~~`30` (ignored)~~ | User-configured | `30` (ignored) |
 
 > `calendarEventWindowDays` defaults to 30 in Prisma. For non-Apple services it is stored but never read by the adapter — safe to ignore.
 

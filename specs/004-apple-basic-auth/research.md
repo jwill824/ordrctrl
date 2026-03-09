@@ -2,7 +2,8 @@
 
 **Feature**: 004-apple-basic-auth  
 **Phase**: 0 — Outline & Research  
-**Status**: Complete — all NEEDS CLARIFICATION resolved
+**Status**: Complete — all NEEDS CLARIFICATION resolved  
+**Scope Revision (2026-03-09)**: Apple Reminders removed from web app. Decisions 6–7 and 10 partially revised — see notes inline.
 
 ---
 
@@ -123,7 +124,7 @@ export class NotSupportedError extends Error {
 
 ---
 
-## 6. Second Apple Service — Credential Propagation
+## 6. Second Apple Service — Credential Propagation *(Dormant — Apple Reminders removed)*
 
 ### Decision
 The service layer (`connectIntegration()`) detects existing Apple credentials **before** calling the adapter. If the user is connecting `apple_calendar` and `apple_reminders` is already connected (or vice versa), the service copies the encrypted credential values from the existing Integration record and calls `adapter.connect()` with a `CredentialPayload` constructed from those decrypted values. This is transparent to the adapter.
@@ -136,24 +137,27 @@ export type UseExistingPayload = { type: 'use-existing' };
 // Service layer resolves UseExistingPayload → CredentialPayload before calling adapter.connect()
 ```
 
+> **⚠️ Scope Revision (2026-03-09)**: Apple Reminders was removed from the web app. The `use-existing` mechanism is retained in the codebase but has no active trigger path — there is only one Apple service in the web app (`apple_calendar`). This mechanism will activate when Capacitor adds a second Apple service (e.g., an Apple Reminders integration via Swift EventKit plugin).
+
 ### Rationale
 - The adapter never needs to know about credential sharing — it always receives a resolved `CredentialPayload`. This keeps adapters isolated (Constitution Principle I).
 - Decryption happens in the service layer where `encrypt()`/`decrypt()` are already used; no new trust boundary.
 - The one-click confirmation screen (FR-002b) is purely a frontend concern — it shows masked email from `listIntegrations()` response and submits `{ type: 'use-existing' }`.
 
 ### API surface for masked email
-`IntegrationStatusItem` gains a `maskedEmail: string | null` field. Backend masks by taking the email's local part, showing first char + `***` + `@domain`: `j***@icloud.com`. Field is non-null only for Apple services with credentials on file.
+`IntegrationStatusItem` gains a `maskedEmail: string | null` field. Backend masks by taking the email's local part, showing first char + `***` + `@domain`: `j***@icloud.com`. Field is non-null only for `apple_calendar` with credentials on file.
 
 ---
 
-## 7. Disconnect Cleanup — Cross-Check Logic
+## 7. Disconnect Cleanup — Cross-Check Logic *(Simplified — Apple Reminders removed)*
 
 ### Decision
-On `disconnectIntegration(userId, serviceId)` for an Apple service, the service layer:
-1. Marks the target Integration as `disconnected` and clears its `encryptedAccessToken` / `encryptedRefreshToken`.
-2. Queries for any other Apple Integration records for the same user that are still `connected`.
-3. If none remain connected → also clear credentials from any other Apple Integration records for the user (in case they exist in `error` state with stale credentials).
-4. If at least one other Apple integration is still `connected` → retain its credentials untouched.
+On `disconnectIntegration(userId, serviceId)` for `apple_calendar`, the service layer:
+1. Marks the Integration as `disconnected` and clears its `encryptedAccessToken` / `encryptedRefreshToken`.
+2. ~~Queries for any other Apple Integration records for the same user that are still `connected`.~~ *(Removed — only one Apple service exists)*
+3. Credentials are always purged on Apple Calendar disconnect.
+
+> **⚠️ Scope Revision (2026-03-09)**: The original cross-check logic queried for a sibling Apple service before deciding whether to purge credentials. Since Apple Reminders was removed, `apple_calendar` is the only Apple service and credentials are always purged on disconnect. The cross-check logic stub is retained in the service layer but simplified.
 
 This logic lives entirely in `integrations.service.ts` — the adapter's `disconnect()` method handles only CalDAV session cleanup (no token revocation needed for Basic Auth).
 
@@ -206,19 +210,41 @@ Both error classes extend `Error` and are defined in `types.ts`.
 
 ---
 
-## 10. Frontend Credential Form Design
+## 10. Frontend Credential Form Design *(Apple Reminders removed — see Scope Revision)*
 
 ### Decision
-Two new components:
-- **`AppleCredentialForm`** — email input (type=`email`) + password input (type=`password`) + a callout block: "What is an App-Specific Password? [Generate one at appleid.apple.com ↗]". Submits via `POST /api/integrations/:serviceId/connect`.
-- **`AppleConfirmationScreen`** — shows masked email from `integration.maskedEmail` + "Connect with this account" button. Submits `{ type: 'use-existing' }` to the same endpoint.
+Two components exist:
+- **`AppleCredentialForm`** — email input (type=`email`) + password input (type=`password`) + a callout block: "What is an App-Specific Password? [Generate one at appleid.apple.com ↗]". Submits via `POST /api/integrations/:serviceId/connect`. Active for `apple_calendar`.
+- **`AppleConfirmationScreen`** — shows masked email from `integration.maskedEmail` + "Connect with this account" button. Retained in codebase but **dormant** — `siblingMaskedEmail` will always be null since there is no second Apple service in the web app.
 
-`IntegrationCard` renders one of these (or the standard OAuth connect button) based on `serviceId` and whether `maskedEmail` is present in the other Apple service's status.
+`IntegrationCard` renders `AppleCredentialForm` for `apple_calendar`. OAuth connect button path unchanged for non-Apple services.
+
+> **⚠️ Scope Revision (2026-03-09)**: Apple Reminders was removed. `AppleConfirmationScreen` is retained for future Capacitor use but never rendered. `IntegrationCard` now only branches on `serviceId === 'apple_calendar'`.
 
 ### Rationale
 - Spec US-1 AC-5 requires visible App-Specific Password guidance. A callout block in the form (not a modal or separate page) is the minimal-surface approach.
 - `type=password` for the ASP input ensures browser password managers won't auto-fill — Apple ASPs are single-use per app, not reusable passwords.
 - Two separate small components rather than one large conditional component — easier to test, easier to iterate.
+
+---
+
+## 11. Apple Reminders — CalDAV Not Viable *(Discovered 2026-03-09)*
+
+### Decision
+Apple Reminders cannot be accessed via CalDAV from a web server. The adapter was deleted. Future support requires **Capacitor** with a Swift EventKit plugin running on the user's own iOS/macOS device.
+
+### Rationale
+- CalDAV on iCloud only surfaces the deprecated default Reminders list (iCloud-synced lists). Users' actual Reminder lists are stored in Gmail, Exchange, or device-local accounts and are completely invisible via CalDAV.
+- Apple Reminders requires **EventKit**, a native macOS/iOS framework. EventKit reads the Reminders database of the OS user running the process — not a remote user's data.
+- For a multi-user web app deployed on a server, EventKit would access the **server's** Reminders, not each user's own Reminders. This is a fundamental architectural mismatch.
+- `eventkit-node` (the Node.js native addon) was evaluated and removed — it is not reusable for Capacitor (different bridge mechanism: Capacitor uses Swift plugins, not Node native addons).
+
+### Impact
+- `apple-reminders/` adapter directory deleted.
+- `apple_reminders` removed from `ServiceId`, adapter registry, all `SERVICE_IDS` arrays, schemas, and feed service.
+- `eventkit-node` uninstalled from `backend/package.json`.
+- `SystemPermissionPayload` and `/api/integrations/capabilities` endpoint removed.
+- Future: tracked as a GitHub issue for Capacitor iOS/macOS implementation.
 
 ---
 
@@ -231,8 +257,9 @@ Two new components:
 | 3 | Credential storage | Reuse `encryptedAccessToken` (email) + `encryptedRefreshToken` (ASP) |
 | 4 | Interface | Discriminated union `OAuthPayload \| CredentialPayload`; OAuth adapters wrap `authCode` |
 | 5 | NotSupportedError | Named class in `types.ts`; thrown from Apple adapter OAuth methods |
-| 6 | Second Apple service | Service-layer `UseExistingPayload`; maskedEmail in status response |
-| 7 | Disconnect cleanup | Service-layer cross-check; clear only when no Apple integration remains connected |
+| 6 | Second Apple service | `UseExistingPayload` retained but dormant; maskedEmail in status response *(Apple Reminders removed)* |
+| 7 | Disconnect cleanup | Credentials always purged on `apple_calendar` disconnect *(simplified — only one Apple service)* |
 | 8 | Event window | New `calendarEventWindowDays Int @default(30)` field; `PUT /event-window` endpoint |
 | 9 | Error discrimination | `InvalidCredentialsError` (401) vs `ProviderUnavailableError` (5xx/timeout) |
-| 10 | Frontend | `AppleCredentialForm` + `AppleConfirmationScreen`; `IntegrationCard` branches on serviceId |
+| 10 | Frontend | `AppleCredentialForm` active; `AppleConfirmationScreen` retained but dormant *(Apple Reminders removed)* |
+| 11 | Apple Reminders | Removed — CalDAV not viable; requires EventKit/Capacitor on user's device *(2026-03-09)* |

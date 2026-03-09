@@ -2,7 +2,10 @@
 
 **Feature**: 004-apple-basic-auth  
 **Phase**: 1 — Design & Contracts  
+**Status**: ✅ Complete — scope revised 2026-03-09  
 **Audience**: Developer picking up tasks from `tasks.md`
+
+> **⚠️ Scope Revision (2026-03-09)**: Apple Reminders was removed from the web app after implementation revealed it requires EventKit (not CalDAV-accessible). Apple Calendar is fully implemented. The `apple-reminders/` adapter directory has been deleted. See `spec.md` Scope Revision for full details.
 
 This guide explains the architecture decisions, file-by-file change map, and local dev/test workflow for this feature. Read this before starting implementation.
 
@@ -10,16 +13,18 @@ This guide explains the architecture decisions, file-by-file change map, and loc
 
 ## Context in 60 Seconds
 
-The Apple Reminders and Apple Calendar adapters are currently broken because **Sign-in-with-Apple OAuth tokens are identity-only** — they do not grant access to iCloud CalDAV data. This feature replaces the OAuth flow with **iCloud Basic Auth** (email + App-Specific Password).
+The Apple Calendar adapter was broken because **Sign-in-with-Apple OAuth tokens are identity-only** — they do not grant access to iCloud CalDAV data. This feature replaces the OAuth flow with **iCloud Basic Auth** (email + App-Specific Password).
 
-The changes touch four layers in a specific dependency order:
+~~Apple Reminders was originally planned to use the same CalDAV approach, but CalDAV on iCloud only surfaces the deprecated default Reminders list — users' actual lists live in Gmail/Exchange/device-local accounts and are invisible via CalDAV. Apple Reminders requires EventKit, a native macOS/iOS framework that cannot be used from a multi-user web server.~~
+
+The implemented changes touch four layers in a specific dependency order:
 1. **`types.ts`** — add the discriminated union payload type, error classes (no deps)
 2. **Prisma schema** — add `calendarEventWindowDays` field, run migration
-3. **Apple adapters** — rewrite auth using Basic Auth (depends on 1)
+3. **Apple Calendar adapter** — rewrite auth using Basic Auth (depends on 1)
 4. **OAuth adapters** — thin wrapper migration (depends on 1)
-5. **Service layer** — credential propagation, disconnect cleanup, new API functions (depends on 1–2)
+5. **Service layer** — disconnect cleanup, new API functions (depends on 1–2)
 6. **Routes** — new POST `/connect` and PUT `/event-window` endpoints (depends on 5)
-7. **Frontend** — `AppleCredentialForm`, `AppleConfirmationScreen`, `IntegrationCard` branch (depends on 6)
+7. **Frontend** — `AppleCredentialForm`, `IntegrationCard` branch (depends on 6)
 
 Implement in this order to avoid circular compile errors.
 
@@ -75,11 +80,11 @@ The migration adds a non-nullable integer column with `DEFAULT 30` — safe for 
 
 ---
 
-## Step 3: Rewrite Apple Adapters
+## Step 3: Rewrite Apple Calendar Adapter *(Apple Reminders deleted — see Scope Revision)*
 
-**Files**:
-- `backend/src/integrations/apple-reminders/index.ts`
-- `backend/src/integrations/apple-calendar/index.ts`
+**File**:
+- `backend/src/integrations/apple-calendar/index.ts` ✅ Done
+- ~~`backend/src/integrations/apple-reminders/index.ts`~~ ❌ Deleted
 
 ### `connect()` rewrite
 
@@ -216,6 +221,8 @@ This is a mechanical change — **no logic changes** inside the methods.
 
 ### `connectIntegration()` — add routing logic
 
+> **Note**: The `use-existing` branch below is retained for schema compatibility but has no active trigger path in the web app (Apple Reminders was removed). It will activate when Capacitor adds a second Apple service.
+
 ```typescript
 export async function connectIntegration(
   userId: string,
@@ -260,30 +267,24 @@ export async function connectIntegration(
 }
 ```
 
-### `disconnectIntegration()` — add Apple cleanup
+### `disconnectIntegration()` — Apple cleanup (simplified)
 
-After the adapter's `disconnect()` call and before returning:
+Since only `apple_calendar` remains in the web app, credentials are always purged on disconnect:
 ```typescript
-if (serviceId === 'apple_reminders' || serviceId === 'apple_calendar') {
-  const appleServiceIds: ServiceId[] = ['apple_reminders', 'apple_calendar'];
-  const remaining = await prisma.integration.findMany({
-    where: { userId, serviceId: { in: appleServiceIds }, status: 'connected' },
+if (serviceId === 'apple_calendar') {
+  // Single Apple service — always purge credentials on disconnect
+  await prisma.integration.update({
+    where: { id: integration.id },
+    data: { encryptedAccessToken: '', encryptedRefreshToken: null },
   });
-  if (remaining.length === 0) {
-    // No Apple integrations left connected → purge credentials from all Apple records
-    await prisma.integration.updateMany({
-      where: { userId, serviceId: { in: appleServiceIds } },
-      data: { encryptedAccessToken: '', encryptedRefreshToken: null },
-    });
-  }
 }
 ```
 
 ### `listIntegrations()` — add maskedEmail + calendarEventWindowDays
 
-Compute `maskedEmail` for Apple services with credentials:
+Compute `maskedEmail` for Apple Calendar with credentials:
 ```typescript
-const maskedEmail = (APPLE_SERVICE_IDS.includes(row.serviceId) && row.encryptedAccessToken)
+const maskedEmail = (row.serviceId === 'apple_calendar' && row.encryptedAccessToken)
   ? maskEmail(decrypt(row.encryptedAccessToken))
   : null;
 ```

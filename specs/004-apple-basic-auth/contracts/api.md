@@ -2,8 +2,11 @@
 
 **Feature**: 004-apple-basic-auth  
 **Phase**: 1 — Design & Contracts  
+**Status**: ✅ Complete — scope revised 2026-03-09  
 **Base URL**: `/api/integrations`  
 **Auth**: All endpoints require `requireAuth()` session middleware (existing).
+
+> **⚠️ Scope Revision (2026-03-09)**: Apple Reminders was removed from the web app. The `POST /connect` endpoint no longer accepts `apple_reminders` as a valid `serviceId`. The `GET /integrations` response no longer includes an `apple_reminders` entry. All other contracts are unchanged.
 
 ---
 
@@ -32,26 +35,15 @@ List all integration statuses for the authenticated user.
 ```json
 [
   {
-    "serviceId": "apple_reminders",
+    "serviceId": "apple_calendar",
     "status": "connected",
     "lastSyncAt": "2026-03-08T10:30:00Z",
     "lastSyncError": null,
     "gmailSyncMode": null,
-    "calendarEventWindowDays": null,
+    "calendarEventWindowDays": 30,
     "maskedEmail": "j***@icloud.com",
     "importEverything": false,
-    "selectedSubSourceIds": ["list-abc123", "list-def456"]
-  },
-  {
-    "serviceId": "apple_calendar",
-    "status": "disconnected",
-    "lastSyncAt": null,
-    "lastSyncError": null,
-    "gmailSyncMode": null,
-    "calendarEventWindowDays": null,
-    "maskedEmail": null,
-    "importEverything": true,
-    "selectedSubSourceIds": []
+    "selectedSubSourceIds": ["cal-abc123", "cal-def456"]
   },
   {
     "serviceId": "gmail",
@@ -79,17 +71,17 @@ List all integration statuses for the authenticated user.
 ```
 
 ### Field Notes
-- `maskedEmail`: Non-null only for Apple services (`apple_reminders`, `apple_calendar`) when credentials exist (any status other than first-time disconnected). Format: `{first_char}***@{domain}`. Example: `"j***@icloud.com"`.
-- `calendarEventWindowDays`: Non-null only for `apple_calendar` integrations that are `connected` or `error`. Null when `disconnected` (no record). Value is always one of `7 | 14 | 30 | 60`.
-- **Frontend use**: The frontend reads `maskedEmail` from the Apple Reminders status to display the confirmation screen when connecting Apple Calendar (and vice versa).
+- `maskedEmail`: Non-null only for `apple_calendar` when credentials exist. Format: `{first_char}***@{domain}`. Example: `"j***@icloud.com"`.
+- `calendarEventWindowDays`: Non-null only for `apple_calendar` integrations that are `connected` or `error`. Null when `disconnected`. Value is always one of `7 | 14 | 30 | 60`.
+- ~~**Frontend use**: The frontend reads `maskedEmail` from the Apple Reminders status to display the confirmation screen when connecting Apple Calendar (and vice versa).~~ *(Removed — Apple Reminders no longer in web app)*
 
 ---
 
 ## `POST /api/integrations/:serviceId/connect` ← **NEW**
 
-Connect an integration using credentials (Apple services) or confirm using existing credentials (second Apple service). This endpoint replaces the OAuth `GET /connect` + `GET|POST /callback` flow for `apple_reminders` and `apple_calendar`.
+Connect an integration using credentials (Apple Calendar only). This endpoint replaces the OAuth `GET /connect` + `GET|POST /callback` flow for `apple_calendar`.
 
-**Applicable serviceIds**: `apple_reminders`, `apple_calendar`  
+**Applicable serviceIds**: `apple_calendar` *(Apple Reminders removed — see Scope Revision)*  
 **Returns 400** for OAuth-only services (`gmail`, `microsoft_tasks`) — use existing OAuth flow for those.
 
 ### Request Body Variants
@@ -112,7 +104,7 @@ Connect an integration using credentials (Apple services) or confirm using exist
 | `password` | `string` | ✅ | App-Specific Password; hyphens accepted (stripped server-side) |
 | `calendarEventWindowDays` | `7\|14\|30\|60` | ❌ | Apple Calendar only; defaults to `30` if omitted |
 
-#### Variant B — Use Existing Credentials (One-Click Confirmation)
+#### Variant B — Use Existing Credentials (One-Click Confirmation) *(Dormant — no second Apple service in web app)*
 
 ```json
 {
@@ -124,7 +116,7 @@ Connect an integration using credentials (Apple services) or confirm using exist
 |-------|------|----------|-------|
 | `type` | `"use-existing"` | ✅ | Discriminator |
 
-Service layer resolves the existing credentials from the other connected Apple Integration for this user. Returns `409` if no existing Apple credentials are on file.
+Service layer resolves the existing credentials from another connected Apple Integration for this user. Returns `409` if no existing Apple credentials are on file. *(This variant is retained in the schema but has no practical trigger path since Apple Reminders is not in the web app.)*
 
 ### Responses
 
@@ -133,7 +125,7 @@ Service layer resolves the existing credentials from the other connected Apple I
 ```json
 {
   "integrationId": "e2f3a4b5-...",
-  "serviceId": "apple_reminders",
+  "serviceId": "apple_calendar",
   "status": "connected"
 }
 ```
@@ -182,7 +174,7 @@ Other `400` codes: `UNSUPPORTED_SERVICE` (when called for `gmail` or `microsoft_
 - Password stripped of hyphens by service layer before adapter call.
 - Credential validation (PROPFIND to caldav.icloud.com) happens synchronously during this request.
 - On success, an immediate sync job is queued (existing behavior, same as OAuth connect).
-- If `apple_reminders` is `connected` and user connects `apple_calendar` with `type: "credential"`, the provided credentials **replace** (overwrite) the existing ones for `apple_reminders` too, and both records are kept in sync by the service layer.
+- ~~If `apple_reminders` is `connected` and user connects `apple_calendar` with `type: "credential"`, the provided credentials **replace** (overwrite) the existing ones for `apple_reminders` too.~~ *(Removed — Apple Reminders not in web app)*
 
 ---
 
@@ -243,9 +235,8 @@ Disconnect an Apple integration. Behavior unchanged for non-Apple services.
 
 **Enhanced behavior for Apple services**:
 1. Marks Integration as `disconnected`; clears `encryptedAccessToken`, `encryptedRefreshToken`.
-2. Checks if any other Apple Integration for this user is still `connected`.
-3. If none connected → also clears credentials from any remaining Apple Integration records (e.g., those in `error` state).
-4. If another Apple integration is still `connected` → that record's credentials are retained.
+2. ~~Checks if any other Apple Integration for this user is still `connected`.~~ *(Removed — only one Apple service; credentials always purged on disconnect)*
+3. All stored iCloud credentials for the user are permanently removed from the Integration record.
 
 Request, response format, and status codes are **unchanged** from the existing contract.
 
@@ -257,10 +248,10 @@ New functions to add:
 
 ```typescript
 /**
- * Connect Apple Reminders or Apple Calendar using fresh iCloud credentials.
+ * Connect Apple Calendar using fresh iCloud credentials.
  */
 export async function connectWithCredentials(
-  serviceId: 'apple_reminders' | 'apple_calendar',
+  serviceId: 'apple_calendar',
   email: string,
   password: string,
   calendarEventWindowDays?: 7 | 14 | 30 | 60,
@@ -269,9 +260,10 @@ export async function connectWithCredentials(
 /**
  * Connect a second Apple service using the existing iCloud credentials already
  * stored for the first connected Apple service.
+ * NOTE: Dormant in web app — Apple Reminders removed; retained for future Capacitor integration.
  */
 export async function confirmWithExisting(
-  serviceId: 'apple_reminders' | 'apple_calendar',
+  serviceId: 'apple_calendar',
 ): Promise<{ integrationId: string; status: string }>;
 
 /**
