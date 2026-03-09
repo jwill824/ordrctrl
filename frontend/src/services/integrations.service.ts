@@ -2,7 +2,7 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
-export type ServiceId = 'gmail' | 'apple_reminders' | 'microsoft_tasks' | 'apple_calendar';
+export type ServiceId = 'gmail' | 'microsoft_tasks' | 'apple_calendar';
 
 export interface SubSource {
   id: string;

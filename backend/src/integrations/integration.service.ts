@@ -34,12 +34,9 @@ export interface IntegrationStatusItem {
 
 const ALL_SERVICE_IDS: ServiceId[] = [
   'gmail',
-  'apple_reminders',
   'microsoft_tasks',
   'apple_calendar',
 ];
-
-const APPLE_SERVICE_IDS: ServiceId[] = ['apple_reminders', 'apple_calendar'];
 
 function maskEmail(email: string): string {
   const [local, domain] = email.split('@');
@@ -70,7 +67,7 @@ export async function listIntegrations(userId: string): Promise<IntegrationStatu
 
   return ALL_SERVICE_IDS.map((serviceId) => {
     const found = byService.get(serviceId);
-    const isApple = APPLE_SERVICE_IDS.includes(serviceId);
+    const isApple = serviceId === 'apple_calendar';
 
     let maskedEmail: string | null = null;
     if (isApple && found && found.status !== 'disconnected' && found.encryptedAccessToken) {
@@ -138,13 +135,10 @@ export async function connectIntegration(
   let adapterPayload: import('../integrations/_adapter/types.js').ConnectPayload;
 
   if (rawPayload.type === 'use-existing') {
-    // Find sibling Apple integration with credentials
-    const siblingServiceId: ServiceId =
-      serviceId === 'apple_reminders' ? 'apple_calendar' : 'apple_reminders';
-    const sibling = await prisma.integration.findUnique({
-      where: { userId_serviceId: { userId, serviceId: siblingServiceId } },
+    const sibling = await prisma.integration.findFirst({
+      where: { userId, serviceId: 'apple_calendar', status: 'connected' },
     });
-    if (!sibling || sibling.status !== 'connected' || !sibling.encryptedAccessToken || !sibling.encryptedRefreshToken) {
+    if (!sibling || !sibling.encryptedAccessToken || !sibling.encryptedRefreshToken) {
       throw new AppError('NO_EXISTING_CREDENTIALS', 'No connected Apple integration with credentials found');
     }
     const email = decrypt(sibling.encryptedAccessToken);
@@ -183,21 +177,6 @@ export async function disconnectIntegration(
 
   const adapter = getAdapter(serviceId);
   await adapter.disconnect(integration.id);
-
-  // Apple cross-check: if sibling is also disconnected and has stale credentials, purge them
-  if (APPLE_SERVICE_IDS.includes(serviceId)) {
-    const siblingServiceId: ServiceId =
-      serviceId === 'apple_reminders' ? 'apple_calendar' : 'apple_reminders';
-    const sibling = await prisma.integration.findUnique({
-      where: { userId_serviceId: { userId, serviceId: siblingServiceId } },
-    });
-    if (sibling && sibling.status === 'disconnected' && sibling.encryptedAccessToken) {
-      await prisma.integration.update({
-        where: { id: sibling.id },
-        data: { encryptedAccessToken: '', encryptedRefreshToken: null },
-      });
-    }
-  }
 
   logger.info('Integration disconnected', { userId, serviceId });
 }
@@ -290,7 +269,7 @@ export async function updateImportFilter(
     },
   });
 
-  const isApple = APPLE_SERVICE_IDS.includes(updated.serviceId as ServiceId);
+  const isApple = updated.serviceId === 'apple_calendar';
   let maskedEmail: string | null = null;
   if (isApple && updated.status !== 'disconnected' && updated.encryptedAccessToken) {
     try { maskedEmail = maskEmail(decrypt(updated.encryptedAccessToken)); } catch { /* ignore */ }

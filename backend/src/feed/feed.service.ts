@@ -153,7 +153,6 @@ function buildSyncStatus(
 ): Record<ServiceId, SyncStatusEntry> {
   const ALL_SERVICE_IDS: ServiceId[] = [
     'gmail',
-    'apple_reminders',
     'microsoft_tasks',
     'apple_calendar',
   ];

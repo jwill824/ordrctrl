@@ -3,7 +3,6 @@ import { z } from 'zod';
 
 export const serviceIdSchema = z.enum([
   'gmail',
-  'apple_reminders',
   'microsoft_tasks',
   'apple_calendar',
 ]);

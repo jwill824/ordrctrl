@@ -22,8 +22,8 @@ import { generateState, validateState } from '../lib/csrf.js';
 import { logger } from '../lib/logger.js';
 import { importFilterBodySchema } from './schemas/integrations.schemas.js';
 
-const VALID_SERVICE_IDS = ['gmail', 'apple_reminders', 'microsoft_tasks', 'apple_calendar'];
-const APPLE_SERVICE_IDS = ['apple_reminders', 'apple_calendar'];
+const VALID_SERVICE_IDS = ['gmail', 'microsoft_tasks', 'apple_calendar'];
+const APPLE_SERVICE_IDS = ['apple_calendar'];
 
 function isValidServiceId(id: string): id is ServiceId {
   return VALID_SERVICE_IDS.includes(id);
@@ -59,7 +59,7 @@ const eventWindowBodySchema = z.object({
 });
 
 export async function registerIntegrationRoutes(app: FastifyInstance): Promise<void> {
-  // GET /api/integrations — list all 4 with status
+  // GET /api/integrations — list all with status
   app.get('/api/integrations', async (request, reply) => {
     const userId = requireAuth(request, reply);
     if (!userId) return;

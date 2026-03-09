@@ -3,12 +3,11 @@ import { useState } from 'react';
 import { confirmWithExisting } from '@/services/integrations.service';
 
 const SERVICE_LABELS: Record<string, string> = {
-  apple_reminders: 'Apple Reminders',
   apple_calendar: 'Apple Calendar',
 };
 
 interface AppleConfirmationScreenProps {
-  serviceId: 'apple_reminders' | 'apple_calendar';
+  serviceId: 'apple_calendar';
   maskedEmail: string;
   onSuccess: () => void;
   onError: (message: string) => void;

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { connectWithCredentials } from '@/services/integrations.service';
 
 interface AppleCredentialFormProps {
-  serviceId: 'apple_reminders' | 'apple_calendar';
+  serviceId: 'apple_calendar';
   onSuccess: () => void;
   onError: (message: string) => void;
 }

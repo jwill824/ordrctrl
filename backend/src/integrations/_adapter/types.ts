@@ -2,13 +2,11 @@
 
 export type ServiceId =
   | 'gmail'
-  | 'apple_reminders'
   | 'microsoft_tasks'
   | 'apple_calendar';
 
 export const SERVICE_DISPLAY_NAMES: Record<ServiceId, string> = {
   gmail: 'Gmail',
-  apple_reminders: 'Apple Reminders',
   microsoft_tasks: 'Microsoft Tasks',
   apple_calendar: 'Apple Calendar',
 };
@@ -48,7 +46,12 @@ export interface CredentialPayload {
   password: string;
 }
 
-export type ConnectPayload = OAuthPayload | CredentialPayload;
+/** Reuse credentials from a sibling Apple integration already connected */
+export interface UseExistingPayload {
+  type: 'use-existing';
+}
+
+export type ConnectPayload = OAuthPayload | CredentialPayload | UseExistingPayload;
 
 export interface IntegrationAdapter {
   /** Identifies which service this adapter handles. */

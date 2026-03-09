@@ -22,15 +22,6 @@ const SERVICE_META: Record<
       </svg>
     ),
   },
-  apple_reminders: {
-    label: 'Apple Reminders',
-    description: 'Sync all your reminders from iCloud into one feed.',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
-      </svg>
-    ),
-  },
   microsoft_tasks: {
     label: 'Microsoft Tasks',
     description: 'Pull in tasks from Microsoft To Do and Planner.',
@@ -91,7 +82,7 @@ export function IntegrationCard({
   const [showImportFilter, setShowImportFilter] = useState(false);
   const [eventWindow, setEventWindow] = useState<number>(calendarEventWindowDays ?? 30);
   const meta = SERVICE_META[serviceId];
-  const isApple = serviceId === 'apple_reminders' || serviceId === 'apple_calendar';
+  const isApple = serviceId === 'apple_calendar';
 
   const statusBadgeClass =
     status === 'connected'
@@ -180,6 +171,7 @@ export function IntegrationCard({
         <div className="mt-3">
           <label className="block text-xs font-medium mb-1">Event window</label>
           <select
+            title="Event window"
             value={eventWindow}
             onChange={async (e) => {
               const days = Number(e.target.value) as 7 | 14 | 30 | 60;
@@ -203,14 +195,14 @@ export function IntegrationCard({
             {isApple ? (
               siblingMaskedEmail ? (
                 <AppleConfirmationScreen
-                  serviceId={serviceId as 'apple_reminders' | 'apple_calendar'}
+                  serviceId="apple_calendar"
                   maskedEmail={siblingMaskedEmail}
                   onSuccess={() => onRefresh?.()}
                   onError={() => {}}
                 />
               ) : (
                 <AppleCredentialForm
-                  serviceId={serviceId as 'apple_reminders' | 'apple_calendar'}
+                  serviceId="apple_calendar"
                   onSuccess={() => onRefresh?.()}
                   onError={() => {}}
                 />
@@ -240,7 +232,7 @@ export function IntegrationCard({
               <div className="w-full">
                 <p className="text-xs font-medium text-red-600 mb-2">Update your iCloud credentials</p>
                 <AppleCredentialForm
-                  serviceId={serviceId as 'apple_reminders' | 'apple_calendar'}
+                  serviceId="apple_calendar"
                   onSuccess={() => onRefresh?.()}
                   onError={() => {}}
                 />
