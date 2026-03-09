@@ -65,7 +65,8 @@ describe('AppleCalendarAdapter - selective import', () => {
   const baseIntegration = {
     id: 'int-1',
     status: 'connected',
-    encryptedAccessToken: 'token',
+    encryptedAccessToken: 'user@icloud.com',
+    encryptedRefreshToken: 'testpassword',
     importEverything: true,
     selectedSubSourceIds: [],
   };
@@ -114,5 +115,153 @@ describe('AppleCalendarAdapter - selective import', () => {
     const items = await adapter.sync('int-1');
     expect(items.length).toBeGreaterThanOrEqual(1);
     expect(items[0].subSourceId).toBe('/calendars/work/');
+  });
+});
+
+import {
+  NotSupportedError,
+  InvalidCredentialsError,
+  ProviderUnavailableError,
+} from '../../src/integrations/_adapter/types.js';
+
+describe('AppleCalendarAdapter - connect + credential flow', () => {
+  let adapter: AppleCalendarAdapter;
+  let mockFetch: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    adapter = new AppleCalendarAdapter();
+    mockFetch = vi.fn();
+    global.fetch = mockFetch;
+    vi.clearAllMocks();
+  });
+
+  it('connect() with valid CredentialPayload mocks 207 PROPFIND and upserts integration', async () => {
+    mockPrisma.integration = {
+      ...mockPrisma.integration,
+      upsert: vi.fn().mockResolvedValue({ id: 'int-new', status: 'connected' }),
+    };
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 207 });
+
+    const result = await adapter.connect('user-1', { type: 'credential', email: 'user@icloud.com', password: 'testpassword' });
+    expect(result.integrationId).toBe('int-new');
+    expect(mockPrisma.integration.upsert).toHaveBeenCalled();
+  });
+
+  it('connect() with OAuthPayload throws NotSupportedError', async () => {
+    await expect(
+      adapter.connect('user-1', { type: 'oauth', authCode: 'code123' })
+    ).rejects.toThrow(NotSupportedError);
+  });
+
+  it('connect() with PROPFIND 401 throws InvalidCredentialsError', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 401 });
+    await expect(
+      adapter.connect('user-1', { type: 'credential', email: 'user@icloud.com', password: 'wrongpass' })
+    ).rejects.toThrow(InvalidCredentialsError);
+  });
+
+  it('connect() with PROPFIND 503 throws ProviderUnavailableError', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 503 });
+    await expect(
+      adapter.connect('user-1', { type: 'credential', email: 'user@icloud.com', password: 'testpassword' })
+    ).rejects.toThrow(ProviderUnavailableError);
+  });
+
+  it('connect() with calendarEventWindowDays: 14 stores 14 on integration record', async () => {
+    const upsertMock = vi.fn().mockResolvedValue({ id: 'int-new', status: 'connected' });
+    mockPrisma.integration = { ...mockPrisma.integration, upsert: upsertMock };
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 207 });
+
+    await adapter.connect('user-1', { type: 'credential', email: 'user@icloud.com', password: 'testpassword' }, { calendarEventWindowDays: 14 });
+
+    const upsertCall = upsertMock.mock.calls[0][0];
+    expect(upsertCall.create.calendarEventWindowDays).toBe(14);
+    expect(upsertCall.update.calendarEventWindowDays).toBe(14);
+  });
+
+  it('connect() with no calendarEventWindowDays defaults to 30', async () => {
+    const upsertMock = vi.fn().mockResolvedValue({ id: 'int-new', status: 'connected' });
+    mockPrisma.integration = { ...mockPrisma.integration, upsert: upsertMock };
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 207 });
+
+    await adapter.connect('user-1', { type: 'credential', email: 'user@icloud.com', password: 'testpassword' });
+
+    const upsertCall = upsertMock.mock.calls[0][0];
+    expect(upsertCall.create.calendarEventWindowDays).toBe(30);
+  });
+
+  it('refreshToken() throws NotSupportedError', async () => {
+    await expect(adapter.refreshToken('int-1')).rejects.toThrow(NotSupportedError);
+  });
+
+  it('getAuthorizationUrl() throws NotSupportedError', async () => {
+    await expect(adapter.getAuthorizationUrl('state')).rejects.toThrow(NotSupportedError);
+  });
+});
+
+describe('AppleCalendarAdapter - sync with Basic Auth', () => {
+  let adapter: AppleCalendarAdapter;
+  let mockFetch: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    adapter = new AppleCalendarAdapter();
+    mockFetch = vi.fn();
+    global.fetch = mockFetch;
+    vi.clearAllMocks();
+  });
+
+  const baseIntegration = {
+    id: 'int-1',
+    status: 'connected',
+    encryptedAccessToken: 'user@icloud.com',
+    encryptedRefreshToken: 'testpassword',
+    importEverything: true,
+    selectedSubSourceIds: [],
+    calendarEventWindowDays: 30,
+  };
+
+  it('sync() uses Basic Auth header', async () => {
+    mockPrisma.integration.findUnique.mockResolvedValue(baseIntegration);
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, status: 207, text: async () => PROPFIND_VEVENT_XML })
+      .mockResolvedValueOnce({ ok: true, text: async () => REPORT_XML('uid1', 'Meeting') })
+      .mockResolvedValueOnce({ ok: true, text: async () => REPORT_XML('uid2', 'Lunch') });
+
+    await adapter.sync('int-1');
+
+    const firstCallHeaders = mockFetch.mock.calls[0][1].headers;
+    expect(firstCallHeaders.Authorization).toMatch(/^Basic /);
+    const decoded = Buffer.from(firstCallHeaders.Authorization.replace('Basic ', ''), 'base64').toString();
+    expect(decoded).toBe('user@icloud.com:testpassword');
+  });
+
+  it('sync() uses calendarEventWindowDays from integration record', async () => {
+    mockPrisma.integration.findUnique.mockResolvedValue({ ...baseIntegration, calendarEventWindowDays: 14 });
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, status: 207, text: async () => PROPFIND_VEVENT_XML })
+      .mockResolvedValueOnce({ ok: true, text: async () => REPORT_XML('uid1', 'Meeting') })
+      .mockResolvedValueOnce({ ok: true, text: async () => REPORT_XML('uid2', 'Lunch') });
+
+    await adapter.sync('int-1');
+
+    // Check that the REPORT body includes a time-range for 14 days, not 30
+    const reportCalls = mockFetch.mock.calls.filter((c) => c[1].method === 'REPORT');
+    const reportBody: string = reportCalls[0][1].body;
+    // With 14 days the end date should be ~14 days from now, not 30
+    expect(reportBody).toContain('time-range');
+  });
+
+  it('sync() with PROPFIND 401 throws InvalidCredentialsError', async () => {
+    mockPrisma.integration.findUnique.mockResolvedValue(baseIntegration);
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 401 });
+
+    await expect(adapter.sync('int-1')).rejects.toThrow(InvalidCredentialsError);
+  });
+
+  it('sync() with PROPFIND 503 throws ProviderUnavailableError', async () => {
+    mockPrisma.integration.findUnique.mockResolvedValue(baseIntegration);
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 503 });
+
+    await expect(adapter.sync('int-1')).rejects.toThrow(ProviderUnavailableError);
   });
 });

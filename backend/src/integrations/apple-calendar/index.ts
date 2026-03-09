@@ -1,5 +1,4 @@
-// T037 — Apple Calendar Integration Adapter
-// Uses Sign in with Apple OAuth + iCloud CalDAV VEVENT for calendar events
+// Apple Calendar Integration Adapter — Basic Auth (iCloud email + App-Specific Password)
 
 import { prisma } from '../../lib/db.js';
 import { encrypt, decrypt } from '../../lib/encryption.js';
@@ -8,90 +7,97 @@ import {
   type IntegrationAdapter,
   type NormalizedItem,
   type ConnectOptions,
+  type ConnectPayload,
   type SubSource,
-  TokenRefreshError,
+  NotSupportedError,
+  InvalidCredentialsError,
+  ProviderUnavailableError,
 } from '../_adapter/types.js';
 
-const APPLE_TOKEN_URL = 'https://appleid.apple.com/auth/token';
-const APPLE_REVOKE_URL = 'https://appleid.apple.com/auth/revoke';
 const CALDAV_BASE = 'https://caldav.icloud.com';
 
-async function buildAppleClientSecret(
-  env: Record<'key' | 'keyId' | 'teamId' | 'clientId', string>
-): Promise<string> {
-  const { SignJWT } = await import('jose');
-  const { createPrivateKey } = await import('crypto');
-  const privateKey = createPrivateKey({ key: env.key, format: 'pem' });
-  return new SignJWT({})
-    .setProtectedHeader({ alg: 'ES256', kid: env.keyId })
-    .setIssuedAt()
-    .setIssuer(env.teamId)
-    .setAudience('https://appleid.apple.com')
-    .setSubject(env.clientId)
-    .setExpirationTime('1h')
-    .sign(privateKey);
+const PROPFIND_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<A:propfind xmlns:A="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+  <A:prop>
+    <A:resourcetype/>
+    <A:displayname/>
+    <C:supported-calendar-component-set/>
+  </A:prop>
+</A:propfind>`;
+
+const PROPFIND_PRINCIPAL_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<A:propfind xmlns:A="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+  <A:prop>
+    <A:current-user-principal/>
+    <C:calendar-home-set/>
+  </A:prop>
+</A:propfind>`;
+
+async function discoverCalendarHome(authHeader: string, serviceId: 'apple_reminders' | 'apple_calendar'): Promise<string> {
+  const discoverRes = await fetch(`${CALDAV_BASE}/.well-known/caldav`, {
+    method: 'PROPFIND',
+    redirect: 'manual',
+    headers: { Authorization: authHeader, 'Content-Type': 'application/xml; charset=utf-8', Depth: '0' },
+    body: PROPFIND_PRINCIPAL_XML,
+  });
+
+  if (discoverRes.status === 401) throw new InvalidCredentialsError(serviceId);
+  if (discoverRes.status >= 500) throw new ProviderUnavailableError(serviceId, discoverRes.status);
+
+  // Case 1: Apple returns 207 Multi-Status directly (calendar-home-set in body)
+  if (discoverRes.status === 207) {
+    const text = await discoverRes.text();
+    const home = extractCalendarHome(text);
+    if (home) return home.startsWith('http') ? home : `${CALDAV_BASE}${home}`;
+  }
+
+  // Case 2: 3xx redirect to user-specific principal URL
+  const location = discoverRes.headers.get('Location');
+  if (!location) throw new ProviderUnavailableError(serviceId, discoverRes.status);
+  const principalUrl = location.startsWith('http') ? location : `${CALDAV_BASE}${location}`;
+
+  const principalRes = await fetch(principalUrl, {
+    method: 'PROPFIND',
+    headers: { Authorization: authHeader, 'Content-Type': 'application/xml; charset=utf-8', Depth: '0' },
+    body: PROPFIND_PRINCIPAL_XML,
+  });
+  if (principalRes.status === 401) throw new InvalidCredentialsError(serviceId);
+  if (!principalRes.ok) throw new ProviderUnavailableError(serviceId, principalRes.status);
+
+  const text = await principalRes.text();
+  const home = extractCalendarHome(text);
+  if (!home) throw new ProviderUnavailableError(serviceId, principalRes.status);
+  return home.startsWith('http') ? home : `${CALDAV_BASE}${home}`;
 }
 
-function getEnvConfig() {
-  return {
-    key: process.env.APPLE_CALENDAR_PRIVATE_KEY!,
-    keyId: process.env.APPLE_CALENDAR_KEY_ID!,
-    teamId: process.env.APPLE_CALENDAR_TEAM_ID!,
-    clientId: process.env.APPLE_CALENDAR_CLIENT_ID!,
-  };
+function extractCalendarHome(xmlText: string): string | null {
+  const homeMatch = xmlText.match(/<[^>\s/]*:?calendar-home-set[^>]*>\s*<[^>\s/]*:?href[^>]*>\s*([^<]+)\s*<\/[^>]*:?href>/i);
+  return homeMatch ? homeMatch[1].trim() : null;
+}
+
+function toAbsoluteUrl(href: string): string {
+  return href.startsWith('http') ? href : `${CALDAV_BASE}${href}`;
 }
 
 export class AppleCalendarAdapter implements IntegrationAdapter {
   readonly serviceId = 'apple_calendar' as const;
 
-  async getAuthorizationUrl(state: string, _options?: ConnectOptions): Promise<string> {
-    const { clientId } = getEnvConfig();
-    const redirectUri = encodeURIComponent(
-      `${process.env.API_URL}/api/integrations/apple_calendar/callback`
-    );
-    const scope = encodeURIComponent('name email');
-    return (
-      `https://appleid.apple.com/auth/authorize?response_type=code` +
-      `&client_id=${clientId}&redirect_uri=${redirectUri}&state=${state}&scope=${scope}&response_mode=form_post`
-    );
+  async getAuthorizationUrl(_state: string, _options?: ConnectOptions): Promise<string> {
+    throw new NotSupportedError('apple_calendar', 'getAuthorizationUrl');
   }
 
   async connect(
     userId: string,
-    authCode: string,
-    _options?: ConnectOptions
+    payload: ConnectPayload,
+    options?: ConnectOptions
   ): Promise<{ integrationId: string }> {
-    const env = getEnvConfig();
-    const redirectUri = `${process.env.API_URL}/api/integrations/apple_calendar/callback`;
-    const clientSecret = await buildAppleClientSecret(env);
-
-    const params = new URLSearchParams({
-      grant_type: 'authorization_code',
-      code: authCode,
-      client_id: env.clientId,
-      client_secret: clientSecret,
-      redirect_uri: redirectUri,
-    });
-
-    const res = await fetch(APPLE_TOKEN_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: params.toString(),
-    });
-
-    if (!res.ok) {
-      throw new Error(`Apple Calendar token exchange failed: ${await res.text()}`);
+    if (payload.type !== 'credential') {
+      throw new NotSupportedError('apple_calendar', 'connect with OAuth');
     }
+    const { email, password } = payload;
+    await this.validateCredentials(email, password);
 
-    const tokenData = (await res.json()) as {
-      access_token: string;
-      refresh_token?: string;
-      expires_in?: number;
-    };
-
-    const expiresAt = tokenData.expires_in
-      ? new Date(Date.now() + tokenData.expires_in * 1000)
-      : null;
+    const windowDays = options?.calendarEventWindowDays ?? 30;
 
     const integration = await prisma.integration.upsert({
       where: { userId_serviceId: { userId, serviceId: 'apple_calendar' } },
@@ -99,57 +105,45 @@ export class AppleCalendarAdapter implements IntegrationAdapter {
         userId,
         serviceId: 'apple_calendar',
         status: 'connected',
-        encryptedAccessToken: encrypt(tokenData.access_token),
-        encryptedRefreshToken: tokenData.refresh_token
-          ? encrypt(tokenData.refresh_token)
-          : null,
-        tokenExpiresAt: expiresAt,
+        encryptedAccessToken: encrypt(email),
+        encryptedRefreshToken: encrypt(password),
+        tokenExpiresAt: null,
+        calendarEventWindowDays: windowDays,
         lastSyncError: null,
       },
       update: {
         status: 'connected',
-        encryptedAccessToken: encrypt(tokenData.access_token),
-        encryptedRefreshToken: tokenData.refresh_token
-          ? encrypt(tokenData.refresh_token)
-          : null,
-        tokenExpiresAt: expiresAt,
+        encryptedAccessToken: encrypt(email),
+        encryptedRefreshToken: encrypt(password),
+        tokenExpiresAt: null,
+        calendarEventWindowDays: windowDays,
         lastSyncError: null,
       },
     });
-
     return { integrationId: integration.id };
   }
 
-  async disconnect(integrationId: string): Promise<void> {
-    const integration = await prisma.integration.findUnique({
-      where: { id: integrationId },
+  private async validateCredentials(email: string, asp: string): Promise<void> {
+    const basic = Buffer.from(`${email}:${asp}`).toString('base64');
+    // Use .well-known/caldav with redirect:manual — Apple redirects the root to the
+    // user-specific principal URL. A redirect (3xx) means the server accepted the
+    // credentials and is sending us to the right place. Only 401 = bad creds.
+    const res = await fetch(`${CALDAV_BASE}/.well-known/caldav`, {
+      method: 'PROPFIND',
+      redirect: 'manual',
+      headers: {
+        Authorization: `Basic ${basic}`,
+        'Content-Type': 'application/xml; charset=utf-8',
+        Depth: '0',
+      },
+      body: PROPFIND_XML,
     });
-    if (!integration) return;
+    if (res.status === 401) throw new InvalidCredentialsError('apple_calendar');
+    if (res.status >= 500) throw new ProviderUnavailableError('apple_calendar', res.status);
+    // 2xx (207 Multi-Status) or 3xx (redirect to user principal) both indicate valid credentials
+  }
 
-    if (integration.encryptedRefreshToken) {
-      try {
-        const env = getEnvConfig();
-        const clientSecret = await buildAppleClientSecret(env);
-        const refreshToken = decrypt(integration.encryptedRefreshToken);
-        const params = new URLSearchParams({
-          client_id: env.clientId,
-          client_secret: clientSecret,
-          token: refreshToken,
-          token_type_hint: 'refresh_token',
-        });
-        await fetch(APPLE_REVOKE_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: params.toString(),
-        });
-      } catch (err) {
-        logger.warn('Apple Calendar token revocation failed', {
-          integrationId,
-          error: (err as Error).message,
-        });
-      }
-    }
-
+  async disconnect(integrationId: string): Promise<void> {
     await prisma.$transaction([
       prisma.syncCacheItem.deleteMany({ where: { integrationId } }),
       prisma.integration.update({
@@ -164,61 +158,48 @@ export class AppleCalendarAdapter implements IntegrationAdapter {
     ]);
   }
 
+  async refreshToken(integrationId: string): Promise<void> {
+    throw new NotSupportedError('apple_calendar', 'refreshToken');
+  }
+
   async sync(integrationId: string): Promise<NormalizedItem[]> {
-    const integration = await prisma.integration.findUnique({
-      where: { id: integrationId },
-    });
+    const integration = await prisma.integration.findUnique({ where: { id: integrationId } });
     if (!integration || integration.status !== 'connected') return [];
 
-    const accessToken = decrypt(integration.encryptedAccessToken);
+    const email = decrypt(integration.encryptedAccessToken);
+    const asp = decrypt(integration.encryptedRefreshToken!);
+    const basic = Buffer.from(`${email}:${asp}`).toString('base64');
+    const authHeader = `Basic ${basic}`;
+
     const importEverything = integration.importEverything ?? true;
     const selectedSubSourceIds = integration.selectedSubSourceIds ?? [];
+    const windowDays = integration.calendarEventWindowDays ?? 30;
 
-    try {
-      // PROPFIND to discover VEVENT collections
-      const propfindBody = `<?xml version="1.0" encoding="UTF-8"?>
-<A:propfind xmlns:A="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
-  <A:prop>
-    <A:resourcetype/>
-    <A:displayname/>
-    <C:supported-calendar-component-set/>
-  </A:prop>
-</A:propfind>`;
+    const calHome = await discoverCalendarHome(authHeader, 'apple_calendar');
+    const propfindRes = await fetch(calHome, {
+      method: 'PROPFIND',
+      headers: { Authorization: authHeader, 'Content-Type': 'application/xml; charset=utf-8', Depth: '1' },
+      body: PROPFIND_XML,
+    });
 
-      const propfindRes = await fetch(`${CALDAV_BASE}/`, {
-        method: 'PROPFIND',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/xml; charset=utf-8',
-          Depth: '1',
-        },
-        body: propfindBody,
-      });
+    if (propfindRes.status === 401) throw new InvalidCredentialsError('apple_calendar');
+    if (!propfindRes.ok) throw new ProviderUnavailableError('apple_calendar', propfindRes.status);
 
-      if (!propfindRes.ok) return [];
+    const propfindText = await propfindRes.text();
+    const collections = parseCalDAVCollections(propfindText, 'VEVENT');
 
-      const propfindText = await propfindRes.text();
-      const collections = parseCalDAVCollections(propfindText, 'VEVENT');
+    if (!importEverything && selectedSubSourceIds.length === 0) return [];
+    const filteredCollections = importEverything
+      ? collections
+      : collections.filter((c) => selectedSubSourceIds.includes(c.href));
 
-      // Apply selective import filter
-      if (!importEverything && selectedSubSourceIds.length === 0) return [];
+    const now = new Date();
+    const future = new Date(now.getTime() + windowDays * 24 * 60 * 60 * 1000);
+    const toCalDAVDate = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
 
-      const filteredCollections = importEverything
-        ? collections
-        : collections.filter((c) => selectedSubSourceIds.includes(c.href));
-
-      // Query upcoming calendar events (next 30 days) via CalDAV REPORT
-      const now = new Date();
-      const future = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-      const toCalDAVDate = (d: Date) =>
-        d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-
-      const reportBody = `<?xml version="1.0" encoding="UTF-8"?>
+    const reportBody = `<?xml version="1.0" encoding="UTF-8"?>
 <C:calendar-query xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
-  <D:prop>
-    <D:getetag/>
-    <C:calendar-data/>
-  </D:prop>
+  <D:prop><D:getetag/><C:calendar-data/></D:prop>
   <C:filter>
     <C:comp-filter name="VCALENDAR">
       <C:comp-filter name="VEVENT">
@@ -228,77 +209,40 @@ export class AppleCalendarAdapter implements IntegrationAdapter {
   </C:filter>
 </C:calendar-query>`;
 
-      const items: NormalizedItem[] = [];
-
-      for (const collection of filteredCollections) {
-        try {
-          const calRes = await fetch(`${CALDAV_BASE}${collection.href}`, {
-            method: 'REPORT',
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              'Content-Type': 'application/xml; charset=utf-8',
-              Depth: '1',
-            },
-            body: reportBody,
-          });
-
-          if (!calRes.ok) continue;
-
-          const calText = await calRes.text();
-          const collectionItems = parseVEventItems(calText, collection.href);
-          items.push(...collectionItems);
-        } catch (err) {
-          logger.warn('Apple Calendar collection fetch failed', {
-            href: collection.href,
-            error: (err as Error).message,
-          });
-        }
+    const items: NormalizedItem[] = [];
+    for (const collection of filteredCollections) {
+      try {
+        const calRes = await fetch(toAbsoluteUrl(collection.href), {
+          method: 'REPORT',
+          headers: { Authorization: authHeader, 'Content-Type': 'application/xml; charset=utf-8', Depth: '1' },
+          body: reportBody,
+        });
+        if (!calRes.ok) continue;
+        items.push(...parseVEventItems(await calRes.text(), collection.href));
+      } catch (err) {
+        logger.warn('Apple Calendar collection fetch failed', { href: collection.href, error: (err as Error).message });
       }
-
-      return items;
-    } catch (err) {
-      logger.error('Apple Calendar sync error', {
-        integrationId,
-        error: (err as Error).message,
-      });
-      return [];
     }
+    return items;
   }
 
   async listSubSources(integrationId: string): Promise<SubSource[]> {
     try {
-      const integration = await prisma.integration.findUnique({
-        where: { id: integrationId },
-      });
+      const integration = await prisma.integration.findUnique({ where: { id: integrationId } });
       if (!integration) return [];
-
-      const accessToken = decrypt(integration.encryptedAccessToken);
-
-      const propfindBody = `<?xml version="1.0" encoding="UTF-8"?>
-<A:propfind xmlns:A="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
-  <A:prop>
-    <A:resourcetype/>
-    <A:displayname/>
-    <C:supported-calendar-component-set/>
-  </A:prop>
-</A:propfind>`;
-
-      const res = await fetch(`${CALDAV_BASE}/`, {
+      const email = decrypt(integration.encryptedAccessToken);
+      if (!integration.encryptedRefreshToken) return [];
+      const asp = decrypt(integration.encryptedRefreshToken);
+      const basic = Buffer.from(`${email}:${asp}`).toString('base64');
+      const authHeader = `Basic ${basic}`;
+      const calHome = await discoverCalendarHome(authHeader, 'apple_calendar');
+      const res = await fetch(calHome, {
         method: 'PROPFIND',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/xml; charset=utf-8',
-          Depth: '1',
-        },
-        body: propfindBody,
+        headers: { Authorization: authHeader, 'Content-Type': 'application/xml; charset=utf-8', Depth: '1' },
+        body: PROPFIND_XML,
       });
-
       if (!res.ok) return [];
-
-      const text = await res.text();
-      const collections = parseCalDAVCollections(text, 'VEVENT');
-
-      return collections.map((c) => ({
+      return parseCalDAVCollections(await res.text(), 'VEVENT').map((c) => ({
         id: c.href,
         label: c.displayName,
         type: 'calendar' as const,
@@ -307,117 +251,58 @@ export class AppleCalendarAdapter implements IntegrationAdapter {
       return [];
     }
   }
-
-  async refreshToken(integrationId: string): Promise<void> {
-    const integration = await prisma.integration.findUnique({
-      where: { id: integrationId },
-    });
-    if (!integration?.encryptedRefreshToken) {
-      throw new TokenRefreshError(integrationId, 'No refresh token stored');
-    }
-
-    try {
-      const env = getEnvConfig();
-      const clientSecret = await buildAppleClientSecret(env);
-      const refreshToken = decrypt(integration.encryptedRefreshToken);
-
-      const params = new URLSearchParams({
-        grant_type: 'refresh_token',
-        refresh_token: refreshToken,
-        client_id: env.clientId,
-        client_secret: clientSecret,
-      });
-
-      const res = await fetch(APPLE_TOKEN_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: params.toString(),
-      });
-
-      if (!res.ok) {
-        throw new Error(`Token refresh failed: ${await res.text()}`);
-      }
-
-      const tokenData = (await res.json()) as {
-        access_token: string;
-        expires_in?: number;
-      };
-
-      await prisma.integration.update({
-        where: { id: integrationId },
-        data: {
-          encryptedAccessToken: encrypt(tokenData.access_token),
-          tokenExpiresAt: tokenData.expires_in
-            ? new Date(Date.now() + tokenData.expires_in * 1000)
-            : null,
-        },
-      });
-    } catch (err) {
-      throw new TokenRefreshError(integrationId, (err as Error).message);
-    }
-  }
 }
 
-// Parse CalDAV collection list from PROPFIND XML response
 function parseCalDAVCollections(xmlText: string, componentType: 'VTODO' | 'VEVENT'): Array<{ href: string; displayName: string }> {
   const collections: Array<{ href: string; displayName: string }> = [];
-  const responseBlocks = xmlText.split(/<[Dd]:response[^>]*>/);
+  const responseBlocks = xmlText.split(/<[^>\s/]*:?response[^>]*>/i);
   for (const block of responseBlocks.slice(1)) {
-    const hrefMatch = block.match(/<[Dd]:href[^>]*>\s*([^<]+)\s*<\/[Dd]:href>/);
-    const nameMatch = block.match(/<[Dd]:displayname[^>]*>\s*([^<]+)\s*<\/[Dd]:displayname>/);
-    const compMatch = block.match(new RegExp(`name="${componentType}"`, 'i'));
-    if (hrefMatch && nameMatch && compMatch) {
+    const hrefMatch = block.match(/<[^>\s/]*:?href[^>]*>\s*([^<]+)\s*<\/[^>]*:?href>/i);
+    const nameMatch = block.match(/<[^>\s/]*:?displayname[^>]*>\s*([^<]*)\s*<\/[^>]*:?displayname>/i);
+    const compMatch = block.match(new RegExp(`name=["']${componentType}["']`, 'i'));
+    const isRoot = hrefMatch && /^\/[^/]+\/calendars\/?$/.test(hrefMatch[1].trim());
+    if (hrefMatch && nameMatch && compMatch && !isRoot) {
       collections.push({ href: hrefMatch[1].trim(), displayName: nameMatch[1].trim() });
     }
   }
   return collections;
 }
 
+function parseICalDate(s: string): Date | null {
+  let iso: string;
+  if (s.length === 8) {
+    // YYYYMMDD → YYYY-MM-DD
+    iso = `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+  } else if (s.length >= 15) {
+    // YYYYMMDDTHHmmss[Z] → YYYY-MM-DDTHH:mm:ss[Z]
+    iso = `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}T${s.slice(9, 11)}:${s.slice(11, 13)}:${s.slice(13, 15)}${s.endsWith('Z') ? 'Z' : ''}`;
+  } else {
+    return null;
+  }
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 function parseVEventItems(xmlText: string, subSourceId?: string): NormalizedItem[] {
   const items: NormalizedItem[] = [];
-
-  const calDataMatches = xmlText.matchAll(
-    /<cal:calendar-data[^>]*>([\s\S]*?)<\/cal:calendar-data>/gi
-  );
-
+  const calDataMatches = xmlText.matchAll(/<[^>\s/]*:?calendar-data[^>]*>([\s\S]*?)<\/[^>]*:?calendar-data>/gi);
   for (const match of calDataMatches) {
     const calData = match[1].replace(/&#13;/g, '').replace(/\r/g, '');
-
     const uidMatch = calData.match(/^UID:(.+)$/m);
     const summaryMatch = calData.match(/^SUMMARY:(.+)$/m);
     const dtStartMatch = calData.match(/^DTSTART(?:;[^:]*)?:(\d{8}(?:T\d{6}Z?)?)/m);
     const dtEndMatch = calData.match(/^DTEND(?:;[^:]*)?:(\d{8}(?:T\d{6}Z?)?)/m);
-
     if (!uidMatch || !summaryMatch) continue;
-
-    const externalId = uidMatch[1].trim();
-    const title = summaryMatch[1].trim();
-
-    const parseICalDate = (s: string): Date | null => {
-      try {
-        if (s.length === 8) {
-          return new Date(`${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`);
-        }
-        return new Date(s);
-      } catch {
-        return null;
-      }
-    };
-
-    const startAt = dtStartMatch ? parseICalDate(dtStartMatch[1]) : null;
-    const endAt = dtEndMatch ? parseICalDate(dtEndMatch[1]) : null;
-
     items.push({
-      externalId,
+      externalId: uidMatch[1].trim(),
       itemType: 'event',
-      title,
+      title: summaryMatch[1].trim(),
       dueAt: null,
-      startAt,
-      endAt,
+      startAt: dtStartMatch ? parseICalDate(dtStartMatch[1]) : null,
+      endAt: dtEndMatch ? parseICalDate(dtEndMatch[1]) : null,
       subSourceId,
       rawPayload: { calData: '[redacted]' },
     });
   }
-
   return items;
 }

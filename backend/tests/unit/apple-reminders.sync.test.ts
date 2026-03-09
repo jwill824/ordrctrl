@@ -65,7 +65,8 @@ describe('AppleRemindersAdapter - selective import', () => {
   const baseIntegration = {
     id: 'int-1',
     status: 'connected',
-    encryptedAccessToken: 'token',
+    encryptedAccessToken: 'user@icloud.com',
+    encryptedRefreshToken: 'testpassword',
     importEverything: true,
     selectedSubSourceIds: [],
   };
@@ -117,5 +118,113 @@ describe('AppleRemindersAdapter - selective import', () => {
     const items = await adapter.sync('int-1');
     expect(items.length).toBeGreaterThanOrEqual(1);
     expect(items[0].subSourceId).toBe('/reminders/work/');
+  });
+});
+
+import {
+  NotSupportedError,
+  InvalidCredentialsError,
+  ProviderUnavailableError,
+} from '../../src/integrations/_adapter/types.js';
+
+describe('AppleRemindersAdapter - connect + credential flow', () => {
+  let adapter: AppleRemindersAdapter;
+  let mockFetch: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    adapter = new AppleRemindersAdapter();
+    mockFetch = vi.fn();
+    global.fetch = mockFetch;
+    vi.clearAllMocks();
+  });
+
+  it('connect() with valid CredentialPayload mocks 207 PROPFIND and upserts integration', async () => {
+    mockPrisma.integration = {
+      ...mockPrisma.integration,
+      upsert: vi.fn().mockResolvedValue({ id: 'int-new', status: 'connected' }),
+    };
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 207 });
+
+    const result = await adapter.connect('user-1', { type: 'credential', email: 'user@icloud.com', password: 'testpassword' });
+    expect(result.integrationId).toBe('int-new');
+    expect(mockPrisma.integration.upsert).toHaveBeenCalled();
+  });
+
+  it('connect() with OAuthPayload throws NotSupportedError', async () => {
+    await expect(
+      adapter.connect('user-1', { type: 'oauth', authCode: 'code123' })
+    ).rejects.toThrow(NotSupportedError);
+  });
+
+  it('connect() with PROPFIND 401 throws InvalidCredentialsError', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 401 });
+    await expect(
+      adapter.connect('user-1', { type: 'credential', email: 'user@icloud.com', password: 'wrongpass' })
+    ).rejects.toThrow(InvalidCredentialsError);
+  });
+
+  it('connect() with PROPFIND 503 throws ProviderUnavailableError', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 503 });
+    await expect(
+      adapter.connect('user-1', { type: 'credential', email: 'user@icloud.com', password: 'testpassword' })
+    ).rejects.toThrow(ProviderUnavailableError);
+  });
+
+  it('refreshToken() throws NotSupportedError', async () => {
+    await expect(adapter.refreshToken('int-1')).rejects.toThrow(NotSupportedError);
+  });
+
+  it('getAuthorizationUrl() throws NotSupportedError', async () => {
+    await expect(adapter.getAuthorizationUrl('state')).rejects.toThrow(NotSupportedError);
+  });
+});
+
+describe('AppleRemindersAdapter - sync with Basic Auth', () => {
+  let adapter: AppleRemindersAdapter;
+  let mockFetch: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    adapter = new AppleRemindersAdapter();
+    mockFetch = vi.fn();
+    global.fetch = mockFetch;
+    vi.clearAllMocks();
+  });
+
+  const baseIntegration = {
+    id: 'int-1',
+    status: 'connected',
+    encryptedAccessToken: 'user@icloud.com',
+    encryptedRefreshToken: 'testpassword',
+    importEverything: true,
+    selectedSubSourceIds: [],
+  };
+
+  it('sync() uses Basic Auth header', async () => {
+    mockPrisma.integration.findUnique.mockResolvedValue(baseIntegration);
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, status: 207, text: async () => PROPFIND_VTODO_XML })
+      .mockResolvedValueOnce({ ok: true, text: async () => REPORT_XML('/reminders/work/', 'uid1', 'Task 1') })
+      .mockResolvedValueOnce({ ok: true, text: async () => REPORT_XML('/reminders/personal/', 'uid2', 'Task 2') });
+
+    await adapter.sync('int-1');
+
+    const firstCallHeaders = mockFetch.mock.calls[0][1].headers;
+    expect(firstCallHeaders.Authorization).toMatch(/^Basic /);
+    const decoded = Buffer.from(firstCallHeaders.Authorization.replace('Basic ', ''), 'base64').toString();
+    expect(decoded).toBe('user@icloud.com:testpassword');
+  });
+
+  it('sync() with PROPFIND 401 throws InvalidCredentialsError', async () => {
+    mockPrisma.integration.findUnique.mockResolvedValue(baseIntegration);
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 401 });
+
+    await expect(adapter.sync('int-1')).rejects.toThrow(InvalidCredentialsError);
+  });
+
+  it('sync() with PROPFIND 503 throws ProviderUnavailableError', async () => {
+    mockPrisma.integration.findUnique.mockResolvedValue(baseIntegration);
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 503 });
+
+    await expect(adapter.sync('int-1')).rejects.toThrow(ProviderUnavailableError);
   });
 });

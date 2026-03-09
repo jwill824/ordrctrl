@@ -20,7 +20,7 @@ A user navigates to the integration settings page and selects either Apple Remin
 1. **Given** Apple Reminders is not connected, **When** the user clicks "Connect" on the Apple Reminders card, **Then** a credential entry form is displayed — no OAuth redirect occurs.
 2. **Given** the credential entry form is displayed, **When** the user submits a valid iCloud email and a valid App-Specific Password, **Then** the integration status becomes "connected" and the user is taken to the sub-source selection step.
 3. **Given** the credential entry form is displayed, **When** the user submits an invalid iCloud email or an incorrect App-Specific Password, **Then** a clear error message is shown and the integration is not marked as connected.
-4. **Given** Apple Reminders is already connected, **When** the user navigates to connect Apple Calendar, **Then** the credential form for Apple Calendar acknowledges that the same iCloud account will be used, so the user does not need to enter credentials from scratch.
+4. **Given** Apple Reminders is already connected, **When** the user navigates to connect Apple Calendar, **Then** a one-click confirmation screen is displayed showing the masked iCloud email address already on file, with a single "Connect with this account" button. No credential re-entry is required.
 5. **Given** the credential entry form is displayed, **When** the user views the form, **Then** guidance for generating an App-Specific Password at appleid.apple.com is clearly visible alongside the input fields.
 
 ---
@@ -77,22 +77,24 @@ A user whose App-Specific Password has been revoked (for security rotation, devi
 
 - **FR-001**: Apple Reminders and Apple Calendar integrations MUST authenticate with iCloud using the user's iCloud email address and an App-Specific Password.
 - **FR-002**: The connection flow for Apple Reminders and Apple Calendar MUST present the user with a credential entry form — not an OAuth redirect to a third-party authorization page.
+- **FR-002b**: When the user connects a second Apple service and iCloud credentials from the first are already on file, the connection flow MUST display a one-click confirmation screen showing the masked iCloud email address already stored, with a single "Connect with this account" button. No credential re-entry is required.
 - **FR-003**: The credential entry form MUST include in-context guidance explaining what an App-Specific Password is and providing a direct reference to the Apple ID account portal where App-Specific Passwords are generated.
 - **FR-004**: The system MUST validate the provided credentials against iCloud before confirming the integration as connected.
-- **FR-005**: The integration adapter contract MUST support both the OAuth redirect connect pattern (used by Gmail and Microsoft integrations) and the credential-form connect pattern (used by Apple integrations), with no disruption to non-Apple integrations.
+- **FR-005**: The integration adapter connect interface MUST distinguish between OAuth-based connections (identified by an authorization code) and credential-based connections (identified by email and password) via a typed payload that explicitly declares which pattern is in use. All existing OAuth adapters (Gmail, Microsoft) continue operating with their existing authorization code flow unchanged. Apple adapters MUST explicitly reject calls to OAuth-specific operations — specifically token refresh and authorization URL generation — with a clear "not supported" error, so any accidental invocation fails immediately and visibly rather than silently misbehaving.
 
 **Credential Storage**
 
 - **FR-006**: iCloud credentials (email address and App-Specific Password) MUST be stored encrypted at rest, using the same encryption standard applied to all other integration credentials in the system.
-- **FR-007**: Apple Reminders and Apple Calendar MUST reference the same stored iCloud credential pair for a given user — connecting both Apple services requires only one set of credentials.
-- **FR-008**: When a user disconnects an Apple integration, the stored iCloud credentials MUST be purged from the system if no other Apple integration for that user remains active. If another Apple integration remains connected, the credentials are retained.
+- **FR-007**: Both the Apple Reminders and Apple Calendar integration records for a given user MUST each store an independent, identical encrypted copy of the iCloud credentials (email address and App-Specific Password). No separate shared-credential entity or schema model is introduced. The service layer MUST enforce credential consistency — when the user connects the second Apple service, the same credentials already stored for the first are applied automatically without prompting for re-entry.
+- **FR-008**: When a user disconnects an Apple integration, the system MUST cross-check both Apple integration records for that user. If no other Apple integration for that user remains active, the stored iCloud credentials in all Apple integration records for that user are permanently purged. If another Apple integration remains connected, its credential copy is retained.
 
 **Sync**
 
 - **FR-009**: After connecting, Apple Reminders MUST be able to retrieve the user's Reminder lists from iCloud and present them as selectable sub-sources for import filtering.
 - **FR-010**: After connecting, Apple Calendar MUST be able to retrieve the user's Calendars from iCloud and present them as selectable sub-sources for import filtering.
 - **FR-011**: Apple Reminders sync MUST fetch incomplete tasks from iCloud and normalize them to the system's standard item format.
-- **FR-012**: Apple Calendar sync MUST fetch upcoming events from iCloud and normalize them to the system's standard item format.
+- **FR-012**: Apple Calendar sync MUST fetch upcoming events from iCloud within the user's configured time window and normalize them to the system's standard item format.
+- **FR-016**: The system MUST provide a per-user configurable time window for Apple Calendar upcoming events, with selectable values of 7, 14, 30, or 60 days. The default for new connections is 30 days. The Apple Calendar adapter reads this preference at each sync cycle.
 - **FR-013**: Both Apple adapters MUST support selective sub-source filtering (specific Reminder lists or Calendars), consistent with the behavior of all other integration adapters.
 
 **Error Handling**
@@ -104,7 +106,7 @@ A user whose App-Specific Password has been revoked (for security rotation, devi
 
 - **Apple iCloud Credential**: A pair of values — an iCloud account email address and an App-Specific Password — that authorizes access to iCloud CalDAV services on behalf of a user. One credential pair serves both Apple Reminders and Apple Calendar for the same user. Stored encrypted at rest.
 - **App-Specific Password**: An application-scoped password generated by the user through the Apple ID account portal. It grants access to iCloud services without exposing the user's primary Apple ID password and can be independently revoked at any time by the user.
-- **Integration**: A record representing a connected external service for a specific user, tracking connection status, encrypted credentials, sub-source filter preferences, last sync time, and any sync errors.
+- **Integration**: A record representing a connected external service for a specific user, tracking connection status, encrypted credentials, sub-source filter preferences, last sync time, any sync errors, and (for Apple Calendar) the user's configured upcoming-events time window (7 / 14 / 30 / 60 days; default 30 days for new connections).
 
 ## Assumptions
 
@@ -112,6 +114,20 @@ A user whose App-Specific Password has been revoked (for security rotation, devi
 - Users have Two-Factor Authentication (2FA) enabled on their Apple ID. Apple requires 2FA to be active before App-Specific Passwords can be generated; without it the credential generation page at appleid.apple.com is unavailable.
 - The iCloud credential (email + App-Specific Password) used to connect either Apple service is valid at the time of connection.
 - Both Apple Reminders and Apple Calendar data are accessible via the user's iCloud account (i.e., iCloud sync is enabled for Reminders and Calendar on the user's Apple devices).
+
+## Clarifications
+
+### Session 2026-03-08
+
+- Q: How should iCloud credentials be stored when both Apple Reminders and Apple Calendar are connected for the same user — shared record, foreign-key reference, or identical copies per Integration row? → A: Both Integration rows store identical encrypted copies of iCloud credentials (email + App-Specific Password). No new schema model is introduced. The service layer enforces credential consistency when the second Apple service is connected; disconnect cleanup cross-checks both rows.
+
+- Q: What UX does the user see when connecting a second Apple service when credentials are already on file? → A: A one-click confirmation screen is shown displaying the masked iCloud email already stored, with a single "Connect with this account" button. No credential re-entry is required.
+
+- Q: What should the connect() adapter interface contract look like to accommodate both OAuth and credential-based flows without breaking existing adapters? → A: A discriminated union payload: `connect(payload: OAuthPayload | CredentialPayload)` where `OAuthPayload = { type: 'oauth'; authCode: string }` and `CredentialPayload = { type: 'credential'; email: string; password: string }`. All existing OAuth adapters (Gmail, Microsoft) wrap their authorization code in the `oauth` variant; no breaking change to those adapters.
+
+- Q: How should Apple adapters handle calls to OAuth-only operations (token refresh, authorization URL generation) that do not apply to credential-based adapters? → A: `refreshToken()` and `getAuthorizationUrl()` on Apple adapters throw `NotSupportedError` with the message "not supported for credential-based adapters". This makes accidental invocation fail fast and visibly.
+
+- Q: What time window should the Apple Calendar adapter use when fetching upcoming events, and should it be fixed or configurable? → A: Configurable per user. A user setting exposes options of 7, 14, 30, or 60 days. The adapter reads the preference at each sync cycle. The default for new connections is 30 days.
 
 ## Success Criteria *(mandatory)*
 

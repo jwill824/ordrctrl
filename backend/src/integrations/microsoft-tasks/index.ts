@@ -8,8 +8,10 @@ import {
   type IntegrationAdapter,
   type NormalizedItem,
   type ConnectOptions,
+  type ConnectPayload,
   type SubSource,
   TokenRefreshError,
+  NotSupportedError,
 } from '../_adapter/types.js';
 
 const MS_TOKEN_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
@@ -36,9 +38,11 @@ export class MicrosoftTasksAdapter implements IntegrationAdapter {
 
   async connect(
     userId: string,
-    authCode: string,
+    payload: ConnectPayload,
     _options?: ConnectOptions
   ): Promise<{ integrationId: string }> {
+    if (payload.type !== 'oauth') throw new NotSupportedError('microsoft_tasks', 'connect with non-OAuth payload');
+    const { authCode } = payload;
     const clientId = process.env.MICROSOFT_CLIENT_ID!;
     const clientSecret = process.env.MICROSOFT_CLIENT_SECRET!;
     const redirectUri = `${process.env.API_URL}/api/integrations/microsoft_tasks/callback`;
