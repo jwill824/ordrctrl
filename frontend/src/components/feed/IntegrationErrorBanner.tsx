@@ -9,9 +9,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 const SERVICE_DISPLAY: Record<string, string> = {
   gmail: 'Gmail',
-  apple_reminders: 'Apple Reminders',
-  microsoft_tasks: 'Microsoft Tasks',
   apple_calendar: 'Apple Calendar',
+  microsoft_tasks: 'Microsoft Tasks',
 };
 
 interface IntegrationErrorBannerProps {

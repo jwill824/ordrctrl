@@ -1,10 +1,4 @@
 // T040 — Integrations API routes
-// GET /api/integrations
-// GET /api/integrations/:serviceId/connect
-// GET /api/integrations/:serviceId/callback (GET or POST for Apple)
-// DELETE /api/integrations/:serviceId
-// POST /api/integrations/:serviceId/reconnect
-// POST /api/integrations/sync
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
@@ -16,13 +10,20 @@ import {
   triggerManualSync,
   getSubSources,
   updateImportFilter,
+  updateCalendarEventWindow,
+  AppError,
 } from '../integrations/integration.service.js';
 import type { ServiceId } from '../integrations/_adapter/types.js';
+import {
+  InvalidCredentialsError,
+  ProviderUnavailableError,
+} from '../integrations/_adapter/types.js';
 import { generateState, validateState } from '../lib/csrf.js';
 import { logger } from '../lib/logger.js';
 import { importFilterBodySchema } from './schemas/integrations.schemas.js';
 
-const VALID_SERVICE_IDS = ['gmail', 'apple_reminders', 'microsoft_tasks', 'apple_calendar'];
+const VALID_SERVICE_IDS = ['gmail', 'microsoft_tasks', 'apple_calendar'];
+const APPLE_SERVICE_IDS = ['apple_calendar'];
 
 function isValidServiceId(id: string): id is ServiceId {
   return VALID_SERVICE_IDS.includes(id);
@@ -41,12 +42,27 @@ const connectQuerySchema = z.object({
   syncMode: z.enum(['all_unread', 'starred_only']).optional(),
 });
 
+const appleConnectBodySchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('credential'),
+    email: z.string().email(),
+    password: z.string().min(1),
+    calendarEventWindowDays: z.union([z.literal(7), z.literal(14), z.literal(30), z.literal(60)]).optional(),
+  }),
+  z.object({
+    type: z.literal('use-existing'),
+  }),
+]);
+
+const eventWindowBodySchema = z.object({
+  days: z.union([z.literal(7), z.literal(14), z.literal(30), z.literal(60)]),
+});
+
 export async function registerIntegrationRoutes(app: FastifyInstance): Promise<void> {
-  // GET /api/integrations — list all 4 with status
+  // GET /api/integrations — list all with status
   app.get('/api/integrations', async (request, reply) => {
     const userId = requireAuth(request, reply);
     if (!userId) return;
-
     const integrations = await listIntegrations(userId);
     return reply.send({ integrations });
   });
@@ -63,7 +79,6 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
         return reply.status(400).send({ error: 'Bad Request', message: 'Unknown serviceId' });
       }
 
-      // Check if already connected
       const integrations = await listIntegrations(userId);
       const existing = integrations.find((i) => i.serviceId === serviceId);
       if (existing?.status === 'connected') {
@@ -73,17 +88,57 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
         });
       }
 
-      // Parse options
       const query = connectQuerySchema.safeParse(request.query);
       const syncMode = query.success ? query.data.syncMode : undefined;
 
-      // Generate and store CSRF state
       const state = generateState();
       request.session.oauthState = state;
       if (syncMode) request.session.gmailSyncMode = syncMode;
 
       const authUrl = await getAuthorizationUrl(serviceId, state, { gmailSyncMode: syncMode });
       return reply.redirect(302, authUrl);
+    }
+  );
+
+  // POST /api/integrations/:serviceId/connect — credential-based connect for Apple
+  app.post(
+    '/api/integrations/:serviceId/connect',
+    async (request: FastifyRequest<{ Params: { serviceId: string } }>, reply) => {
+      const userId = requireAuth(request, reply);
+      if (!userId) return;
+
+      const { serviceId } = request.params;
+      if (!isValidServiceId(serviceId) || !APPLE_SERVICE_IDS.includes(serviceId)) {
+        return reply.status(400).send({ error: 'UNSUPPORTED_SERVICE', message: 'This endpoint is only for Apple services' });
+      }
+
+      const parsed = appleConnectBodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'ValidationError', message: parsed.error.errors[0]?.message });
+      }
+
+      const body = parsed.data;
+      const options =
+        body.type === 'credential' && body.calendarEventWindowDays
+          ? { calendarEventWindowDays: body.calendarEventWindowDays }
+          : undefined;
+
+      try {
+        const result = await connectIntegration(userId, serviceId, body, options);
+        return reply.status(200).send({ integrationId: result.integrationId, status: 'connected' });
+      } catch (err) {
+        if (err instanceof InvalidCredentialsError) {
+          return reply.status(401).send({ error: 'INVALID_CREDENTIALS', message: (err as Error).message });
+        }
+        if (err instanceof ProviderUnavailableError) {
+          return reply.status(503).send({ error: 'PROVIDER_UNAVAILABLE', message: (err as Error).message });
+        }
+        if (err instanceof AppError && err.code === 'NO_EXISTING_CREDENTIALS') {
+          return reply.status(409).send({ error: 'NO_EXISTING_CREDENTIALS', message: err.message });
+        }
+        logger.error('Apple connect error', { serviceId, error: (err as Error).message });
+        return reply.status(500).send({ error: 'InternalError', message: (err as Error).message });
+      }
     }
   );
 
@@ -113,18 +168,14 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
 
       try {
         const syncMode = request.session.gmailSyncMode as 'all_unread' | 'starred_only' | undefined;
-        await connectIntegration(userId, serviceId, code, { gmailSyncMode: syncMode });
+        await connectIntegration(userId, serviceId, { type: 'oauth', authCode: code }, { gmailSyncMode: syncMode });
 
-        // Clear session state
         request.session.oauthState = undefined;
         request.session.gmailSyncMode = undefined;
 
         return reply.redirect(302, `${process.env.APP_URL}/onboarding?connected=${serviceId}`);
       } catch (err) {
-        logger.error('Integration callback error', {
-          serviceId,
-          error: (err as Error).message,
-        });
+        logger.error('Integration callback error', { serviceId, error: (err as Error).message });
         return reply.redirect(302, `${process.env.APP_URL}/onboarding?error=${serviceId}&reason=server_error`);
       }
     }
@@ -155,17 +206,14 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
       }
 
       try {
-        await connectIntegration(userId, serviceId, code);
+        await connectIntegration(userId, serviceId, { type: 'oauth', authCode: code });
 
         request.session.oauthState = undefined;
         request.session.gmailSyncMode = undefined;
 
         return reply.redirect(302, `${process.env.APP_URL}/onboarding?connected=${serviceId}`);
       } catch (err) {
-        logger.error('Integration POST callback error', {
-          serviceId,
-          error: (err as Error).message,
-        });
+        logger.error('Integration POST callback error', { serviceId, error: (err as Error).message });
         return reply.redirect(302, `${process.env.APP_URL}/onboarding?error=${serviceId}&reason=server_error`);
       }
     }
@@ -270,9 +318,7 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
       }
       const parsed = importFilterBodySchema.safeParse(request.body);
       if (!parsed.success) {
-        return reply
-          .status(400)
-          .send({ error: 'ValidationError', message: parsed.error.errors[0]?.message });
+        return reply.status(400).send({ error: 'ValidationError', message: parsed.error.errors[0]?.message });
       }
       try {
         const result = await updateImportFilter(
@@ -285,6 +331,35 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
       } catch (err: any) {
         if (err.code === 'INTEGRATION_NOT_FOUND') {
           return reply.status(404).send({ error: 'NotFound', message: err.message });
+        }
+        return reply.status(500).send({ error: 'InternalError', message: err.message });
+      }
+    }
+  );
+
+  // PUT /api/integrations/:serviceId/event-window — update calendar event window
+  app.put(
+    '/api/integrations/:serviceId/event-window',
+    async (request: FastifyRequest<{ Params: { serviceId: string } }>, reply) => {
+      const userId = requireAuth(request, reply);
+      if (!userId) return;
+
+      const { serviceId } = request.params;
+      if (serviceId !== 'apple_calendar') {
+        return reply.status(400).send({ error: 'UNSUPPORTED_SERVICE', message: 'This endpoint is only for apple_calendar' });
+      }
+
+      const parsed = eventWindowBodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'ValidationError', message: parsed.error.errors[0]?.message });
+      }
+
+      try {
+        await updateCalendarEventWindow(userId, parsed.data.days);
+        return reply.status(200).send({ calendarEventWindowDays: parsed.data.days });
+      } catch (err: any) {
+        if (err instanceof AppError && err.code === 'INTEGRATION_NOT_FOUND') {
+          return reply.status(404).send({ error: 'INTEGRATION_NOT_FOUND', message: err.message });
         }
         return reply.status(500).send({ error: 'InternalError', message: err.message });
       }

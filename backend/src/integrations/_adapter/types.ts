@@ -2,13 +2,11 @@
 
 export type ServiceId =
   | 'gmail'
-  | 'apple_reminders'
   | 'microsoft_tasks'
   | 'apple_calendar';
 
 export const SERVICE_DISPLAY_NAMES: Record<ServiceId, string> = {
   gmail: 'Gmail',
-  apple_reminders: 'Apple Reminders',
   microsoft_tasks: 'Microsoft Tasks',
   apple_calendar: 'Apple Calendar',
 };
@@ -31,25 +29,46 @@ export interface SubSource {
 }
 
 export interface ConnectOptions {
-  gmailSyncMode?: 'all_unread' | 'starred_only'; // Gmail only
+  gmailSyncMode?: 'all_unread' | 'starred_only';
+  calendarEventWindowDays?: 7 | 14 | 30 | 60;
 }
+
+/** OAuth authorization code payload */
+export interface OAuthPayload {
+  type: 'oauth';
+  authCode: string;
+}
+
+/** iCloud email + App-Specific Password payload */
+export interface CredentialPayload {
+  type: 'credential';
+  email: string;
+  password: string;
+}
+
+/** Reuse credentials from a sibling Apple integration already connected */
+export interface UseExistingPayload {
+  type: 'use-existing';
+}
+
+export type ConnectPayload = OAuthPayload | CredentialPayload | UseExistingPayload;
 
 export interface IntegrationAdapter {
   /** Identifies which service this adapter handles. */
   readonly serviceId: ServiceId;
 
   /**
-   * Exchanges an OAuth authorization code for tokens and persists the
-   * encrypted integration record for the given user.
+   * Connects an integration using the provided payload (OAuth code or credentials)
+   * and persists the encrypted integration record for the given user.
    */
   connect(
     userId: string,
-    authCode: string,
+    payload: ConnectPayload,
     options?: ConnectOptions
   ): Promise<{ integrationId: string }>;
 
   /**
-   * Revokes OAuth tokens at the provider and deletes all stored credentials
+   * Revokes tokens/credentials at the provider and deletes all stored credentials
    * and sync cache items for this integration.
    */
   disconnect(integrationId: string): Promise<void>;
@@ -62,12 +81,13 @@ export interface IntegrationAdapter {
 
   /**
    * Attempts a silent OAuth token refresh using the stored refresh token.
-   * Throws TokenRefreshError on failure.
+   * Throws TokenRefreshError on failure, or NotSupportedError if not applicable.
    */
   refreshToken(integrationId: string): Promise<void>;
 
   /**
    * Returns the OAuth authorization URL for this integration.
+   * Throws NotSupportedError for non-OAuth adapters.
    */
   getAuthorizationUrl(state: string, options?: ConnectOptions): Promise<string>;
 
@@ -85,5 +105,29 @@ export class TokenRefreshError extends Error {
   ) {
     super(message);
     this.name = 'TokenRefreshError';
+  }
+}
+
+export class NotSupportedError extends Error {
+  constructor(serviceId: string, operation: string) {
+    super(`${operation} is not supported for ${serviceId}`);
+    this.name = 'NotSupportedError';
+  }
+}
+
+export class InvalidCredentialsError extends Error {
+  constructor(serviceId: string) {
+    super(`Invalid credentials for ${serviceId}`);
+    this.name = 'InvalidCredentialsError';
+  }
+}
+
+export class ProviderUnavailableError extends Error {
+  constructor(
+    public readonly serviceId: string,
+    public readonly statusCode?: number
+  ) {
+    super(`Provider ${serviceId} is unavailable${statusCode ? ` (HTTP ${statusCode})` : ''}`);
+    this.name = 'ProviderUnavailableError';
   }
 }

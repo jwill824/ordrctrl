@@ -1,13 +1,22 @@
 // T039 — IntegrationService
-// connect (initiate OAuth), disconnect, status, updateGmailSyncMode
 
 import { prisma } from '../lib/db.js';
+import { encrypt, decrypt } from '../lib/encryption.js';
 import { logger } from '../lib/logger.js';
 import { syncQueue } from '../lib/queue.js';
 import { getAdapter } from '../integrations/index.js';
-import type { ServiceId } from '../integrations/_adapter/types.js';
-import type { ConnectOptions } from '../integrations/_adapter/types.js';
-import type { SubSource } from '../integrations/_adapter/types.js';
+import type { ServiceId, ConnectOptions, SubSource, NormalizedItem } from '../integrations/_adapter/types.js';
+import {
+  InvalidCredentialsError,
+  ProviderUnavailableError,
+} from '../integrations/_adapter/types.js';
+
+export class AppError extends Error {
+  constructor(public readonly code: string, message: string) {
+    super(message);
+    this.name = 'AppError';
+  }
+}
 
 export type IntegrationStatus = 'connected' | 'error' | 'disconnected';
 
@@ -19,14 +28,20 @@ export interface IntegrationStatusItem {
   gmailSyncMode: 'all_unread' | 'starred_only' | null;
   importEverything: boolean;
   selectedSubSourceIds: string[];
+  maskedEmail: string | null;
+  calendarEventWindowDays: number | null;
 }
 
 const ALL_SERVICE_IDS: ServiceId[] = [
   'gmail',
-  'apple_reminders',
   'microsoft_tasks',
   'apple_calendar',
 ];
+
+function maskEmail(email: string): string {
+  const [local, domain] = email.split('@');
+  return `${local[0]}***@${domain}`;
+}
 
 /**
  * List all 4 integrations for a user with current status.
@@ -43,6 +58,8 @@ export async function listIntegrations(userId: string): Promise<IntegrationStatu
       gmailSyncMode: true,
       importEverything: true,
       selectedSubSourceIds: true,
+      encryptedAccessToken: true,
+      calendarEventWindowDays: true,
     },
   });
 
@@ -50,6 +67,23 @@ export async function listIntegrations(userId: string): Promise<IntegrationStatu
 
   return ALL_SERVICE_IDS.map((serviceId) => {
     const found = byService.get(serviceId);
+    const isApple = serviceId === 'apple_calendar';
+
+    let maskedEmail: string | null = null;
+    if (isApple && found && found.status !== 'disconnected' && found.encryptedAccessToken) {
+      try {
+        const email = decrypt(found.encryptedAccessToken);
+        maskedEmail = maskEmail(email);
+      } catch {
+        maskedEmail = null;
+      }
+    }
+
+    let calendarEventWindowDays: number | null = null;
+    if (serviceId === 'apple_calendar' && found && found.status !== 'disconnected') {
+      calendarEventWindowDays = found.calendarEventWindowDays ?? 30;
+    }
+
     return {
       serviceId,
       status: (found?.status ?? 'disconnected') as IntegrationStatus,
@@ -63,6 +97,8 @@ export async function listIntegrations(userId: string): Promise<IntegrationStatu
           : null,
       importEverything: found?.importEverything ?? true,
       selectedSubSourceIds: found?.selectedSubSourceIds ?? [],
+      maskedEmail,
+      calendarEventWindowDays,
     };
   });
 }
@@ -79,24 +115,46 @@ export async function getAuthorizationUrl(
   return adapter.getAuthorizationUrl(state, options);
 }
 
+type RawConnectPayload =
+  | { type: 'oauth'; authCode: string }
+  | { type: 'credential'; email: string; password: string }
+  | { type: 'use-existing' };
+
 /**
- * Complete OAuth connection: exchange code for tokens, store integration.
+ * Complete connection: exchange code/credentials for tokens, store integration.
  * Queues an immediate sync job.
  */
 export async function connectIntegration(
   userId: string,
   serviceId: ServiceId,
-  authCode: string,
+  rawPayload: RawConnectPayload,
   options?: ConnectOptions
 ): Promise<{ integrationId: string }> {
   const adapter = getAdapter(serviceId);
-  const result = await adapter.connect(userId, authCode, options);
+
+  let adapterPayload: import('../integrations/_adapter/types.js').ConnectPayload;
+
+  if (rawPayload.type === 'use-existing') {
+    const sibling = await prisma.integration.findFirst({
+      where: { userId, serviceId: 'apple_calendar', status: 'connected' },
+    });
+    if (!sibling || !sibling.encryptedAccessToken || !sibling.encryptedRefreshToken) {
+      throw new AppError('NO_EXISTING_CREDENTIALS', 'No connected Apple integration with credentials found');
+    }
+    const email = decrypt(sibling.encryptedAccessToken);
+    const password = decrypt(sibling.encryptedRefreshToken);
+    adapterPayload = { type: 'credential', email, password };
+  } else if (rawPayload.type === 'credential') {
+    const asp = rawPayload.password.replace(/-/g, '');
+    adapterPayload = { type: 'credential', email: rawPayload.email, password: asp };
+  } else {
+    adapterPayload = { type: 'oauth', authCode: rawPayload.authCode };
+  }
+
+  const result = await adapter.connect(userId, adapterPayload, options);
 
   // Queue immediate sync
-  await syncQueue.add('sync', {
-    integrationId: result.integrationId,
-    userId,
-  });
+  await syncQueue.add('sync', { integrationId: result.integrationId, userId });
 
   logger.info('Integration connected', { userId, serviceId, integrationId: result.integrationId });
   return result;
@@ -205,9 +263,18 @@ export async function updateImportFilter(
       gmailSyncMode: true,
       importEverything: true,
       selectedSubSourceIds: true,
+      encryptedAccessToken: true,
+      calendarEventWindowDays: true,
       updatedAt: true,
     },
   });
+
+  const isApple = updated.serviceId === 'apple_calendar';
+  let maskedEmail: string | null = null;
+  if (isApple && updated.status !== 'disconnected' && updated.encryptedAccessToken) {
+    try { maskedEmail = maskEmail(decrypt(updated.encryptedAccessToken)); } catch { /* ignore */ }
+  }
+
   return {
     serviceId: updated.serviceId as ServiceId,
     status: updated.status as IntegrationStatus,
@@ -221,5 +288,56 @@ export async function updateImportFilter(
         : null,
     importEverything: updated.importEverything,
     selectedSubSourceIds: updated.selectedSubSourceIds,
+    maskedEmail,
+    calendarEventWindowDays:
+      updated.serviceId === 'apple_calendar' && updated.status !== 'disconnected'
+        ? updated.calendarEventWindowDays ?? 30
+        : null,
   };
+}
+
+/**
+ * Update calendarEventWindowDays for the apple_calendar integration.
+ */
+export async function updateCalendarEventWindow(
+  userId: string,
+  days: 7 | 14 | 30 | 60
+): Promise<void> {
+  const integration = await prisma.integration.findUnique({
+    where: { userId_serviceId: { userId, serviceId: 'apple_calendar' } },
+  });
+  if (!integration || integration.status === 'disconnected') {
+    throw new AppError('INTEGRATION_NOT_FOUND', 'Apple Calendar integration not found or disconnected');
+  }
+  await prisma.integration.update({
+    where: { id: integration.id },
+    data: { calendarEventWindowDays: days },
+  });
+}
+
+/**
+ * Run a sync job with proper error handling.
+ */
+export async function runSyncJob(integrationId: string, userId: string): Promise<NormalizedItem[]> {
+  const integration = await prisma.integration.findUnique({ where: { id: integrationId } });
+  if (!integration) return [];
+
+  const adapter = getAdapter(integration.serviceId as ServiceId);
+
+  try {
+    const items = await adapter.sync(integrationId);
+    await prisma.integration.update({
+      where: { id: integrationId },
+      data: { lastSyncAt: new Date(), lastSyncError: null },
+    });
+    return items;
+  } catch (err) {
+    if (err instanceof InvalidCredentialsError || err instanceof ProviderUnavailableError) {
+      await prisma.integration.update({
+        where: { id: integrationId },
+        data: { status: 'error', lastSyncError: (err as Error).message },
+      });
+    }
+    throw err;
+  }
 }

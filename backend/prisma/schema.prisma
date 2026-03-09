@@ -71,8 +71,9 @@ model Integration {
   encryptedAccessToken  String
   encryptedRefreshToken String?
   tokenExpiresAt        DateTime?
-  gmailSyncMode         GmailSyncMode?
-  importEverything      Boolean        @default(true)
+  gmailSyncMode             GmailSyncMode?
+  calendarEventWindowDays   Int            @default(30)
+  importEverything          Boolean        @default(true)
   selectedSubSourceIds  String[]       @default([])
   lastSyncAt            DateTime?
   lastSyncError         String?

@@ -14,9 +14,8 @@ import { updateImportFilter } from '@/services/integrations.service';
 
 const SERVICE_IDS: ServiceId[] = [
   'gmail',
-  'apple_reminders',
-  'microsoft_tasks',
   'apple_calendar',
+  'microsoft_tasks',
 ];
 
 function IntegrationSettingsContent() {

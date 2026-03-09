@@ -2,7 +2,7 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
-export type ServiceId = 'gmail' | 'apple_reminders' | 'microsoft_tasks' | 'apple_calendar';
+export type ServiceId = 'gmail' | 'microsoft_tasks' | 'apple_calendar';
 
 export interface SubSource {
   id: string;
@@ -18,6 +18,8 @@ export interface IntegrationStatus {
   gmailSyncMode: 'all_unread' | 'starred_only' | null;
   importEverything: boolean;
   selectedSubSourceIds: string[];
+  maskedEmail?: string | null;
+  calendarEventWindowDays?: number | null;
 }
 
 export async function listIntegrations(): Promise<IntegrationStatus[]> {
@@ -82,4 +84,56 @@ export async function updateImportFilter(
     throw new Error(data.message || 'Failed to update import filter');
   }
   return res.json();
+}
+
+export async function connectWithCredentials(
+  serviceId: ServiceId,
+  email: string,
+  password: string,
+  calendarEventWindowDays?: number
+): Promise<{ integrationId: string }> {
+  const body: Record<string, unknown> = { type: 'credential', email, password };
+  if (calendarEventWindowDays) body.calendarEventWindowDays = calendarEventWindowDays;
+  const res = await fetch(`${API_URL}/api/integrations/${serviceId}/connect`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    const err: any = new Error((data as any).message || 'Failed to connect');
+    err.status = res.status;
+    throw err;
+  }
+  return res.json();
+}
+
+export async function confirmWithExisting(serviceId: ServiceId): Promise<{ integrationId: string }> {
+  const res = await fetch(`${API_URL}/api/integrations/${serviceId}/connect`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type: 'use-existing' }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    const err: any = new Error((data as any).message || 'Failed to connect');
+    err.status = res.status;
+    throw err;
+  }
+  return res.json();
+}
+
+export async function updateCalendarEventWindow(days: 7 | 14 | 30 | 60): Promise<void> {
+  const res = await fetch(`${API_URL}/api/integrations/apple_calendar/event-window`, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ days }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error((data as any).message || 'Failed to update calendar window');
+  }
 }

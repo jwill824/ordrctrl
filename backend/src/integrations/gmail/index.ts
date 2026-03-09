@@ -9,8 +9,10 @@ import {
   type IntegrationAdapter,
   type NormalizedItem,
   type ConnectOptions,
+  type ConnectPayload,
   type SubSource,
   TokenRefreshError,
+  NotSupportedError,
 } from '../_adapter/types.js';
 
 let gmailClient: Client | null = null;
@@ -43,9 +45,11 @@ export class GmailAdapter implements IntegrationAdapter {
 
   async connect(
     userId: string,
-    authCode: string,
+    payload: ConnectPayload,
     options?: ConnectOptions
   ): Promise<{ integrationId: string }> {
+    if (payload.type !== 'oauth') throw new NotSupportedError('gmail', 'connect with non-OAuth payload');
+    const { authCode } = payload;
     const client = await getGmailClient();
     const redirectUri = `${process.env.API_URL}/api/integrations/gmail/callback`;
     const tokenSet = await client.callback(redirectUri, { code: authCode });

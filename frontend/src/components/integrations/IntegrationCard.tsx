@@ -4,7 +4,9 @@
 import { useState } from 'react';
 import { GmailSyncModeSelector } from './GmailSyncModeSelector';
 import { SubSourceSelector } from './SubSourceSelector';
-import { getConnectUrl, updateImportFilter } from '@/services/integrations.service';
+import { AppleCredentialForm } from './AppleCredentialForm';
+import { AppleConfirmationScreen } from './AppleConfirmationScreen';
+import { getConnectUrl, updateImportFilter, updateCalendarEventWindow } from '@/services/integrations.service';
 import type { ServiceId } from '@/services/integrations.service';
 
 const SERVICE_META: Record<
@@ -17,15 +19,6 @@ const SERVICE_META: Record<
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
         <path fill="#EA4335" d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.908 1.528-1.147C21.69 2.28 24 3.434 24 5.457z"/>
-      </svg>
-    ),
-  },
-  apple_reminders: {
-    label: 'Apple Reminders',
-    description: 'Sync all your reminders from iCloud into one feed.',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
       </svg>
     ),
   },
@@ -57,6 +50,9 @@ interface IntegrationCardProps {
   gmailSyncMode?: 'all_unread' | 'starred_only' | null;
   importEverything?: boolean;
   selectedSubSourceIds?: string[];
+  maskedEmail?: string | null;
+  calendarEventWindowDays?: number | null;
+  siblingMaskedEmail?: string | null;
   onDisconnect?: () => Promise<void>;
   onRefresh?: () => void;
   /** If true, shows a simplified "Connect" CTA without disconnect action (onboarding view) */
@@ -71,6 +67,9 @@ export function IntegrationCard({
   gmailSyncMode,
   importEverything = true,
   selectedSubSourceIds = [],
+  maskedEmail,
+  calendarEventWindowDays,
+  siblingMaskedEmail,
   onDisconnect,
   onRefresh,
   onboardingMode = false,
@@ -81,7 +80,9 @@ export function IntegrationCard({
   );
   const [showGmailSelector, setShowGmailSelector] = useState(false);
   const [showImportFilter, setShowImportFilter] = useState(false);
+  const [eventWindow, setEventWindow] = useState<number>(calendarEventWindowDays ?? 30);
   const meta = SERVICE_META[serviceId];
+  const isApple = serviceId === 'apple_calendar';
 
   const statusBadgeClass =
     status === 'connected'
@@ -165,22 +166,82 @@ export function IntegrationCard({
         />
       )}
 
+      {/* Calendar event window selector for Apple Calendar */}
+      {serviceId === 'apple_calendar' && status === 'connected' && (
+        <div className="mt-3">
+          <label className="block text-xs font-medium mb-1">Event window</label>
+          <select
+            title="Event window"
+            value={eventWindow}
+            onChange={async (e) => {
+              const days = Number(e.target.value) as 7 | 14 | 30 | 60;
+              setEventWindow(days);
+              await updateCalendarEventWindow(days).catch(() => {});
+              onRefresh?.();
+            }}
+            className="border border-zinc-300 px-2 py-1 text-xs"
+          >
+            {[7, 14, 30, 60].map((d) => (
+              <option key={d} value={d}>{d} days</option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="flex gap-2 flex-wrap mt-3.5">
         {status === 'disconnected' && (
           <>
-            {serviceId === 'gmail' && (
-              <button
-                type="button"
-                className={btnSmall}
-                onClick={() => setShowGmailSelector((v) => !v)}
-              >
-                {showGmailSelector ? 'Hide options' : 'Sync options'}
-              </button>
+            {isApple ? (
+              siblingMaskedEmail ? (
+                <AppleConfirmationScreen
+                  serviceId="apple_calendar"
+                  maskedEmail={siblingMaskedEmail}
+                  onSuccess={() => onRefresh?.()}
+                  onError={() => {}}
+                />
+              ) : (
+                <AppleCredentialForm
+                  serviceId="apple_calendar"
+                  onSuccess={() => onRefresh?.()}
+                  onError={() => {}}
+                />
+              )
+            ) : (
+              <>
+                {serviceId === 'gmail' && (
+                  <button
+                    type="button"
+                    className={btnSmall}
+                    onClick={() => setShowGmailSelector((v) => !v)}
+                  >
+                    {showGmailSelector ? 'Hide options' : 'Sync options'}
+                  </button>
+                )}
+                <a href={connectHref} className={btnPrimarySmall}>
+                  Connect
+                </a>
+              </>
             )}
-            <a href={connectHref} className={btnPrimarySmall}>
-              Connect
-            </a>
+          </>
+        )}
+
+        {status === 'error' && !onboardingMode && (
+          <>
+            {isApple ? (
+              <div className="w-full">
+                <p className="text-xs font-medium text-red-600 mb-2">Update your iCloud credentials</p>
+                <AppleCredentialForm
+                  serviceId="apple_calendar"
+                  onSuccess={() => onRefresh?.()}
+                  onError={() => {}}
+                />
+              </div>
+            ) : (
+              <a href={reconnectHref} className={btnPrimarySmall}>
+                Reconnect
+              </a>
+            )}
           </>
         )}
 
@@ -202,9 +263,11 @@ export function IntegrationCard({
             >
               {showImportFilter ? 'Hide filter' : 'Edit import filter'}
             </button>
-            <a href={reconnectHref} className={btnSmall}>
-              Reconnect
-            </a>
+            {!isApple && (
+              <a href={reconnectHref} className={btnSmall}>
+                Reconnect
+              </a>
+            )}
             <button
               type="button"
               disabled={disconnecting}
@@ -216,11 +279,6 @@ export function IntegrationCard({
           </>
         )}
 
-        {status === 'error' && !onboardingMode && (
-          <a href={reconnectHref} className={btnPrimarySmall}>
-            Reconnect
-          </a>
-        )}
       </div>
     </div>
   );
