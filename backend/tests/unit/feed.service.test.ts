@@ -278,3 +278,189 @@ describe('uncompleteSyncItem()', () => {
     await expect(uncompleteSyncItem('item-1', 'user-1')).rejects.toThrow('Item is not completed');
   });
 });
+
+// ---------------------------------------------------------------------------
+// T025/T026/T027 — Unit tests for dismissFeedItem, restoreFeedItem, buildFeed filter
+// ---------------------------------------------------------------------------
+
+// Extend mock to cover dismiss/restore operations
+vi.mock('../../src/sync/cache.service.js', () => ({
+  getCacheItemsForUser: vi.fn().mockResolvedValue([]),
+}));
+
+import { dismissFeedItem, restoreFeedItem } from '../../src/feed/feed.service.js';
+
+// Extend mockPrisma with dismiss-related methods
+const mockPrismaExtended = prisma as unknown as {
+  nativeTask: {
+    findFirst: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+    findMany: ReturnType<typeof vi.fn>;
+  };
+  syncCacheItem: {
+    findFirst: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+    findMany: ReturnType<typeof vi.fn>;
+  };
+  syncOverride: {
+    upsert: ReturnType<typeof vi.fn>;
+    findUnique: ReturnType<typeof vi.fn>;
+    delete: ReturnType<typeof vi.fn>;
+    findMany: ReturnType<typeof vi.fn>;
+    deleteMany: ReturnType<typeof vi.fn>;
+  };
+  integration: {
+    findMany: ReturnType<typeof vi.fn>;
+  };
+};
+
+// Patch the vi.mock to include additional methods (vitest hoists, so we extend mockPrisma manually)
+beforeEach(() => {
+  const p = prisma as Record<string, unknown>;
+  // Ensure all needed mocks exist
+  const so = p['syncOverride'] as Record<string, unknown>;
+  if (!so['findUnique']) so['findUnique'] = vi.fn();
+  if (!so['delete']) so['delete'] = vi.fn();
+  if (!so['findMany']) so['findMany'] = vi.fn();
+  if (!so['deleteMany']) so['deleteMany'] = vi.fn();
+  const nt = p['nativeTask'] as Record<string, unknown>;
+  if (!nt['findMany']) nt['findMany'] = vi.fn();
+  const sc = p['syncCacheItem'] as Record<string, unknown>;
+  if (!sc['findMany']) sc['findMany'] = vi.fn();
+  const integ = p as Record<string, unknown>;
+  if (!integ['integration']) (integ['integration'] as Record<string, unknown>) = { findMany: vi.fn() };
+});
+
+// T025 — dismissFeedItem()
+describe('dismissFeedItem()', () => {
+  it('creates DISMISSED SyncOverride for sync items', async () => {
+    mockPrismaExtended.syncCacheItem.findFirst.mockResolvedValue({ id: 'item-1', userId: 'user-1' });
+    mockPrismaExtended.syncOverride.upsert.mockResolvedValue({});
+
+    await dismissFeedItem('user-1', 'sync:item-1');
+
+    expect(mockPrismaExtended.syncOverride.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { syncCacheItemId_overrideType: { syncCacheItemId: 'item-1', overrideType: 'DISMISSED' } },
+        create: expect.objectContaining({ overrideType: 'DISMISSED' }),
+      })
+    );
+  });
+
+  it('sets dismissed=true for native items', async () => {
+    mockPrismaExtended.nativeTask.findFirst.mockResolvedValue({ id: 'task-1', userId: 'user-1', dismissed: false });
+    mockPrismaExtended.nativeTask.update.mockResolvedValue({});
+
+    await dismissFeedItem('user-1', 'native:task-1');
+
+    expect(mockPrismaExtended.nativeTask.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'task-1' }, data: { dismissed: true } })
+    );
+  });
+
+  it('throws ITEM_NOT_FOUND when sync item does not exist', async () => {
+    mockPrismaExtended.syncCacheItem.findFirst.mockResolvedValue(null);
+
+    await expect(dismissFeedItem('user-1', 'sync:missing')).rejects.toMatchObject({ code: 'ITEM_NOT_FOUND' });
+  });
+
+  it('throws ALREADY_DISMISSED when native item is already dismissed', async () => {
+    mockPrismaExtended.nativeTask.findFirst.mockResolvedValue({ id: 'task-1', userId: 'user-1', dismissed: true });
+
+    await expect(dismissFeedItem('user-1', 'native:task-1')).rejects.toMatchObject({ code: 'ALREADY_DISMISSED' });
+  });
+
+  it('is idempotent for sync items (upsert does not throw on duplicate)', async () => {
+    mockPrismaExtended.syncCacheItem.findFirst.mockResolvedValue({ id: 'item-1', userId: 'user-1' });
+    mockPrismaExtended.syncOverride.upsert.mockResolvedValue({});
+
+    // calling twice should not throw
+    await dismissFeedItem('user-1', 'sync:item-1');
+    await dismissFeedItem('user-1', 'sync:item-1');
+    expect(mockPrismaExtended.syncOverride.upsert).toHaveBeenCalledTimes(2);
+  });
+});
+
+// T026 — restoreFeedItem()
+describe('restoreFeedItem()', () => {
+  it('deletes DISMISSED SyncOverride for sync items', async () => {
+    mockPrismaExtended.syncCacheItem.findFirst.mockResolvedValue({ id: 'item-1', userId: 'user-1' });
+    mockPrismaExtended.syncOverride.findUnique.mockResolvedValue({ id: 'override-1' });
+    mockPrismaExtended.syncOverride.delete.mockResolvedValue({});
+
+    await restoreFeedItem('user-1', 'sync:item-1');
+
+    expect(mockPrismaExtended.syncOverride.delete).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { syncCacheItemId_overrideType: { syncCacheItemId: 'item-1', overrideType: 'DISMISSED' } },
+      })
+    );
+  });
+
+  it('sets dismissed=false for native items', async () => {
+    mockPrismaExtended.nativeTask.findFirst.mockResolvedValue({ id: 'task-1', userId: 'user-1', dismissed: true });
+    mockPrismaExtended.nativeTask.update.mockResolvedValue({});
+
+    await restoreFeedItem('user-1', 'native:task-1');
+
+    expect(mockPrismaExtended.nativeTask.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'task-1' }, data: { dismissed: false } })
+    );
+  });
+
+  it('throws ITEM_NOT_FOUND when sync item does not exist', async () => {
+    mockPrismaExtended.syncCacheItem.findFirst.mockResolvedValue(null);
+
+    await expect(restoreFeedItem('user-1', 'sync:missing')).rejects.toMatchObject({ code: 'ITEM_NOT_FOUND' });
+  });
+
+  it('throws NOT_DISMISSED when sync item has no DISMISSED override', async () => {
+    mockPrismaExtended.syncCacheItem.findFirst.mockResolvedValue({ id: 'item-1', userId: 'user-1' });
+    mockPrismaExtended.syncOverride.findUnique.mockResolvedValue(null);
+
+    await expect(restoreFeedItem('user-1', 'sync:item-1')).rejects.toMatchObject({ code: 'NOT_DISMISSED' });
+  });
+
+  it('throws NOT_DISMISSED when native item is not dismissed', async () => {
+    mockPrismaExtended.nativeTask.findFirst.mockResolvedValue({ id: 'task-1', userId: 'user-1', dismissed: false });
+
+    await expect(restoreFeedItem('user-1', 'native:task-1')).rejects.toMatchObject({ code: 'NOT_DISMISSED' });
+  });
+});
+
+// T027 — buildFeed() dismissal filter (integration-level: mock both prisma + cache)
+// Note: buildFeed() is Prisma-heavy; we test that getCacheItemsForUser receives excludeIds
+// and that native tasks with dismissed=true are filtered out via the query.
+describe('buildFeed() — dismissed items excluded', () => {
+  it('passes dismissed sync IDs to getCacheItemsForUser', async () => {
+    const { getCacheItemsForUser } = await import('../../src/sync/cache.service.js');
+    const mockGet = getCacheItemsForUser as ReturnType<typeof vi.fn>;
+
+    mockPrismaExtended.syncOverride.findMany.mockResolvedValue([
+      { syncCacheItemId: 'dismissed-sync-1' },
+    ]);
+    mockGet.mockResolvedValue([]);
+    mockPrismaExtended.nativeTask.findMany.mockResolvedValue([]);
+    mockPrismaExtended.integration = { findMany: vi.fn().mockResolvedValue([]) } as unknown as typeof mockPrismaExtended.integration;
+
+    const { buildFeed } = await import('../../src/feed/feed.service.js');
+    await buildFeed('user-1');
+
+    expect(mockGet).toHaveBeenCalledWith('user-1', ['dismissed-sync-1']);
+  });
+
+  it('queries native tasks with dismissed: false', async () => {
+    mockPrismaExtended.syncOverride.findMany.mockResolvedValue([]);
+    const { getCacheItemsForUser } = await import('../../src/sync/cache.service.js');
+    (getCacheItemsForUser as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    mockPrismaExtended.nativeTask.findMany.mockResolvedValue([]);
+    mockPrismaExtended.integration = { findMany: vi.fn().mockResolvedValue([]) } as unknown as typeof mockPrismaExtended.integration;
+
+    const { buildFeed } = await import('../../src/feed/feed.service.js');
+    await buildFeed('user-1');
+
+    expect(mockPrismaExtended.nativeTask.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ dismissed: false }) })
+    );
+  });
+});

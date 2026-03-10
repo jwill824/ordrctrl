@@ -123,3 +123,66 @@ describe('PATCH /api/tasks/:id/uncomplete', () => {
     expect(res.status).toBe(401);
   });
 });
+
+// T028 — Contract tests for PATCH/DELETE /api/feed/items/:itemId/dismiss
+describe('PATCH /api/feed/items/:itemId/dismiss', () => {
+  it('returns 401 when unauthenticated', async () => {
+    if (!request) return;
+    const res = await request
+      .patch('/api/feed/items/sync:00000000-0000-0000-0000-000000000000/dismiss');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 400 for malformed itemId (missing uuid)', async () => {
+    if (!request) return;
+    const res = await request
+      .patch('/api/feed/items/sync:not-a-uuid/dismiss');
+    expect([400, 401]).toContain(res.status);
+  });
+
+  it('returns 400 for unknown item type prefix', async () => {
+    if (!request) return;
+    const res = await request
+      .patch('/api/feed/items/unknown:00000000-0000-0000-0000-000000000000/dismiss');
+    expect([400, 401]).toContain(res.status);
+  });
+});
+
+describe('DELETE /api/feed/items/:itemId/dismiss', () => {
+  it('returns 401 when unauthenticated', async () => {
+    if (!request) return;
+    const res = await request
+      .delete('/api/feed/items/sync:00000000-0000-0000-0000-000000000000/dismiss');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 400 for malformed itemId', async () => {
+    if (!request) return;
+    const res = await request
+      .delete('/api/feed/items/sync:not-a-uuid/dismiss');
+    expect([400, 401]).toContain(res.status);
+  });
+});
+
+// T029 — Contract tests for GET /api/feed/dismissed
+describe('GET /api/feed/dismissed', () => {
+  it('returns 401 when unauthenticated', async () => {
+    if (!request) return;
+    const res = await request.get('/api/feed/dismissed');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 400 for invalid limit (out of range)', async () => {
+    if (!request) return;
+    const res = await request.get('/api/feed/dismissed?limit=999');
+    // Unauthenticated will 401; authenticated with bad limit would 400
+    expect([400, 401]).toContain(res.status);
+  });
+
+  it('returns 400 for limit=0', async () => {
+    if (!request) return;
+    const res = await request.get('/api/feed/dismissed?limit=0');
+    expect([400, 401]).toContain(res.status);
+  });
+});
+

@@ -80,12 +80,14 @@ export async function cleanupStaleCacheItems(): Promise<number> {
 
 /**
  * Get all non-expired cache items for a user (active + completed).
+ * Optionally excludes items by ID (e.g., dismissed items).
  */
-export async function getCacheItemsForUser(userId: string) {
+export async function getCacheItemsForUser(userId: string, excludeIds: string[] = []) {
   return prisma.syncCacheItem.findMany({
     where: {
       userId,
       expiresAt: { gt: new Date() },
+      ...(excludeIds.length > 0 ? { id: { notIn: excludeIds } } : {}),
     },
     include: {
       integration: {

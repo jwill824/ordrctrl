@@ -6,6 +6,11 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import * as feedService from '@/services/feed.service';
 import type { FeedItem, FeedResponse } from '@/services/feed.service';
 
+export interface UndoToast {
+  itemId: string;
+  message: string;
+}
+
 interface UseFeedReturn {
   items: FeedItem[];
   completed: FeedItem[];
@@ -13,9 +18,13 @@ interface UseFeedReturn {
   loading: boolean;
   error: string | null;
   refreshing: boolean;
+  undoToast: UndoToast | null;
   refresh: () => Promise<void>;
   completeItem: (itemId: string) => Promise<void>;
   uncompleteItem: (itemId: string) => Promise<void>;
+  dismissItem: (itemId: string) => Promise<void>;
+  restoreItem: (itemId: string) => Promise<void>;
+  clearUndoToast: () => void;
 }
 
 const POLL_INTERVAL_MS = 60 * 1000; // 60 seconds
@@ -29,6 +38,7 @@ export function useFeed(): UseFeedReturn {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [undoToast, setUndoToast] = useState<UndoToast | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async (isRefresh = false) => {
@@ -118,6 +128,48 @@ export function useFeed(): UseFeedReturn {
     []
   );
 
+  // T011 — Dismiss a feed item with optimistic update + undo toast
+  const dismissItem = useCallback(
+    async (itemId: string) => {
+      // Optimistically remove from feed
+      let snapshot: typeof data | null = null;
+      setData((prev) => {
+        snapshot = prev;
+        return { ...prev, items: prev.items.filter((i) => i.id !== itemId) };
+      });
+
+      // Show undo toast
+      setUndoToast({ itemId, message: 'Item dismissed' });
+
+      try {
+        await feedService.dismissItem(itemId);
+      } catch (err) {
+        // Roll back on failure
+        if (snapshot) setData(snapshot);
+        setUndoToast(null);
+        setError((err as Error).message);
+      }
+    },
+    []
+  );
+
+  // T016 — Restore (undo) a dismissed item
+  const restoreItem = useCallback(
+    async (itemId: string) => {
+      setUndoToast(null);
+      try {
+        await feedService.restoreItem(itemId);
+        // Reload feed to surface restored item
+        await load();
+      } catch (err) {
+        setError((err as Error).message);
+      }
+    },
+    [load]
+  );
+
+  const clearUndoToast = useCallback(() => setUndoToast(null), []);
+
   return {
     items: data.items,
     completed: data.completed,
@@ -125,8 +177,12 @@ export function useFeed(): UseFeedReturn {
     loading,
     refreshing,
     error,
+    undoToast,
     refresh,
     completeItem,
     uncompleteItem,
+    dismissItem,
+    restoreItem,
+    clearUndoToast,
   };
 }

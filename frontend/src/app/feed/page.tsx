@@ -17,7 +17,7 @@ import { EditTaskModal } from '@/components/tasks/EditTaskModal';
 import type { FeedItem } from '@/services/feed.service';
 
 export default function FeedPage() {
-  const { items, completed, syncStatus, loading, refreshing, error, refresh, completeItem, uncompleteItem } =
+  const { items, completed, syncStatus, loading, refreshing, error, refresh, completeItem, uncompleteItem, dismissItem, restoreItem, undoToast, clearUndoToast } =
     useFeed();
   const { create, update, remove } = useNativeTasks(refresh);
 
@@ -77,6 +77,17 @@ export default function FeedPage() {
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-label="Settings">
               <circle cx="8" cy="8" r="2.5"/>
               <path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M2.93 2.93l1.06 1.06M12.01 12.01l1.06 1.06M2.93 13.07l1.06-1.06M12.01 3.99l1.06-1.06"/>
+            </svg>
+          </Link>
+          {/* Dismissed items link */}
+          <Link
+            href="/settings/dismissed"
+            aria-label="Dismissed items"
+            title="Dismissed items"
+            className="text-zinc-500 no-underline"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden>
+              <path d="M2 2l12 12M14 2L2 14"/>
             </svg>
           </Link>
         </div>
@@ -139,6 +150,7 @@ export default function FeedPage() {
                 key={item.id}
                 item={item}
                 onComplete={completeItem}
+                onDismiss={dismissItem}
                 onClick={item.id.startsWith('native:') ? handleItemClick : undefined}
               />
             ))}
@@ -177,6 +189,28 @@ export default function FeedPage() {
           }}
           onClose={() => setEditingTask(null)}
         />
+      )}
+
+      {/* T017 — Undo toast for dismiss */}
+      {undoToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-zinc-900 text-white text-sm px-4 py-2.5 shadow-lg z-30">
+          <span>{undoToast.message}</span>
+          <button
+            type="button"
+            onClick={() => restoreItem(undoToast.itemId)}
+            className="text-zinc-300 underline underline-offset-2 bg-transparent border-0 p-0 cursor-pointer text-sm hover:text-white"
+          >
+            Undo
+          </button>
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={clearUndoToast}
+            className="text-zinc-500 hover:text-zinc-300 bg-transparent border-0 p-0 cursor-pointer leading-none ml-1"
+          >
+            ×
+          </button>
+        </div>
       )}
     </div>
   );

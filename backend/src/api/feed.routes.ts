@@ -1,6 +1,9 @@
 // T050 — Feed API routes
 // GET /api/feed
 // PATCH /api/feed/items/:itemId/complete
+// PATCH /api/feed/items/:itemId/dismiss
+// DELETE /api/feed/items/:itemId/dismiss
+// GET /api/feed/dismissed
 // (POST /api/integrations/sync is in integrations.routes.ts)
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
@@ -11,7 +14,11 @@ import {
   completeNativeTask,
   uncompleteNativeTask,
   uncompleteSyncItem,
+  dismissFeedItem,
+  restoreFeedItem,
+  getDismissedItems,
 } from '../feed/feed.service.js';
+import { dismissParamSchema, dismissedQuerySchema } from './schemas/feed.schemas.js';
 import { logger } from '../lib/logger.js';
 
 function requireAuth(request: FastifyRequest, reply: FastifyReply): string | null {
@@ -134,4 +141,79 @@ export async function registerFeedRoutes(app: FastifyInstance): Promise<void> {
       }
     }
   );
+
+  // T009 — PATCH /api/feed/items/:itemId/dismiss
+  app.patch(
+    '/api/feed/items/:itemId/dismiss',
+    async (request: FastifyRequest<{ Params: { itemId: string } }>, reply) => {
+      const userId = requireAuth(request, reply);
+      if (!userId) return;
+
+      const parsed = dismissParamSchema.safeParse(request.params);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'Bad Request', code: 'INVALID_ITEM_ID', message: parsed.error.errors[0].message });
+      }
+
+      const { itemId } = parsed.data;
+      try {
+        await dismissFeedItem(userId, itemId);
+        return reply.send({ id: itemId, dismissed: true });
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException & { code?: string }).code;
+        if (code === 'ITEM_NOT_FOUND') return reply.status(404).send({ error: 'Not Found', code, message: (err as Error).message });
+        if (code === 'ALREADY_DISMISSED') return reply.status(409).send({ error: 'Conflict', code, message: (err as Error).message });
+        throw err;
+      }
+    }
+  );
+
+  // T014 — DELETE /api/feed/items/:itemId/dismiss (undo / restore)
+  app.delete(
+    '/api/feed/items/:itemId/dismiss',
+    async (request: FastifyRequest<{ Params: { itemId: string } }>, reply) => {
+      const userId = requireAuth(request, reply);
+      if (!userId) return;
+
+      const parsed = dismissParamSchema.safeParse(request.params);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'Bad Request', code: 'INVALID_ITEM_ID', message: parsed.error.errors[0].message });
+      }
+
+      const { itemId } = parsed.data;
+      try {
+        await restoreFeedItem(userId, itemId);
+        return reply.send({ id: itemId, dismissed: false });
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException & { code?: string }).code;
+        if (code === 'ITEM_NOT_FOUND') return reply.status(404).send({ error: 'Not Found', code, message: (err as Error).message });
+        if (code === 'NOT_DISMISSED') return reply.status(404).send({ error: 'Not Found', code, message: (err as Error).message });
+        throw err;
+      }
+    }
+  );
+
+  // T020 — GET /api/feed/dismissed
+  app.get(
+    '/api/feed/dismissed',
+    async (request: FastifyRequest<{ Querystring: { limit?: string; cursor?: string } }>, reply) => {
+      const userId = requireAuth(request, reply);
+      if (!userId) return;
+
+      const parsed = dismissedQuerySchema.safeParse(request.query);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'Bad Request', message: parsed.error.errors[0].message });
+      }
+
+      const { limit, cursor } = parsed.data;
+      try {
+        const result = await getDismissedItems(userId, limit, cursor);
+        return reply.send(result);
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException & { code?: string }).code;
+        if (code === 'INVALID_CURSOR') return reply.status(400).send({ error: 'Bad Request', code, message: (err as Error).message });
+        throw err;
+      }
+    }
+  );
 }
+
