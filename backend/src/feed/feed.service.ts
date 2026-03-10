@@ -8,7 +8,8 @@ import type { ServiceId } from '../integrations/_adapter/types.js';
 
 export interface FeedItem {
   id: string;                       // "sync:<uuid>" | "native:<uuid>"
-  source: string;                   // "Gmail", "Apple Reminders", etc.
+  source: string;                   // account label or email, e.g. "you@gmail.com"
+  serviceId: string;                // "gmail" | "microsoft_tasks" | "apple_calendar" | "ordrctrl"
   itemType: 'task' | 'event' | 'message';
   title: string;
   dueAt: string | null;             // ISO string
@@ -58,6 +59,7 @@ export async function buildFeed(
   const syncFeedItems: FeedItem[] = cacheItems.map((item) => ({
     id: `sync:${item.id}`,
     source: item.integration.label ?? item.integration.accountIdentifier,
+    serviceId: item.integration.serviceId,
     itemType: item.itemType as 'task' | 'event' | 'message',
     title: item.title,
     dueAt: item.dueAt?.toISOString() ?? null,
@@ -72,6 +74,7 @@ export async function buildFeed(
   const nativeFeedItems: FeedItem[] = nativeTasks.map((task) => ({
     id: `native:${task.id}`,
     source: NATIVE_SOURCE,
+    serviceId: 'ordrctrl',
     itemType: 'task' as const,
     title: task.title,
     dueAt: task.dueAt?.toISOString() ?? null,

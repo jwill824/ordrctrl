@@ -27,7 +27,7 @@ export class MicrosoftTasksAdapter implements IntegrationAdapter {
       `${process.env.API_URL}/api/integrations/microsoft_tasks/callback`
     );
     const scope = encodeURIComponent(
-      'offline_access Tasks.Read Tasks.ReadWrite'
+      'offline_access User.Read Tasks.Read Tasks.ReadWrite'
     );
     const tenantId = process.env.MICROSOFT_TENANT_ID || 'common';
     return (
@@ -55,7 +55,7 @@ export class MicrosoftTasksAdapter implements IntegrationAdapter {
       redirect_uri: redirectUri,
       grant_type: 'authorization_code',
       code: authCode,
-      scope: 'offline_access Tasks.Read Tasks.ReadWrite',
+      scope: 'offline_access User.Read Tasks.Read Tasks.ReadWrite',
     });
 
     const res = await fetch(
@@ -289,7 +289,7 @@ export class MicrosoftTasksAdapter implements IntegrationAdapter {
         client_secret: clientSecret,
         grant_type: 'refresh_token',
         refresh_token: refreshToken,
-        scope: 'offline_access Tasks.Read Tasks.ReadWrite',
+        scope: 'offline_access User.Read Tasks.Read Tasks.ReadWrite',
       });
 
       const res = await fetch(

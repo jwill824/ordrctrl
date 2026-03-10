@@ -5,12 +5,20 @@
 import { useState } from 'react';
 import type { FeedItem as FeedItemType } from '@/services/feed.service';
 
-const SOURCE_COLORS: Record<string, string> = {
-  Gmail: '#EA4335',
-  'Apple Reminders': '#007AFF',
-  'Microsoft Tasks': '#0078d4',
-  'Apple Calendar': '#34C759',
+const SERVICE_COLORS: Record<string, string> = {
+  gmail: '#EA4335',
+  apple_reminders: '#007AFF',
+  microsoft_tasks: '#0078d4',
+  apple_calendar: '#34C759',
   ordrctrl: '#18181b',
+};
+
+const SERVICE_NAMES: Record<string, string> = {
+  gmail: 'Gmail',
+  apple_reminders: 'Reminders',
+  microsoft_tasks: 'Tasks',
+  apple_calendar: 'Calendar',
+  ordrctrl: 'ordrctrl',
 };
 
 function formatDate(iso: string | null): string {
@@ -65,7 +73,9 @@ function DismissButton({ onDismiss }: { onDismiss: () => void }) {
 
 export function FeedItemRow({ item, onComplete, onUncomplete, onDismiss, onClick }: FeedItemProps) {
   const [noticeDismissed, setNoticeDismissed] = useState(false);
-  const sourceColor = SOURCE_COLORS[item.source] ?? '#a1a1aa';
+  const serviceColor = SERVICE_COLORS[item.serviceId] ?? '#a1a1aa';
+  const serviceName = SERVICE_NAMES[item.serviceId] ?? item.serviceId;
+  const showAccountLabel = item.serviceId !== 'ordrctrl' && item.source !== serviceName;
   const dateStr = item.dueAt
     ? formatDate(item.dueAt)
     : item.startAt
@@ -125,13 +135,18 @@ export function FeedItemRow({ item, onComplete, onUncomplete, onDismiss, onClick
 
         {/* Meta row */}
         <div className="flex items-center gap-2 mt-1 flex-wrap">
-          {/* Source badge — color is runtime dynamic, keep inline style only for color */}
+          {/* Service badge + account label */}
           <span
             className="text-[0.65rem] font-bold uppercase tracking-[0.08em]"
-            style={{ color: sourceColor }}
+            style={{ color: serviceColor }}
           >
-            {item.source}
+            {serviceName}
           </span>
+          {showAccountLabel && (
+            <span className="text-[0.65rem] text-zinc-400 font-normal normal-case tracking-normal truncate max-w-[120px]">
+              {item.source}
+            </span>
+          )}
 
           {/* Date */}
           {dateStr && (
@@ -158,9 +173,9 @@ export function FeedItemRow({ item, onComplete, onUncomplete, onDismiss, onClick
       )}
 
       {/* Inline local-override notice for reopened sync items */}
-      {item.isJustReopened && !noticeDismissed && item.source !== 'ordrctrl' && (
+      {item.isJustReopened && !noticeDismissed && item.serviceId !== 'ordrctrl' && (
         <div className="flex items-center gap-1.5 mt-1 ml-[1.875rem] text-[0.7rem] text-zinc-400">
-          <span>This change is local to ordrctrl and won&apos;t update {item.source}.</span>
+          <span>This change is local to ordrctrl and won&apos;t update {serviceName}.</span>
           <button
             type="button"
             aria-label="Dismiss notice"

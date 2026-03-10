@@ -5,6 +5,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 export interface FeedItem {
   id: string;
   source: string;
+  serviceId: string;
   itemType: 'task' | 'event' | 'message';
   title: string;
   dueAt: string | null;
