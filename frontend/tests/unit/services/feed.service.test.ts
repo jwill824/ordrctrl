@@ -144,3 +144,30 @@ describe('feed.service', () => {
     });
   });
 });
+
+// T005/T016 — clearAllCompleted service function
+describe('clearAllCompleted', () => {
+  it('calls POST /api/feed/completed/clear and returns clearedCount', async () => {
+    const { clearAllCompleted } = await import('@/services/feed.service');
+    global.fetch = mockOk({ clearedCount: 5 });
+    const result = await clearAllCompleted();
+    expect(global.fetch).toHaveBeenCalledWith(
+      `${BASE}/api/feed/completed/clear`,
+      expect.objectContaining({ method: 'POST', credentials: 'include' })
+    );
+    expect(result.clearedCount).toBe(5);
+  });
+
+  it('throws on non-ok response', async () => {
+    const { clearAllCompleted } = await import('@/services/feed.service');
+    global.fetch = mockErr(500, 'Server error');
+    await expect(clearAllCompleted()).rejects.toThrow('Server error');
+  });
+
+  it('returns clearedCount=0 when nothing to clear', async () => {
+    const { clearAllCompleted } = await import('@/services/feed.service');
+    global.fetch = mockOk({ clearedCount: 0 });
+    const result = await clearAllCompleted();
+    expect(result.clearedCount).toBe(0);
+  });
+});

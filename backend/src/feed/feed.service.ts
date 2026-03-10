@@ -313,6 +313,60 @@ export async function uncompleteSyncItem(
   };
 }
 
+// ─── Clear Completed ─────────────────────────────────────────────────────────
+
+/**
+ * Bulk-clear all completed items for a user by dismissing them.
+ * Eligible sync items: completedInOrdrctrl=true, no DISMISSED or REOPENED override.
+ * Eligible native tasks: completed=true, dismissed=false.
+ * Returns the total number of items cleared.
+ */
+export async function clearCompletedItems(
+  userId: string
+): Promise<{ clearedCount: number }> {
+  // Find eligible sync items (completed, not already dismissed/reopened)
+  const eligibleSync = await prisma.syncCacheItem.findMany({
+    where: {
+      userId,
+      completedInOrdrctrl: true,
+      syncOverrides: {
+        none: { overrideType: { in: ['DISMISSED', 'REOPENED'] } },
+      },
+    },
+    select: { id: true },
+  });
+
+  // Find eligible native tasks (completed, not dismissed)
+  const eligibleNative = await prisma.nativeTask.findMany({
+    where: { userId, completed: true, dismissed: false },
+    select: { id: true },
+  });
+
+  let clearedCount = 0;
+
+  if (eligibleSync.length > 0) {
+    await prisma.syncOverride.createMany({
+      data: eligibleSync.map((item) => ({
+        userId,
+        syncCacheItemId: item.id,
+        overrideType: 'DISMISSED' as const,
+      })),
+      skipDuplicates: true,
+    });
+    clearedCount += eligibleSync.length;
+  }
+
+  if (eligibleNative.length > 0) {
+    await prisma.nativeTask.updateMany({
+      where: { id: { in: eligibleNative.map((t) => t.id) } },
+      data: { dismissed: true },
+    });
+    clearedCount += eligibleNative.length;
+  }
+
+  return { clearedCount };
+}
+
 // ─── Dismiss / Restore ───────────────────────────────────────────────────────
 
 export interface DismissedItem {
@@ -321,6 +375,58 @@ export interface DismissedItem {
   source: string;
   itemType: 'sync' | 'native';
   dismissedAt: string;  // ISO string
+}
+
+/**
+ * T021 — Auto-clear expired completed items for a user.
+ * Fires during post-sync hook; only runs if autoClearEnabled=true in user settings.
+ * Items completed more than autoClearWindowDays ago are dismissed.
+ */
+export async function clearExpiredCompleted(
+  userId: string,
+  autoClearWindowDays: number
+): Promise<number> {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - autoClearWindowDays);
+
+  // Sync items: completed, not already dismissed/reopened, completedAt before cutoff
+  const expiredSync = await prisma.syncCacheItem.findMany({
+    where: {
+      userId,
+      completedAt: { not: null, lte: cutoff },
+      syncOverrides: {
+        none: { overrideType: { in: ['DISMISSED', 'REOPENED'] } },
+      },
+    },
+    select: { id: true },
+  });
+
+  let count = 0;
+  if (expiredSync.length > 0) {
+    await prisma.syncOverride.createMany({
+      data: expiredSync.map((item) => ({
+        userId,
+        syncCacheItemId: item.id,
+        overrideType: 'DISMISSED' as const,
+      })),
+      skipDuplicates: true,
+    });
+    count += expiredSync.length;
+  }
+
+  // Native tasks: completed=true, dismissed=false, completedAt before cutoff
+  const nativeResult = await prisma.nativeTask.updateMany({
+    where: {
+      userId,
+      completed: true,
+      dismissed: false,
+      completedAt: { not: null, lte: cutoff },
+    },
+    data: { dismissed: true },
+  });
+  count += nativeResult.count;
+
+  return count;
 }
 
 /**

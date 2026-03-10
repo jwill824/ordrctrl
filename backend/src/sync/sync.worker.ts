@@ -8,6 +8,8 @@ import { getAdapter } from '../integrations/index.js';
 import type { ServiceId } from '../integrations/_adapter/types.js';
 import { TokenRefreshError } from '../integrations/_adapter/types.js';
 import { persistCacheItems, cleanupStaleCacheItems, markMissingItemsAsSourceCompleted, applySourceCompletions } from './cache.service.js';
+import { clearExpiredCompleted } from '../feed/feed.service.js';
+import { getUserSettings } from '../user/user.service.js';
 
 export interface SyncJobData {
   integrationId: string;
@@ -91,6 +93,20 @@ export function startSyncWorker(): void {
 
       // Opportunistic cleanup of stale items
       await cleanupStaleCacheItems();
+
+      // Post-sync auto-clear: dismiss completed items older than user's auto-clear window
+      try {
+        const settings = await getUserSettings(userId);
+        if (settings.autoClearEnabled) {
+          const cleared = await clearExpiredCompleted(userId, settings.autoClearWindowDays);
+          if (cleared > 0) {
+            logger.info('Auto-cleared expired completed items', { userId, cleared });
+          }
+        }
+      } catch (autoClearErr) {
+        // Non-fatal: log and continue
+        logger.warn('Auto-clear failed (non-fatal)', { userId, error: (autoClearErr as Error).message });
+      }
 
       logger.info('Sync completed', {
         integrationId,

@@ -24,6 +24,7 @@ export default function FeedPage() {
     undoToast, clearUndoToast,
     pendingItems, isTriageOpen, triageLoading, newItemCount,
     closeTriage, acceptTriage, dismissTriageItem, dismissAllTriage,
+    clearCompleted, clearedCount, clearClearedToast,
   } = useFeed();
   const { create, update, remove } = useNativeTasks(reloadFeed);
 
@@ -169,7 +170,7 @@ export default function FeedPage() {
         )}
 
         {/* Completed section */}
-        <CompletedSection items={completed} onUncomplete={uncompleteItem} />
+        <CompletedSection items={completed} onUncomplete={uncompleteItem} onClear={clearCompleted} />
       </main>
 
       {/* Floating Action Button — Add task */}
@@ -200,6 +201,26 @@ export default function FeedPage() {
           }}
           onClose={() => setEditingTask(null)}
         />
+      )}
+
+      {/* T007 — Cleared completed toast */}
+      {clearedCount !== null && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-zinc-900 text-white text-sm px-4 py-2.5 shadow-lg z-30">
+          <span>
+            Cleared {clearedCount} completed task{clearedCount !== 1 ? 's' : ''} — find them in{' '}
+            <Link href="/settings/dismissed" className="text-zinc-300 underline underline-offset-2 hover:text-white">
+              Dismissed Items
+            </Link>
+          </span>
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={clearClearedToast}
+            className="text-zinc-500 hover:text-zinc-300 bg-transparent border-0 p-0 cursor-pointer leading-none ml-1"
+          >
+            ×
+          </button>
+        </div>
       )}
 
       {/* T017 — Undo toast for dismiss */}

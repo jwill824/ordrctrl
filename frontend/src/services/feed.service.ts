@@ -119,3 +119,16 @@ export async function triggerSync(): Promise<void> {
     credentials: 'include',
   });
 }
+
+// T005 — clear all completed tasks (sends them to dismissed items)
+export async function clearAllCompleted(): Promise<{ clearedCount: number }> {
+  const res = await fetch(`${API_URL}/api/feed/completed/clear`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to clear completed items');
+  }
+  return res.json();
+}
