@@ -145,7 +145,7 @@ function AccountRow({ account, onDisconnect, onUpdateLabel, onPauseAccount }: Ac
           {account.paused ? 'Resume' : 'Pause'}
         </button>
       )}
-      {onDisconnect && (
+      {onDisconnect && account.status !== 'disconnected' && (
         <button
           type="button"
           disabled={disconnecting}
