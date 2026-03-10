@@ -3,7 +3,7 @@
 // T043 — Onboarding page
 // Shown when user has no integrations. Tutorial copy + 4 integration cards.
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { IntegrationCard } from '@/components/integrations/IntegrationCard';
@@ -16,7 +16,7 @@ const SERVICE_IDS: ServiceId[] = [
   'microsoft_tasks',
 ];
 
-export default function OnboardingPage() {
+function OnboardingContent() {
   const { integrations, loading, refresh } = useIntegrations();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -126,5 +126,13 @@ export default function OnboardingPage() {
         </p>
       )}
     </main>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white" />}>
+      <OnboardingContent />
+    </Suspense>
   );
 }
