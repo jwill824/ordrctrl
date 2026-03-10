@@ -88,7 +88,7 @@ describe('POST /api/integrations/:serviceId/connect', () => {
 
     const res = await app.inject({
       method: 'POST',
-      url: '/api/integrations/apple_reminders/connect',
+      url: '/api/integrations/apple_calendar/connect',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ type: 'credential', email: 'test@icloud.com', password: 'xxxx-xxxx' }),
     });
@@ -100,11 +100,11 @@ describe('POST /api/integrations/:serviceId/connect', () => {
   });
 
   it('invalid credentials (service throws InvalidCredentialsError) → 401', async () => {
-    mockConnectIntegration.mockRejectedValue(new InvalidCredentialsError('apple_reminders'));
+    mockConnectIntegration.mockRejectedValue(new InvalidCredentialsError('apple_calendar'));
 
     const res = await app.inject({
       method: 'POST',
-      url: '/api/integrations/apple_reminders/connect',
+      url: '/api/integrations/apple_calendar/connect',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ type: 'credential', email: 'test@icloud.com', password: 'wrong' }),
     });
@@ -120,7 +120,7 @@ describe('POST /api/integrations/:serviceId/connect', () => {
 
     const res = await app.inject({
       method: 'POST',
-      url: '/api/integrations/apple_reminders/connect',
+      url: '/api/integrations/apple_calendar/connect',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ type: 'use-existing' }),
     });
@@ -131,11 +131,11 @@ describe('POST /api/integrations/:serviceId/connect', () => {
   });
 
   it('provider unavailable → 503', async () => {
-    mockConnectIntegration.mockRejectedValue(new ProviderUnavailableError('apple_reminders', 503));
+    mockConnectIntegration.mockRejectedValue(new ProviderUnavailableError('apple_calendar', 503));
 
     const res = await app.inject({
       method: 'POST',
-      url: '/api/integrations/apple_reminders/connect',
+      url: '/api/integrations/apple_calendar/connect',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ type: 'credential', email: 'test@icloud.com', password: 'xxxx-xxxx' }),
     });

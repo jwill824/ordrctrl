@@ -4,6 +4,7 @@ vi.mock('../../src/lib/db.js', () => ({
   prisma: {
     integration: {
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       findMany: vi.fn(),
       upsert: vi.fn(),
       update: vi.fn(),
@@ -66,7 +67,7 @@ describe('integration.service - connectIntegration', () => {
   });
 
   it('use-existing: copies credentials from connected sibling', async () => {
-    mockPrisma.integration.findUnique.mockResolvedValue({
+    mockPrisma.integration.findFirst.mockResolvedValue({
       id: 'sibling-int',
       status: 'connected',
       encryptedAccessToken: 'user@icloud.com',
@@ -86,7 +87,7 @@ describe('integration.service - connectIntegration', () => {
   });
 
   it('use-existing: throws NO_EXISTING_CREDENTIALS when no connected sibling', async () => {
-    mockPrisma.integration.findUnique.mockResolvedValue(null);
+    mockPrisma.integration.findFirst.mockResolvedValue(null);
     mockGetAdapter.mockReturnValue({ connect: vi.fn() });
 
     await expect(
@@ -109,7 +110,7 @@ describe('integration.service - listIntegrations', () => {
   it('returns maskedEmail for Apple service with credentials', async () => {
     mockPrisma.integration.findMany.mockResolvedValue([
       {
-        serviceId: 'apple_reminders',
+        serviceId: 'apple_calendar',
         status: 'connected',
         lastSyncAt: null,
         lastSyncError: null,
@@ -122,14 +123,14 @@ describe('integration.service - listIntegrations', () => {
     ]);
 
     const items = await listIntegrations('user-1');
-    const appleItem = items.find((i) => i.serviceId === 'apple_reminders');
+    const appleItem = items.find((i) => i.serviceId === 'apple_calendar');
     expect(appleItem?.maskedEmail).toBe('j***@icloud.com');
   });
 
   it('returns maskedEmail: null for disconnected Apple service', async () => {
     mockPrisma.integration.findMany.mockResolvedValue([
       {
-        serviceId: 'apple_reminders',
+        serviceId: 'apple_calendar',
         status: 'disconnected',
         lastSyncAt: null,
         lastSyncError: null,
@@ -142,7 +143,7 @@ describe('integration.service - listIntegrations', () => {
     ]);
 
     const items = await listIntegrations('user-1');
-    const appleItem = items.find((i) => i.serviceId === 'apple_reminders');
+    const appleItem = items.find((i) => i.serviceId === 'apple_calendar');
     expect(appleItem?.maskedEmail).toBeNull();
   });
 
@@ -172,27 +173,15 @@ describe('integration.service - disconnectIntegration', () => {
     vi.clearAllMocks();
   });
 
-  it('purges sibling credentials when sibling is also disconnected', async () => {
-    // First call: find the integration to disconnect
-    mockPrisma.integration.findUnique
-      .mockResolvedValueOnce({ id: 'int-reminders', status: 'connected' })
-      // Second call: find sibling (apple_calendar, disconnected with leftover creds)
-      .mockResolvedValueOnce({ id: 'int-calendar', status: 'disconnected', encryptedAccessToken: 'some-email' });
-
-    mockPrisma.integration.update = vi.fn().mockResolvedValue({});
+  it('calls adapter disconnect for the integration', async () => {
+    mockPrisma.integration.findUnique.mockResolvedValue({ id: 'int-calendar', status: 'connected' });
 
     const mockDisconnect = vi.fn().mockResolvedValue(undefined);
     mockGetAdapter.mockReturnValue({ disconnect: mockDisconnect });
 
-    await disconnectIntegration('user-1', 'apple_reminders');
+    await disconnectIntegration('user-1', 'apple_calendar');
 
-    // Should clear sibling's stale credentials
-    expect(mockPrisma.integration.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: 'int-calendar' },
-        data: { encryptedAccessToken: '', encryptedRefreshToken: null },
-      })
-    );
+    expect(mockDisconnect).toHaveBeenCalledWith('int-calendar');
   });
 });
 

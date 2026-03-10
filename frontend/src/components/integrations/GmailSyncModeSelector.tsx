@@ -30,7 +30,7 @@ export function GmailSyncModeSelector({ value, onChange }: GmailSyncModeSelector
               Starred only
             </div>
             <div className="text-xs text-zinc-500 mt-0.5">
-              Sync only emails you've starred or flagged. Best for high-volume inboxes.
+              Sync only emails you&apos;ve starred or flagged. Best for high-volume inboxes.
             </div>
           </div>
         </label>

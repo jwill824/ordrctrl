@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   listSubSources,
   updateImportFilter,
@@ -31,7 +31,7 @@ export function SubSourceSelector({
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchSubSources = async () => {
+  const fetchSubSources = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -42,11 +42,11 @@ export function SubSourceSelector({
     } finally {
       setLoading(false);
     }
-  };
+  }, [serviceId]);
 
   useEffect(() => {
     fetchSubSources();
-  }, [serviceId]);
+  }, [fetchSubSources]);
 
   const toggleSubSource = (id: string) => {
     setSelectedIds((prev) =>

@@ -7,6 +7,8 @@
 Sign in with Apple), integration onboarding for Gmail, Apple Reminders, Microsoft Tasks,
 and Apple Calendar, native task creation, and a consolidated one-way-sync task feed
 
+> **Post-MVP change**: Apple Reminders was removed from active integrations in spec 004 (iCloud credential handling deferred — see `specs/004-apple-basic-auth/`). Active integrations are now: Gmail, Microsoft Tasks, Apple Calendar.
+
 ## Clarifications
 
 ### Session 2026-03-05

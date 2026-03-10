@@ -2,7 +2,7 @@
 
 **Feature Branch**: `005-feed-dismissal`  
 **Created**: 2026-03-10  
-**Status**: Draft  
+**Status**: Complete  
 **Input**: Per-item feed dismissal: allow users to permanently hide individual feed items from their ordrctrl feed. Extends the SyncOverride model with a DISMISSED override type. Users can dismiss any feed item with a single action, the item is permanently hidden from the feed and never reappears on future syncs. Users should be able to undo a dismissal. Dismissed items should not count toward any task metrics.
 
 ## User Scenarios & Testing *(mandatory)*

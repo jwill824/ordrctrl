@@ -20,6 +20,18 @@ import { AppleCalendarAdapter } from '../../src/integrations/apple-calendar/inde
 
 const mockPrisma = prisma as any;
 
+const DISCOVER_XML = `<?xml version="1.0" encoding="utf-8"?>
+<D:multistatus xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
+  <D:response>
+    <D:propstat>
+      <D:prop>
+        <C:calendar-home-set><D:href>/caldav/v2/</D:href></C:calendar-home-set>
+      </D:prop>
+      <D:status>HTTP/1.1 207 Multi-Status</D:status>
+    </D:propstat>
+  </D:response>
+</D:multistatus>`;
+
 const PROPFIND_VEVENT_XML = `<?xml version="1.0" encoding="utf-8"?>
 <D:multistatus xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
   <D:response>
@@ -73,7 +85,9 @@ describe('AppleCalendarAdapter - selective import', () => {
 
   it('listSubSources() returns mapped SubSource[] from VEVENT collections', async () => {
     mockPrisma.integration.findUnique.mockResolvedValue(baseIntegration);
-    mockFetch.mockResolvedValueOnce({ ok: true, text: async () => PROPFIND_VEVENT_XML });
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, status: 207, text: async () => DISCOVER_XML })
+      .mockResolvedValueOnce({ ok: true, text: async () => PROPFIND_VEVENT_XML });
 
     const subSources = await adapter.listSubSources!('int-1');
     expect(subSources.length).toBeGreaterThanOrEqual(2);
@@ -93,6 +107,7 @@ describe('AppleCalendarAdapter - selective import', () => {
     mockPrisma.integration.findUnique.mockResolvedValue({ ...baseIntegration, importEverything: true });
 
     mockFetch
+      .mockResolvedValueOnce({ ok: true, status: 207, text: async () => DISCOVER_XML })
       .mockResolvedValueOnce({ ok: true, text: async () => PROPFIND_VEVENT_XML })
       .mockResolvedValueOnce({ ok: true, text: async () => REPORT_XML('uid1', 'Meeting') })
       .mockResolvedValueOnce({ ok: true, text: async () => REPORT_XML('uid2', 'Lunch') });
@@ -109,6 +124,7 @@ describe('AppleCalendarAdapter - selective import', () => {
     });
 
     mockFetch
+      .mockResolvedValueOnce({ ok: true, status: 207, text: async () => DISCOVER_XML })
       .mockResolvedValueOnce({ ok: true, text: async () => PROPFIND_VEVENT_XML })
       .mockResolvedValueOnce({ ok: true, text: async () => REPORT_XML('uid2', 'Work Meeting') });
 
@@ -223,7 +239,8 @@ describe('AppleCalendarAdapter - sync with Basic Auth', () => {
   it('sync() uses Basic Auth header', async () => {
     mockPrisma.integration.findUnique.mockResolvedValue(baseIntegration);
     mockFetch
-      .mockResolvedValueOnce({ ok: true, status: 207, text: async () => PROPFIND_VEVENT_XML })
+      .mockResolvedValueOnce({ ok: true, status: 207, text: async () => DISCOVER_XML })
+      .mockResolvedValueOnce({ ok: true, text: async () => PROPFIND_VEVENT_XML })
       .mockResolvedValueOnce({ ok: true, text: async () => REPORT_XML('uid1', 'Meeting') })
       .mockResolvedValueOnce({ ok: true, text: async () => REPORT_XML('uid2', 'Lunch') });
 
@@ -238,7 +255,8 @@ describe('AppleCalendarAdapter - sync with Basic Auth', () => {
   it('sync() uses calendarEventWindowDays from integration record', async () => {
     mockPrisma.integration.findUnique.mockResolvedValue({ ...baseIntegration, calendarEventWindowDays: 14 });
     mockFetch
-      .mockResolvedValueOnce({ ok: true, status: 207, text: async () => PROPFIND_VEVENT_XML })
+      .mockResolvedValueOnce({ ok: true, status: 207, text: async () => DISCOVER_XML })
+      .mockResolvedValueOnce({ ok: true, text: async () => PROPFIND_VEVENT_XML })
       .mockResolvedValueOnce({ ok: true, text: async () => REPORT_XML('uid1', 'Meeting') })
       .mockResolvedValueOnce({ ok: true, text: async () => REPORT_XML('uid2', 'Lunch') });
 

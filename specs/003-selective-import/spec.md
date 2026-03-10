@@ -2,8 +2,10 @@
 
 **Feature Branch**: `003-selective-import`
 **Created**: 2026-03-08
-**Status**: Draft
-**Input**: Selective task import — allow users to choose which tasks to pull from each integration source. Per-integration import filter configuration (set at onboarding, editable later). Gmail: choose labels/filters. Apple Reminders: choose which reminder lists. Microsoft Tasks: choose which task lists or plans. Apple Calendar: choose which calendars. Single toggle to import all items from a source. Supersedes #6.
+**Status**: Complete
+**Input**: Selective task import — allow users to choose which tasks to pull from each integration source. Per-integration import filter configuration (set at onboarding, editable later). Gmail: choose labels/filters. Microsoft Tasks: choose which task lists or plans. Apple Calendar: choose which calendars. Single toggle to import all items from a source. Supersedes #6.
+
+> **Note**: Apple Reminders was removed from supported integrations in spec 004 (iCloud credential flow deferred). References to Apple Reminders in this spec are historical.
 
 ## User Scenarios & Testing *(mandatory)*
 

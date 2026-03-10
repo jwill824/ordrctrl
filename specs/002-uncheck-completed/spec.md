@@ -2,7 +2,7 @@
 
 **Feature Branch**: `002-uncheck-completed`
 **Created**: 2026-03-06
-**Status**: Draft
+**Status**: Complete
 **Input**: Allow completed issues to be unchecked
 
 ## User Scenarios & Testing *(mandatory)*

@@ -2,7 +2,7 @@
 
 A minimalist productivity app that consolidates tasks, reminders, calendar events, and emails from multiple services into a single unified feed.
 
-**Supported integrations (MVP)**: Gmail · Apple Reminders · Microsoft Tasks · Apple Calendar
+**Supported integrations**: Gmail · Microsoft Tasks · Apple Calendar
 
 ---
 
@@ -12,7 +12,8 @@ ordrctrl connects your existing productivity accounts and presents everything in
 
 - **Unified feed** — tasks, reminders, events, and flagged emails in one place
 - **Native tasks** — create tasks directly in ordrctrl, no integration required
-- **One-way sync** — ordrctrl reads from your services; completing an item in ordrctrl won't affect the source (two-way sync is planned post-MVP)
+- **Triage & dismiss** — review incoming items in a bottom sheet before they hit your feed; dismiss items you don't need (with restore from settings)
+- **One-way sync** — ordrctrl reads from your services; completing an item in ordrctrl marks it complete locally without modifying the source (two-way sync is planned)
 - **Minimalist UI** — no feature creep; designed to get out of your way
 
 ---
@@ -90,22 +91,28 @@ ordrctrl/
 │   │   ├── integrations/     # Integration adapter plugins
 │   │   │   ├── _adapter/     # IntegrationAdapter interface + shared types
 │   │   │   ├── gmail/
-│   │   │   ├── apple-reminders/
 │   │   │   ├── microsoft-tasks/
 │   │   │   └── apple-calendar/
-│   │   ├── feed/             # Feed aggregation and ordering
+│   │   ├── feed/             # Feed aggregation, ordering, and dismissal
 │   │   ├── sync/             # BullMQ background sync scheduler
 │   │   ├── tasks/            # Native task CRUD
 │   │   ├── api/              # Fastify route handlers
 │   │   └── lib/              # Shared utilities (encryption, logger, redis, email)
-│   └── prisma/               # Database schema and migrations
+│   ├── prisma/               # Database schema and migrations
+│   └── tests/
+│       ├── unit/             # Unit tests (Vitest)
+│       └── contract/         # Contract/route tests (Vitest)
 ├── frontend/                 # Next.js App Router
-│   └── src/
-│       ├── app/              # Pages (login, signup, feed, onboarding, settings)
-│       ├── components/       # UI components
-│       ├── hooks/            # React hooks (useAuth, useFeed, etc.)
-│       └── services/         # API client wrappers
-├── specs/001-mvp-core/       # Design documents (spec, plan, data model, contracts)
+│   ├── src/
+│   │   ├── app/              # Pages (login, signup, feed, onboarding, settings)
+│   │   ├── components/       # UI components
+│   │   ├── hooks/            # React hooks (useAuth, useFeed, etc.)
+│   │   └── services/         # API client wrappers
+│   └── tests/
+│       ├── unit/             # Unit tests (Vitest + Testing Library)
+│       └── e2e/              # End-to-end tests (Playwright)
+├── .github/workflows/        # CI pipeline (GitHub Actions)
+├── specs/                    # Feature specs and design documents
 └── docker-compose.yml        # Local dev infrastructure
 ```
 
@@ -114,15 +121,20 @@ ordrctrl/
 ## Running tests
 
 ```bash
-# Backend unit + integration tests
-cd backend && pnpm test
+# Backend unit tests
+pnpm --filter backend test
 
 # Backend contract tests
-cd backend && pnpm test:contract
+pnpm --filter backend test:contract
+
+# Frontend unit tests
+pnpm --filter frontend test
 
 # Frontend e2e tests (requires both servers running)
-cd frontend && pnpm test:e2e
+pnpm --filter frontend test:e2e
 ```
+
+CI runs all of the above automatically on every pull request and push to `main` via GitHub Actions.
 
 ---
 
@@ -177,6 +189,7 @@ No changes to core feed, sync, or API code required. See [`specs/001-mvp-core/co
 - [ ] Native mobile app (React Native + Expo)
 - [ ] Additional integrations (Todoist, Notion, Linear, etc.)
 - [ ] Recurring task support
+- [ ] Apple Reminders re-integration (deferred; iCloud credential flow needs rework)
 
 ---
 
