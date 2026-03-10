@@ -28,6 +28,21 @@ export interface FeedResponse {
   syncStatus: Record<string, SyncStatusEntry>;
 }
 
+// T021 — dismissed item shape
+export interface DismissedItem {
+  id: string;
+  title: string;
+  source: string;
+  itemType: 'sync' | 'native';
+  dismissedAt: string;
+}
+
+export interface DismissedItemsResponse {
+  items: DismissedItem[];
+  nextCursor: string | null;
+  hasMore: boolean;
+}
+
 export async function fetchFeed(includeCompleted = false): Promise<FeedResponse> {
   const url = `${API_URL}/api/feed${includeCompleted ? '?includeCompleted=true' : ''}`;
   const res = await fetch(url, { credentials: 'include' });
@@ -57,6 +72,44 @@ export async function uncompleteItem(
     const data = await res.json().catch(() => ({}));
     throw new Error(data.message || 'Failed to reopen item');
   }
+  return res.json();
+}
+
+// T010 — dismiss a feed item
+export async function dismissItem(itemId: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/feed/items/${itemId}/dismiss`, {
+    method: 'PATCH',
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to dismiss item');
+  }
+}
+
+// T015 — restore (undo) a dismissed feed item
+export async function restoreItem(itemId: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/feed/items/${itemId}/dismiss`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to restore item');
+  }
+}
+
+// T021 — get paginated list of dismissed items
+export async function getDismissedItems(params?: {
+  limit?: number;
+  cursor?: string;
+}): Promise<DismissedItemsResponse> {
+  const url = new URL(`${API_URL}/api/feed/dismissed`);
+  if (params?.limit) url.searchParams.set('limit', String(params.limit));
+  if (params?.cursor) url.searchParams.set('cursor', params.cursor);
+
+  const res = await fetch(url.toString(), { credentials: 'include' });
+  if (!res.ok) throw new Error('Failed to load dismissed items');
   return res.json();
 }
 

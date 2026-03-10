@@ -39,10 +39,31 @@ interface FeedItemProps {
   item: FeedItemType;
   onComplete: (id: string) => void;
   onUncomplete?: (id: string) => void;
+  onDismiss?: (id: string) => void;
   onClick?: (item: FeedItemType) => void;
 }
 
-export function FeedItemRow({ item, onComplete, onUncomplete, onClick }: FeedItemProps) {
+// T012 — DismissButton: shown on hover via group/group-hover
+function DismissButton({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label="Dismiss item"
+      title="Dismiss — hide this item from your feed"
+      onClick={(e) => {
+        e.stopPropagation();
+        onDismiss();
+      }}
+      className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity flex-shrink-0 w-6 h-6 flex items-center justify-center text-zinc-300 hover:text-zinc-500 bg-transparent border-0 p-0 cursor-pointer"
+    >
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
+        <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      </svg>
+    </button>
+  );
+}
+
+export function FeedItemRow({ item, onComplete, onUncomplete, onDismiss, onClick }: FeedItemProps) {
   const [noticeDismissed, setNoticeDismissed] = useState(false);
   const sourceColor = SOURCE_COLORS[item.source] ?? '#a1a1aa';
   const dateStr = item.dueAt
@@ -55,7 +76,7 @@ export function FeedItemRow({ item, onComplete, onUncomplete, onClick }: FeedIte
     item.dueAt && new Date(item.dueAt) < new Date() && !item.completed;
 
   return (
-    <div className={`flex items-start gap-3 py-[0.875rem] border-b border-zinc-100 ${item.completed ? 'opacity-50' : ''}`}>
+    <div className={`group flex items-start gap-3 py-[0.875rem] border-b border-zinc-100 ${item.completed ? 'opacity-50' : ''}`}>
       {/* Checkbox */}
       <button
         type="button"
@@ -130,6 +151,11 @@ export function FeedItemRow({ item, onComplete, onUncomplete, onClick }: FeedIte
           )}
         </div>
       </div>
+
+      {/* T012/T017 — Dismiss button (hover-reveal) */}
+      {onDismiss && !item.completed && (
+        <DismissButton onDismiss={() => onDismiss(item.id)} />
+      )}
 
       {/* Inline local-override notice for reopened sync items */}
       {item.isJustReopened && !noticeDismissed && item.source !== 'ordrctrl' && (

@@ -14,12 +14,18 @@ import { IntegrationErrorBanner } from '@/components/feed/IntegrationErrorBanner
 import { FeedEmptyState } from '@/components/feed/FeedEmptyState';
 import { AddTaskForm } from '@/components/tasks/AddTaskForm';
 import { EditTaskModal } from '@/components/tasks/EditTaskModal';
+import { TriageSheet } from '@/components/feed/TriageSheet';
 import type { FeedItem } from '@/services/feed.service';
 
 export default function FeedPage() {
-  const { items, completed, syncStatus, loading, refreshing, error, refresh, completeItem, uncompleteItem } =
-    useFeed();
-  const { create, update, remove } = useNativeTasks(refresh);
+  const {
+    items, completed, syncStatus, loading, refreshing, error,
+    refresh, reloadFeed, completeItem, uncompleteItem, dismissItem, restoreItem,
+    undoToast, clearUndoToast,
+    pendingItems, isTriageOpen, triageLoading, newItemCount,
+    closeTriage, acceptTriage, dismissTriageItem, dismissAllTriage,
+  } = useFeed();
+  const { create, update, remove } = useNativeTasks(reloadFeed);
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingTask, setEditingTask] = useState<FeedItem | null>(null);
@@ -45,13 +51,13 @@ export default function FeedPage() {
         </span>
 
         <div className="flex items-center gap-3">
-          {/* Refresh button */}
+          {/* Refresh button with new-item badge */}
           <button
             type="button"
             onClick={refresh}
-            disabled={refreshing}
+            disabled={triageLoading}
             aria-label="Refresh feed"
-            className="bg-transparent border-0 p-1 flex items-center cursor-pointer text-zinc-500 disabled:cursor-default"
+            className="relative bg-transparent border-0 p-1 flex items-center cursor-pointer text-zinc-500 disabled:cursor-default"
           >
             <svg
               width="16"
@@ -62,11 +68,16 @@ export default function FeedPage() {
               strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className={refreshing ? 'animate-spin' : ''}
+              className={triageLoading ? 'animate-spin' : ''}
             >
               <path d="M13.5 2.5A7 7 0 1 0 14.5 9"/>
               <path d="M14.5 2.5v4h-4"/>
             </svg>
+            {newItemCount > 0 && !isTriageOpen && (
+              <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-black text-white text-[0.5rem] font-bold rounded-full flex items-center justify-center leading-none">
+                {newItemCount > 9 ? '9+' : newItemCount}
+              </span>
+            )}
           </button>
 
           {/* Settings link */}
@@ -77,6 +88,17 @@ export default function FeedPage() {
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-label="Settings">
               <circle cx="8" cy="8" r="2.5"/>
               <path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M2.93 2.93l1.06 1.06M12.01 12.01l1.06 1.06M2.93 13.07l1.06-1.06M12.01 3.99l1.06-1.06"/>
+            </svg>
+          </Link>
+          {/* Dismissed items link */}
+          <Link
+            href="/settings/dismissed"
+            aria-label="Dismissed items"
+            title="Dismissed items"
+            className="text-zinc-500 no-underline"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden>
+              <path d="M2 2l12 12M14 2L2 14"/>
             </svg>
           </Link>
         </div>
@@ -97,7 +119,7 @@ export default function FeedPage() {
         {/* Sync status row */}
         {Object.values(syncStatus).some((s) => s.status === 'connected') && (
           <div className="text-[0.7rem] text-zinc-400 mb-2 flex items-center gap-1.5">
-            {refreshing ? (
+            {triageLoading ? (
               <>
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="animate-spin">
                   <path d="M9 5A4 4 0 1 0 5 1"/>
@@ -139,6 +161,7 @@ export default function FeedPage() {
                 key={item.id}
                 item={item}
                 onComplete={completeItem}
+                onDismiss={dismissItem}
                 onClick={item.id.startsWith('native:') ? handleItemClick : undefined}
               />
             ))}
@@ -178,6 +201,38 @@ export default function FeedPage() {
           onClose={() => setEditingTask(null)}
         />
       )}
+
+      {/* T017 — Undo toast for dismiss */}
+      {undoToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-zinc-900 text-white text-sm px-4 py-2.5 shadow-lg z-30">
+          <span>{undoToast.message}</span>
+          <button
+            type="button"
+            onClick={() => restoreItem(undoToast.itemId)}
+            className="text-zinc-300 underline underline-offset-2 bg-transparent border-0 p-0 cursor-pointer text-sm hover:text-white"
+          >
+            Undo
+          </button>
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={clearUndoToast}
+            className="text-zinc-500 hover:text-zinc-300 bg-transparent border-0 p-0 cursor-pointer leading-none ml-1"
+          >
+            ×
+          </button>
+        </div>
+      )}
+      {/* T036/T037 — Triage sheet: review new items on refresh */}
+      <TriageSheet
+        isOpen={isTriageOpen}
+        loading={triageLoading}
+        items={pendingItems}
+        onClose={closeTriage}
+        onAcceptAll={acceptTriage}
+        onDismissAll={dismissAllTriage}
+        onDismissItem={dismissTriageItem}
+      />
     </div>
   );
 }

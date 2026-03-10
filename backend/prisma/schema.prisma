@@ -39,6 +39,7 @@ enum ItemType {
 
 enum OverrideType {
   REOPENED
+  DISMISSED
 }
 
 model User {
@@ -120,6 +121,7 @@ model NativeTask {
   dueAt       DateTime?
   completed   Boolean   @default(false)
   completedAt DateTime?
+  dismissed   Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 

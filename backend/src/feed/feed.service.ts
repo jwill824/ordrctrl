@@ -34,19 +34,24 @@ export interface FeedResult {
 
 const NATIVE_SOURCE = 'ordrctrl';
 
-/**
- * Build the consolidated feed for a user.
- */
+// T007/T008 — filter dismissed items from the feed
 export async function buildFeed(
   userId: string,
   includeCompleted = false
 ): Promise<FeedResult> {
-  // Fetch sync cache items
-  const cacheItems = await getCacheItemsForUser(userId);
+  // Get dismissed sync item IDs for this user
+  const dismissedOverrides = await prisma.syncOverride.findMany({
+    where: { userId, overrideType: 'DISMISSED' },
+    select: { syncCacheItemId: true },
+  });
+  const dismissedSyncIds = dismissedOverrides.map((d) => d.syncCacheItemId);
 
-  // Fetch native tasks
+  // Fetch sync cache items excluding dismissed
+  const cacheItems = await getCacheItemsForUser(userId, dismissedSyncIds);
+
+  // Fetch native tasks (excluding dismissed)
   const nativeTasks = await prisma.nativeTask.findMany({
-    where: { userId },
+    where: { userId, dismissed: false },
     orderBy: { createdAt: 'asc' },
   });
 
@@ -306,4 +311,184 @@ export async function uncompleteSyncItem(
     completedAt: null,
     isLocalOverride: true,
   };
+}
+
+// ─── Dismiss / Restore ───────────────────────────────────────────────────────
+
+export interface DismissedItem {
+  id: string;           // "sync:<uuid>" | "native:<uuid>"
+  title: string;
+  source: string;
+  itemType: 'sync' | 'native';
+  dismissedAt: string;  // ISO string
+}
+
+/**
+ * T006 — Dismiss a feed item for the authenticated user.
+ * - sync items: upsert a SyncOverride(DISMISSED)
+ * - native items: set dismissed = true on NativeTask
+ */
+export async function dismissFeedItem(userId: string, itemId: string): Promise<void> {
+  const [type, rawId] = itemId.split(':');
+
+  if (type === 'sync') {
+    const item = await prisma.syncCacheItem.findFirst({ where: { id: rawId, userId } });
+    if (!item) throw Object.assign(new Error('Item not found'), { code: 'ITEM_NOT_FOUND' });
+
+    await prisma.syncOverride.upsert({
+      where: {
+        syncCacheItemId_overrideType: {
+          syncCacheItemId: rawId,
+          overrideType: 'DISMISSED',
+        },
+      },
+      create: { userId, syncCacheItemId: rawId, overrideType: 'DISMISSED' },
+      update: {},
+    });
+  } else {
+    // native
+    const item = await prisma.nativeTask.findFirst({ where: { id: rawId, userId } });
+    if (!item) throw Object.assign(new Error('Item not found'), { code: 'ITEM_NOT_FOUND' });
+    if (item.dismissed) throw Object.assign(new Error('Item is already dismissed'), { code: 'ALREADY_DISMISSED' });
+
+    await prisma.nativeTask.update({ where: { id: rawId }, data: { dismissed: true } });
+  }
+}
+
+/**
+ * T013 — Restore a dismissed feed item (undo).
+ * - sync items: delete the SyncOverride(DISMISSED)
+ * - native items: set dismissed = false on NativeTask
+ */
+export async function restoreFeedItem(userId: string, itemId: string): Promise<void> {
+  const [type, rawId] = itemId.split(':');
+
+  if (type === 'sync') {
+    const item = await prisma.syncCacheItem.findFirst({ where: { id: rawId, userId } });
+    if (!item) throw Object.assign(new Error('Item not found'), { code: 'ITEM_NOT_FOUND' });
+
+    const override = await prisma.syncOverride.findUnique({
+      where: {
+        syncCacheItemId_overrideType: {
+          syncCacheItemId: rawId,
+          overrideType: 'DISMISSED',
+        },
+      },
+    });
+    if (!override) throw Object.assign(new Error('Item is not dismissed'), { code: 'NOT_DISMISSED' });
+
+    await prisma.syncOverride.delete({
+      where: {
+        syncCacheItemId_overrideType: {
+          syncCacheItemId: rawId,
+          overrideType: 'DISMISSED',
+        },
+      },
+    });
+  } else {
+    // native
+    const item = await prisma.nativeTask.findFirst({ where: { id: rawId, userId } });
+    if (!item) throw Object.assign(new Error('Item not found'), { code: 'ITEM_NOT_FOUND' });
+    if (!item.dismissed) throw Object.assign(new Error('Item is not dismissed'), { code: 'NOT_DISMISSED' });
+
+    await prisma.nativeTask.update({ where: { id: rawId }, data: { dismissed: false } });
+  }
+}
+
+/**
+ * T019 — Get paginated list of dismissed items for a user.
+ * Merges dismissed sync items + dismissed native tasks, sorted by dismissedAt desc.
+ */
+export async function getDismissedItems(
+  userId: string,
+  limit: number,
+  cursor?: string
+): Promise<{ items: DismissedItem[]; nextCursor: string | null; hasMore: boolean }> {
+  // Decode cursor (createdAt ISO + id for tiebreaking)
+  let cursorDate: Date | undefined;
+  let cursorId: string | undefined;
+  if (cursor) {
+    try {
+      const decoded = JSON.parse(Buffer.from(cursor, 'base64').toString('utf8'));
+      cursorDate = new Date(decoded.at);
+      cursorId = decoded.id;
+    } catch {
+      throw Object.assign(new Error('Invalid cursor'), { code: 'INVALID_CURSOR' });
+    }
+  }
+
+  // Dismissed sync overrides
+  const dismissedOverrides = await prisma.syncOverride.findMany({
+    where: {
+      userId,
+      overrideType: 'DISMISSED',
+      ...(cursorDate
+        ? {
+            OR: [
+              { createdAt: { lt: cursorDate } },
+              { createdAt: cursorDate, id: { gt: cursorId! } },
+            ],
+          }
+        : {}),
+    },
+    include: {
+      syncCacheItem: {
+        include: {
+          integration: { select: { serviceId: true } },
+        },
+      },
+    },
+    orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+    take: limit + 1,
+  });
+
+  // Dismissed native tasks
+  const dismissedNative = await prisma.nativeTask.findMany({
+    where: {
+      userId,
+      dismissed: true,
+      ...(cursorDate
+        ? {
+            OR: [
+              { updatedAt: { lt: cursorDate } },
+              { updatedAt: cursorDate, id: { gt: cursorId! } },
+            ],
+          }
+        : {}),
+    },
+    orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
+    take: limit + 1,
+  });
+
+  // Map to unified shape
+  const syncItems: DismissedItem[] = dismissedOverrides.map((o) => ({
+    id: `sync:${o.syncCacheItemId}`,
+    title: o.syncCacheItem.title,
+    source: o.syncCacheItem.integration.serviceId,
+    itemType: 'sync' as const,
+    dismissedAt: o.createdAt.toISOString(),
+  }));
+
+  const nativeItems: DismissedItem[] = dismissedNative.map((t) => ({
+    id: `native:${t.id}`,
+    title: t.title,
+    source: 'ordrctrl',
+    itemType: 'native' as const,
+    dismissedAt: t.updatedAt.toISOString(),
+  }));
+
+  // Merge + sort by dismissedAt desc, take limit+1 to detect hasMore
+  const merged = [...syncItems, ...nativeItems]
+    .sort((a, b) => new Date(b.dismissedAt).getTime() - new Date(a.dismissedAt).getTime())
+    .slice(0, limit + 1);
+
+  const hasMore = merged.length > limit;
+  const page = merged.slice(0, limit);
+
+  const lastItem = page[page.length - 1];
+  const nextCursor = hasMore && lastItem
+    ? Buffer.from(JSON.stringify({ at: lastItem.dismissedAt, id: lastItem.id })).toString('base64')
+    : null;
+
+  return { items: page, nextCursor, hasMore };
 }
