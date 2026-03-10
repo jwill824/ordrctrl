@@ -5,7 +5,6 @@
 import { prisma } from '../lib/db.js';
 import { getCacheItemsForUser } from '../sync/cache.service.js';
 import type { ServiceId } from '../integrations/_adapter/types.js';
-import { SERVICE_DISPLAY_NAMES } from '../integrations/_adapter/types.js';
 
 export interface FeedItem {
   id: string;                       // "sync:<uuid>" | "native:<uuid>"
@@ -58,7 +57,7 @@ export async function buildFeed(
   // Map sync cache items to FeedItem
   const syncFeedItems: FeedItem[] = cacheItems.map((item) => ({
     id: `sync:${item.id}`,
-    source: SERVICE_DISPLAY_NAMES[item.integration.serviceId as ServiceId] ?? item.integration.serviceId,
+    source: item.integration.label ?? item.integration.accountIdentifier,
     itemType: item.itemType as 'task' | 'event' | 'message',
     title: item.title,
     dueAt: item.dueAt?.toISOString() ?? null,

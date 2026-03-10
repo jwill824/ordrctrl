@@ -19,21 +19,48 @@ const SERVICE_IDS: ServiceId[] = [
 ];
 
 function IntegrationSettingsContent() {
-  const { integrations, loading, error, disconnect, refresh } = useIntegrations();
+  const { grouped, loading, error, disconnect, updateLabel, pauseAccount, refresh } = useIntegrations();
   const searchParams = useSearchParams();
   const [autoOpenServiceId, setAutoOpenServiceId] = useState<ServiceId | null>(null);
+  const [oauthError, setOauthError] = useState<string | null>(null);
 
   useEffect(() => {
     const connected = searchParams?.get('connected') as ServiceId | null;
     const step = searchParams?.get('step');
+    const errParam = searchParams?.get('error');
+    const serviceId = searchParams?.get('serviceId') as ServiceId | null;
+
     if (connected && step === 'import-filter' && SERVICE_IDS.includes(connected)) {
       setAutoOpenServiceId(connected);
+    }
+
+    if (errParam === 'duplicate_account') {
+      const svc = serviceId ? serviceId.replace(/_/g, ' ') : 'service';
+      setOauthError(`This account is already connected for ${svc}.`);
+    } else if (errParam === 'account_limit_reached') {
+      const svc = serviceId ? serviceId.replace(/_/g, ' ') : 'service';
+      setOauthError(`Maximum number of accounts reached for ${svc}.`);
     }
   }, [searchParams]);
 
   return (
     <>
-      {/* Error state */}
+      {/* OAuth error banner */}
+      {oauthError && (
+        <div className="border-l-2 border-amber-500 py-1 pl-3 text-[0.8rem] text-amber-700 mb-6 flex items-start justify-between">
+          <span>{oauthError}</span>
+          <button
+            type="button"
+            onClick={() => setOauthError(null)}
+            className="ml-4 text-zinc-400 hover:text-zinc-600 bg-transparent border-0 p-0 cursor-pointer leading-none"
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* Fetch error state */}
       {error && (
         <div className="border-l-2 border-red-500 py-1 pl-3 text-[0.8rem] text-red-600 mb-6">
           {error}
@@ -46,24 +73,21 @@ function IntegrationSettingsContent() {
       ) : (
         <div className="flex flex-col gap-3">
           {SERVICE_IDS.map((serviceId) => {
-            const integration = integrations.find((i) => i.serviceId === serviceId);
+            const accounts = grouped[serviceId] ?? [];
             const isAutoOpen = autoOpenServiceId === serviceId;
+            const primaryAccount = accounts[0];
             return (
               <div key={serviceId}>
                 <IntegrationCard
                   serviceId={serviceId}
-                  status={integration?.status ?? 'disconnected'}
-                  lastSyncAt={integration?.lastSyncAt}
-                  lastSyncError={integration?.lastSyncError}
-                  gmailSyncMode={integration?.gmailSyncMode}
-                  gmailCompletionMode={integration?.gmailCompletionMode}
-                  importEverything={integration?.importEverything ?? true}
-                  selectedSubSourceIds={integration?.selectedSubSourceIds ?? []}
-                  onDisconnect={() => disconnect(serviceId)}
+                  accounts={accounts}
+                  onDisconnect={disconnect}
+                  onUpdateLabel={updateLabel}
+                  onPauseAccount={pauseAccount}
                   onRefresh={refresh}
                 />
                 {/* Auto-open import filter panel for post-OAuth flow */}
-                {isAutoOpen && integration?.status === 'connected' && (
+                {isAutoOpen && primaryAccount?.status === 'connected' && (
                   <SubSourceSelector
                     serviceId={serviceId}
                     importEverything={true}

@@ -12,6 +12,7 @@ import {
   NotSupportedError,
   InvalidCredentialsError,
   ProviderUnavailableError,
+  AccountLimitError,
 } from '../_adapter/types.js';
 
 const CALDAV_BASE = 'https://caldav.icloud.com';
@@ -90,7 +91,7 @@ export class AppleCalendarAdapter implements IntegrationAdapter {
     userId: string,
     payload: ConnectPayload,
     options?: ConnectOptions
-  ): Promise<{ integrationId: string }> {
+  ): Promise<{ integrationId: string; accountIdentifier: string }> {
     if (payload.type !== 'credential') {
       throw new NotSupportedError('apple_calendar', 'connect with OAuth');
     }
@@ -98,29 +99,45 @@ export class AppleCalendarAdapter implements IntegrationAdapter {
     await this.validateCredentials(email, password);
 
     const windowDays = options?.calendarEventWindowDays ?? 30;
+    const accountIdentifier = email;
 
-    const integration = await prisma.integration.upsert({
-      where: { userId_serviceId: { userId, serviceId: 'apple_calendar' } },
-      create: {
-        userId,
-        serviceId: 'apple_calendar',
-        status: 'connected',
-        encryptedAccessToken: encrypt(email),
-        encryptedRefreshToken: encrypt(password),
-        tokenExpiresAt: null,
-        calendarEventWindowDays: windowDays,
-        lastSyncError: null,
-      },
-      update: {
-        status: 'connected',
-        encryptedAccessToken: encrypt(email),
-        encryptedRefreshToken: encrypt(password),
-        tokenExpiresAt: null,
-        calendarEventWindowDays: windowDays,
-        lastSyncError: null,
-      },
+    const existing = await prisma.integration.findFirst({
+      where: { userId, serviceId: 'apple_calendar', accountIdentifier },
     });
-    return { integrationId: integration.id };
+
+    let integration;
+    if (existing) {
+      integration = await prisma.integration.update({
+        where: { id: existing.id },
+        data: {
+          status: 'connected',
+          encryptedAccessToken: encrypt(email),
+          encryptedRefreshToken: encrypt(password),
+          tokenExpiresAt: null,
+          calendarEventWindowDays: windowDays,
+          lastSyncError: null,
+        },
+      });
+    } else {
+      const count = await prisma.integration.count({ where: { userId, serviceId: 'apple_calendar' } });
+      if (count >= 5) throw new AccountLimitError('apple_calendar', 5);
+
+      integration = await prisma.integration.create({
+        data: {
+          userId,
+          serviceId: 'apple_calendar',
+          accountIdentifier,
+          status: 'connected',
+          encryptedAccessToken: encrypt(email),
+          encryptedRefreshToken: encrypt(password),
+          tokenExpiresAt: null,
+          calendarEventWindowDays: windowDays,
+          lastSyncError: null,
+        },
+      });
+    }
+
+    return { integrationId: integration.id, accountIdentifier };
   }
 
   private async validateCredentials(email: string, asp: string): Promise<void> {

@@ -74,6 +74,9 @@ model Integration {
   id                    String            @id @default(uuid())
   userId                String
   serviceId             ServiceId
+  accountIdentifier     String
+  label                 String?
+  paused                Boolean           @default(false)
   status                IntegrationStatus @default(connected)
   encryptedAccessToken  String
   encryptedRefreshToken String?
@@ -91,7 +94,7 @@ model Integration {
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   syncCacheItems SyncCacheItem[]
 
-  @@unique([userId, serviceId])
+  @@unique([userId, serviceId, accountIdentifier])
   @@index([userId])
   @@index([status])
 }

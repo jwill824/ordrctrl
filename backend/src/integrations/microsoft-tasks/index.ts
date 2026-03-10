@@ -12,6 +12,7 @@ import {
   type SubSource,
   TokenRefreshError,
   NotSupportedError,
+  AccountLimitError,
 } from '../_adapter/types.js';
 
 const MS_TOKEN_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/token';
@@ -40,7 +41,7 @@ export class MicrosoftTasksAdapter implements IntegrationAdapter {
     userId: string,
     payload: ConnectPayload,
     _options?: ConnectOptions
-  ): Promise<{ integrationId: string }> {
+  ): Promise<{ integrationId: string; accountIdentifier: string }> {
     if (payload.type !== 'oauth') throw new NotSupportedError('microsoft_tasks', 'connect with non-OAuth payload');
     const { authCode } = payload;
     const clientId = process.env.MICROSOFT_CLIENT_ID!;
@@ -80,31 +81,59 @@ export class MicrosoftTasksAdapter implements IntegrationAdapter {
       ? new Date(Date.now() + tokenData.expires_in * 1000)
       : null;
 
-    const integration = await prisma.integration.upsert({
-      where: { userId_serviceId: { userId, serviceId: 'microsoft_tasks' } },
-      create: {
-        userId,
-        serviceId: 'microsoft_tasks',
-        status: 'connected',
-        encryptedAccessToken: encrypt(tokenData.access_token),
-        encryptedRefreshToken: tokenData.refresh_token
-          ? encrypt(tokenData.refresh_token)
-          : null,
-        tokenExpiresAt: expiresAt,
-        lastSyncError: null,
-      },
-      update: {
-        status: 'connected',
-        encryptedAccessToken: encrypt(tokenData.access_token),
-        encryptedRefreshToken: tokenData.refresh_token
-          ? encrypt(tokenData.refresh_token)
-          : null,
-        tokenExpiresAt: expiresAt,
-        lastSyncError: null,
-      },
+    // Fetch account identifier from MS Graph
+    let accountIdentifier = 'unknown@microsoft.com';
+    try {
+      const meRes = await fetch(`${MS_GRAPH_BASE}/me`, {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      });
+      if (meRes.ok) {
+        const meData = (await meRes.json()) as { mail?: string; userPrincipalName?: string };
+        accountIdentifier = meData.mail ?? meData.userPrincipalName ?? 'unknown@microsoft.com';
+      }
+    } catch {
+      // keep default
+    }
+
+    const existing = await prisma.integration.findFirst({
+      where: { userId, serviceId: 'microsoft_tasks', accountIdentifier },
     });
 
-    return { integrationId: integration.id };
+    let integration;
+    if (existing) {
+      integration = await prisma.integration.update({
+        where: { id: existing.id },
+        data: {
+          status: 'connected',
+          encryptedAccessToken: encrypt(tokenData.access_token),
+          encryptedRefreshToken: tokenData.refresh_token
+            ? encrypt(tokenData.refresh_token)
+            : null,
+          tokenExpiresAt: expiresAt,
+          lastSyncError: null,
+        },
+      });
+    } else {
+      const count = await prisma.integration.count({ where: { userId, serviceId: 'microsoft_tasks' } });
+      if (count >= 5) throw new AccountLimitError('microsoft_tasks', 5);
+
+      integration = await prisma.integration.create({
+        data: {
+          userId,
+          serviceId: 'microsoft_tasks',
+          accountIdentifier,
+          status: 'connected',
+          encryptedAccessToken: encrypt(tokenData.access_token),
+          encryptedRefreshToken: tokenData.refresh_token
+            ? encrypt(tokenData.refresh_token)
+            : null,
+          tokenExpiresAt: expiresAt,
+          lastSyncError: null,
+        },
+      });
+    }
+
+    return { integrationId: integration.id, accountIdentifier };
   }
 
   async disconnect(integrationId: string): Promise<void> {

@@ -1,0 +1,10 @@
+{
+  "id": "20260310000000_add_multi_account",
+  "checksum": "",
+  "finishedAt": null,
+  "migrationName": "20260310000000_add_multi_account",
+  "logs": null,
+  "rolledBackAt": null,
+  "startedAt": null,
+  "appliedStepsCount": 0
+}

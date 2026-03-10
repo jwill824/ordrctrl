@@ -13,6 +13,8 @@ import {
   type SubSource,
   TokenRefreshError,
   NotSupportedError,
+  AccountLimitError,
+  DuplicateAccountError,
 } from '../_adapter/types.js';
 
 let gmailClient: Client | null = null;
@@ -47,7 +49,7 @@ export class GmailAdapter implements IntegrationAdapter {
     userId: string,
     payload: ConnectPayload,
     options?: ConnectOptions
-  ): Promise<{ integrationId: string }> {
+  ): Promise<{ integrationId: string; accountIdentifier: string }> {
     if (payload.type !== 'oauth') throw new NotSupportedError('gmail', 'connect with non-OAuth payload');
     const { authCode } = payload;
     const client = await getGmailClient();
@@ -62,30 +64,50 @@ export class GmailAdapter implements IntegrationAdapter {
 
     const syncMode = options?.gmailSyncMode ?? 'starred_only';
 
-    // Upsert integration record
-    const integration = await prisma.integration.upsert({
-      where: { userId_serviceId: { userId, serviceId: 'gmail' } },
-      create: {
-        userId,
-        serviceId: 'gmail',
-        status: 'connected',
-        encryptedAccessToken: encrypt(accessToken),
-        encryptedRefreshToken: refreshToken ? encrypt(refreshToken) : null,
-        tokenExpiresAt: expiresAt,
-        gmailSyncMode: syncMode === 'all_unread' ? 'all_unread' : 'starred_only',
-        lastSyncError: null,
-      },
-      update: {
-        status: 'connected',
-        encryptedAccessToken: encrypt(accessToken),
-        encryptedRefreshToken: refreshToken ? encrypt(refreshToken) : null,
-        tokenExpiresAt: expiresAt,
-        gmailSyncMode: syncMode === 'all_unread' ? 'all_unread' : 'starred_only',
-        lastSyncError: null,
-      },
+    // Extract account email from id_token claims
+    const idTokenClaims = tokenSet.claims?.() ?? {};
+    const accountIdentifier = (idTokenClaims.email as string) ?? `unknown@gmail.com`;
+
+    // Check for duplicate
+    const existing = await prisma.integration.findFirst({
+      where: { userId, serviceId: 'gmail', accountIdentifier },
     });
 
-    return { integrationId: integration.id };
+    let integration;
+    if (existing) {
+      // Reconnect: update tokens
+      integration = await prisma.integration.update({
+        where: { id: existing.id },
+        data: {
+          status: 'connected',
+          encryptedAccessToken: encrypt(accessToken),
+          encryptedRefreshToken: refreshToken ? encrypt(refreshToken) : null,
+          tokenExpiresAt: expiresAt,
+          gmailSyncMode: syncMode === 'all_unread' ? 'all_unread' : 'starred_only',
+          lastSyncError: null,
+        },
+      });
+    } else {
+      // Check limit
+      const count = await prisma.integration.count({ where: { userId, serviceId: 'gmail' } });
+      if (count >= 5) throw new AccountLimitError('gmail', 5);
+
+      integration = await prisma.integration.create({
+        data: {
+          userId,
+          serviceId: 'gmail',
+          accountIdentifier,
+          status: 'connected',
+          encryptedAccessToken: encrypt(accessToken),
+          encryptedRefreshToken: refreshToken ? encrypt(refreshToken) : null,
+          tokenExpiresAt: expiresAt,
+          gmailSyncMode: syncMode === 'all_unread' ? 'all_unread' : 'starred_only',
+          lastSyncError: null,
+        },
+      });
+    }
+
+    return { integrationId: integration.id, accountIdentifier };
   }
 
   async disconnect(integrationId: string): Promise<void> {

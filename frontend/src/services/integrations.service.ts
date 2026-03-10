@@ -11,7 +11,11 @@ export interface SubSource {
 }
 
 export interface IntegrationStatus {
+  id: string;
   serviceId: ServiceId;
+  accountIdentifier: string;
+  label: string | null;
+  paused: boolean;
   status: 'connected' | 'error' | 'disconnected';
   lastSyncAt: string | null;
   lastSyncError: string | null;
@@ -40,8 +44,8 @@ export function getConnectUrl(serviceId: ServiceId, syncMode?: string): string {
   return base;
 }
 
-export async function disconnectIntegration(serviceId: ServiceId): Promise<void> {
-  const res = await fetch(`${API_URL}/api/integrations/${serviceId}`, {
+export async function disconnectIntegration(integrationId: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/integrations/${integrationId}`, {
     method: 'DELETE',
     credentials: 'include',
   });
@@ -150,4 +154,32 @@ export async function updateGmailCompletionMode(mode: 'inbox_removal' | 'read'):
     const data = await res.json().catch(() => ({}));
     throw new Error((data as any).message || 'Failed to update Gmail completion mode');
   }
+}
+
+export async function updateLabel(integrationId: string, label: string): Promise<{ id: string; label: string | null; accountIdentifier: string }> {
+  const res = await fetch(`${API_URL}/api/integrations/${integrationId}/label`, {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ label }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to update label');
+  }
+  return res.json();
+}
+
+export async function pauseIntegration(integrationId: string, paused: boolean): Promise<{ id: string; paused: boolean; status: string }> {
+  const res = await fetch(`${API_URL}/api/integrations/${integrationId}/pause`, {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ paused }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to update pause state');
+  }
+  return res.json();
 }

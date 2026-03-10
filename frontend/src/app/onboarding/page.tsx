@@ -17,7 +17,7 @@ const SERVICE_IDS: ServiceId[] = [
 ];
 
 function OnboardingContent() {
-  const { integrations, loading, refresh } = useIntegrations();
+  const { allAccounts, loading, refresh } = useIntegrations();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [notification, setNotification] = useState<string | null>(null);
@@ -43,9 +43,9 @@ function OnboardingContent() {
   }, [searchParams, refresh]);
 
   // Check if any integrations are connected → redirect to feed
-  const hasConnected = integrations.some((i) => i.status === 'connected');
+  const hasConnected = allAccounts.some((i) => i.status === 'connected');
 
-  const connectedCount = integrations.filter((i) => i.status === 'connected').length;
+  const connectedCount = allAccounts.filter((i) => i.status === 'connected').length;
 
   if (!loading && hasConnected && !searchParams.get('error')) {
     // Allow user to proceed even with partial connections
@@ -85,7 +85,7 @@ function OnboardingContent() {
       ) : (
         <div className="flex flex-col gap-3">
           {SERVICE_IDS.map((serviceId) => {
-            const integration = integrations.find((i) => i.serviceId === serviceId);
+            const integration = allAccounts.find((i) => i.serviceId === serviceId);
             return (
               <IntegrationCard
                 key={serviceId}
