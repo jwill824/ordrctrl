@@ -56,6 +56,7 @@ function IntegrationSettingsContent() {
                   lastSyncAt={integration?.lastSyncAt}
                   lastSyncError={integration?.lastSyncError}
                   gmailSyncMode={integration?.gmailSyncMode}
+                  gmailCompletionMode={integration?.gmailCompletionMode}
                   importEverything={integration?.importEverything ?? true}
                   selectedSubSourceIds={integration?.selectedSubSourceIds ?? []}
                   onDisconnect={() => disconnect(serviceId)}

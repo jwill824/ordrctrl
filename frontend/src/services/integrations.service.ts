@@ -16,6 +16,7 @@ export interface IntegrationStatus {
   lastSyncAt: string | null;
   lastSyncError: string | null;
   gmailSyncMode: 'all_unread' | 'starred_only' | null;
+  gmailCompletionMode: 'inbox_removal' | 'read' | null;
   importEverything: boolean;
   selectedSubSourceIds: string[];
   maskedEmail?: string | null;
@@ -135,5 +136,18 @@ export async function updateCalendarEventWindow(days: 7 | 14 | 30 | 60): Promise
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error((data as any).message || 'Failed to update calendar window');
+  }
+}
+
+export async function updateGmailCompletionMode(mode: 'inbox_removal' | 'read'): Promise<void> {
+  const res = await fetch(`${API_URL}/api/integrations/gmail/completion-mode`, {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error((data as any).message || 'Failed to update Gmail completion mode');
   }
 }

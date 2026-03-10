@@ -133,11 +133,19 @@ export class GmailAdapter implements IntegrationAdapter {
 
     const accessToken = decrypt(integration.encryptedAccessToken);
     const syncMode = integration.gmailSyncMode ?? 'starred_only';
+    const completionMode = (integration.gmailCompletionMode as 'inbox_removal' | 'read' | null) ?? 'inbox_removal';
     const importEverything = integration.importEverything ?? true;
     const selectedSubSourceIds = integration.selectedSubSourceIds ?? [];
 
-    // Build Gmail query based on sync mode
-    const q = syncMode === 'all_unread' ? 'is:unread' : 'is:starred is:unread';
+    // Build Gmail query based on sync mode and completion mode.
+    // inbox_removal (default): query unread messages — absence from next sync signals completion.
+    // read: query all inbox messages — completed = message is read (no UNREAD label).
+    let q: string;
+    if (completionMode === 'read') {
+      q = syncMode === 'all_unread' ? 'in:inbox' : 'in:inbox is:starred';
+    } else {
+      q = syncMode === 'all_unread' ? 'is:unread' : 'is:starred is:unread';
+    }
 
     const listUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(q)}&maxResults=50`;
     const listRes = await fetch(listUrl, {
@@ -175,7 +183,13 @@ export class GmailAdapter implements IntegrationAdapter {
           headers.find((h) => h.name === 'Subject')?.value ?? '(no subject)';
         const dateHeader = headers.find((h) => h.name === 'Date')?.value;
         const dueAt = dateHeader ? new Date(dateHeader) : null;
-        const subSourceId = msgData.labelIds?.[0];
+        const labelIds = msgData.labelIds ?? [];
+        const subSourceId = labelIds[0];
+
+        // In read mode: item is "completed" if it no longer has the UNREAD label
+        const completed = completionMode === 'read'
+          ? !labelIds.includes('UNREAD')
+          : false;
 
         items.push({
           externalId: msgData.id,
@@ -185,6 +199,7 @@ export class GmailAdapter implements IntegrationAdapter {
           startAt: null,
           endAt: null,
           subSourceId,
+          completed,
           rawPayload: { id: msgData.id, internalDate: msgData.internalDate },
         });
       } catch (err) {

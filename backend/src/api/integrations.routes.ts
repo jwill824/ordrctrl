@@ -11,6 +11,7 @@ import {
   getSubSources,
   updateImportFilter,
   updateCalendarEventWindow,
+  updateGmailCompletionMode,
   AppError,
 } from '../integrations/integration.service.js';
 import type { ServiceId } from '../integrations/_adapter/types.js';
@@ -357,6 +358,34 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
       try {
         await updateCalendarEventWindow(userId, parsed.data.days);
         return reply.status(200).send({ calendarEventWindowDays: parsed.data.days });
+      } catch (err: any) {
+        if (err instanceof AppError && err.code === 'INTEGRATION_NOT_FOUND') {
+          return reply.status(404).send({ error: 'INTEGRATION_NOT_FOUND', message: err.message });
+        }
+        return reply.status(500).send({ error: 'InternalError', message: err.message });
+      }
+    }
+  );
+
+  // PATCH /api/integrations/gmail/completion-mode — update Gmail completion mode
+  const completionModeBodySchema = z.object({
+    mode: z.enum(['inbox_removal', 'read']),
+  });
+
+  app.patch(
+    '/api/integrations/gmail/completion-mode',
+    async (request, reply) => {
+      const userId = requireAuth(request, reply);
+      if (!userId) return;
+
+      const parsed = completionModeBodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'ValidationError', message: parsed.error.errors[0]?.message });
+      }
+
+      try {
+        const result = await updateGmailCompletionMode(userId, parsed.data.mode);
+        return reply.status(200).send(result);
       } catch (err: any) {
         if (err instanceof AppError && err.code === 'INTEGRATION_NOT_FOUND') {
           return reply.status(404).send({ error: 'INTEGRATION_NOT_FOUND', message: err.message });

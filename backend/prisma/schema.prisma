@@ -31,6 +31,11 @@ enum GmailSyncMode {
   starred_only
 }
 
+enum GmailCompletionMode {
+  inbox_removal
+  read
+}
+
 enum ItemType {
   task
   event
@@ -73,6 +78,7 @@ model Integration {
   encryptedRefreshToken String?
   tokenExpiresAt        DateTime?
   gmailSyncMode             GmailSyncMode?
+  gmailCompletionMode       GmailCompletionMode?
   calendarEventWindowDays   Int            @default(30)
   importEverything          Boolean        @default(true)
   selectedSubSourceIds  String[]       @default([])
@@ -101,6 +107,7 @@ model SyncCacheItem {
   endAt                DateTime?
   completedInOrdrctrl  Boolean   @default(false)
   completedAt          DateTime?
+  completedAtSource    Boolean   @default(false)
   syncedAt             DateTime  @default(now())
   expiresAt            DateTime
   rawPayload           Json
@@ -111,6 +118,7 @@ model SyncCacheItem {
   @@unique([integrationId, externalId])
   @@index([userId])
   @@index([userId, completedInOrdrctrl])
+  @@index([integrationId, completedAtSource])
   @@index([expiresAt])
 }
 

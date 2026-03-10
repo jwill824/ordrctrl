@@ -158,3 +158,109 @@ describe('GmailAdapter - selective import', () => {
     expect(subSources).toEqual([]);
   });
 });
+
+describe('GmailAdapter - source completion modes', () => {
+  let adapter: GmailAdapter;
+  let mockFetch: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    adapter = new GmailAdapter();
+    mockFetch = vi.fn();
+    global.fetch = mockFetch;
+    vi.clearAllMocks();
+  });
+
+  const baseIntegration = {
+    id: 'int-1',
+    status: 'connected',
+    encryptedAccessToken: 'token',
+    gmailSyncMode: 'starred_only',
+    gmailCompletionMode: null, // defaults to inbox_removal
+    importEverything: true,
+    selectedSubSourceIds: [],
+  };
+
+  it('inbox_removal mode: all returned messages have completed=false', async () => {
+    mockPrisma.integration.findUnique.mockResolvedValue({ ...baseIntegration, gmailCompletionMode: null });
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ messages: [{ id: 'msg1' }] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          id: 'msg1',
+          labelIds: ['UNREAD', 'INBOX'],
+          payload: { headers: [{ name: 'Subject', value: 'Hello' }] },
+        }),
+      });
+
+    const items = await adapter.sync('int-1');
+    expect(items).toHaveLength(1);
+    expect(items[0].completed).toBe(false);
+
+    // inbox_removal uses is:unread / is:starred is:unread query
+    const listCallUrl = mockFetch.mock.calls[0][0] as string;
+    expect(listCallUrl).toContain('is%3Aunread');
+  });
+
+  it('read mode: unread messages have completed=false, read messages have completed=true', async () => {
+    mockPrisma.integration.findUnique.mockResolvedValue({
+      ...baseIntegration,
+      gmailCompletionMode: 'read',
+    });
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ messages: [{ id: 'msg1' }, { id: 'msg2' }] }),
+      })
+      // msg1: has UNREAD label → not yet read → completed=false
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          id: 'msg1',
+          labelIds: ['UNREAD', 'INBOX'],
+          payload: { headers: [{ name: 'Subject', value: 'Unread Mail' }] },
+        }),
+      })
+      // msg2: no UNREAD label → read → completed=true
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          id: 'msg2',
+          labelIds: ['INBOX'],
+          payload: { headers: [{ name: 'Subject', value: 'Read Mail' }] },
+        }),
+      });
+
+    const items = await adapter.sync('int-1');
+    expect(items).toHaveLength(2);
+
+    const unreadItem = items.find((i) => i.externalId === 'msg1');
+    const readItem = items.find((i) => i.externalId === 'msg2');
+    expect(unreadItem?.completed).toBe(false);
+    expect(readItem?.completed).toBe(true);
+  });
+
+  it('read mode: uses in:inbox query instead of is:unread', async () => {
+    mockPrisma.integration.findUnique.mockResolvedValue({
+      ...baseIntegration,
+      gmailCompletionMode: 'read',
+      gmailSyncMode: 'all_unread',
+    });
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ messages: [] }),
+    });
+
+    await adapter.sync('int-1');
+
+    const listCallUrl = mockFetch.mock.calls[0][0] as string;
+    expect(listCallUrl).toContain('in%3Ainbox');
+    expect(listCallUrl).not.toContain('is%3Aunread');
+  });
+});
