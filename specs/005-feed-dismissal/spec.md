@@ -106,3 +106,23 @@ A user who has dismissed items over time wants to review what they've hidden, an
 - **SC-003**: Users can undo a dismissal and restore the item within 5 seconds of the original dismiss action.
 - **SC-004**: Feed load time is not measurably degraded regardless of how many items a user has dismissed (performance neutral).
 - **SC-005**: Users can locate and restore any previously dismissed item from the dismissed items list without external help.
+
+---
+
+### User Story 4 — Triage Incoming Items on Refresh (Priority: P2)
+
+A user triggers a manual refresh (button or background 15-min interval detects new items). Instead of new items silently flooding the feed, a triage sheet slides up showing only the incoming items. The user can accept all, dismiss all, or act on items individually before they land in the feed.
+
+**Why this priority**: The core value of ordrctrl is an intentional, curated feed. Silently auto-adding items from every sync undermines that. The triage pattern (used by Superhuman, Linear inbox) gives users control over what enters their workspace.
+
+**Independent Test**: Connect an integration with pending items → click refresh → triage sheet appears with incoming items → dismiss 1 item → accept all remaining → verify feed shows accepted items, dismissed item is absent.
+
+**Acceptance Scenarios**:
+
+1. **Given** a user clicks the refresh button, **When** new items are found, **Then** a triage sheet slides up showing the incoming items before they enter the feed.
+2. **Given** the triage sheet is open with items, **When** the user clicks "Accept all", **Then** all items are added to the feed and the sheet closes.
+3. **Given** the triage sheet is open with items, **When** the user dismisses a specific item, **Then** that item is dismissed (persisted) and removed from the triage list.
+4. **Given** the triage sheet is open with items, **When** the user clicks "Dismiss all", **Then** all items are dismissed and the sheet closes with no items added to the feed.
+5. **Given** the background poll (every 15 min) detects new items, **When** the triage sheet is not open, **Then** a badge count appears on the refresh button without opening the sheet automatically.
+6. **Given** the triage sheet shows no new items (feed is current), **When** the user reviews it, **Then** an "all clear" empty state is shown with a single "Done" button.
+7. **Given** the user closes the triage sheet without acting, **When** the sheet is dismissed via the backdrop or × button, **Then** remaining items are accepted into the feed (close = accept all).

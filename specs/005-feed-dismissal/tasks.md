@@ -209,3 +209,17 @@ Once Phase 2 (migration) is done:
 - Constitution Principle IV mandates tests — Phase 6 is required, not optional
 - Dismissed item lifecycle (cascade delete on `SyncCacheItem` expiry) is handled automatically by the existing `onDelete: Cascade` constraint — no additional task needed
 - Edge case: Completing a dismissed item does NOT auto-restore it (dismiss takes precedence) — `PATCH /complete` requires no change; verify in T031
+
+---
+
+## Phase 7: User Story 4 — Triage Inbox on Refresh
+
+**Goal**: Incoming items stage in a triage sheet on refresh instead of silently flooding the feed.
+
+- [x] T032 Fix `POLL_INTERVAL_MS` from 60s to 900s (15 min) in `frontend/src/hooks/useFeed.ts` to match UI label "Auto-sync every 15 min"
+- [x] T033 Add triage state to `useFeed.ts`: `pendingItems`, `isTriageOpen`, `triageLoading`, `newItemCount`, `knownIdsRef`; add `openTriage`, `closeTriage`, `acceptTriage`, `dismissTriageItem`, `dismissAllTriage` functions
+- [x] T034 Update `refresh()` in `useFeed.ts`: opens triage sheet, sets `triageLoading`, triggers sync, fetches feed, splits incoming vs known items into `pendingItems`
+- [x] T035 Add `backgroundPoll()` in `useFeed.ts`: silent 15-min poll, diffs against `knownIdsRef`, sets `newItemCount` badge without opening sheet
+- [x] T036 Create `frontend/src/components/feed/TriageSheet.tsx`: bottom sheet with loading state, per-item dismiss (×), "Accept all" / "Dismiss all" bulk actions, empty "all clear" state
+- [x] T037 Wire `TriageSheet` into `frontend/src/app/feed/page.tsx`: add `newItemCount` badge to refresh button; render `<TriageSheet>` with all handlers
+- [x] T038 Update spec docs: append US4 to `spec.md`, append triage decision to `research.md`, append tasks to `tasks.md`

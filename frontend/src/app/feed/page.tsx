@@ -14,11 +14,17 @@ import { IntegrationErrorBanner } from '@/components/feed/IntegrationErrorBanner
 import { FeedEmptyState } from '@/components/feed/FeedEmptyState';
 import { AddTaskForm } from '@/components/tasks/AddTaskForm';
 import { EditTaskModal } from '@/components/tasks/EditTaskModal';
+import { TriageSheet } from '@/components/feed/TriageSheet';
 import type { FeedItem } from '@/services/feed.service';
 
 export default function FeedPage() {
-  const { items, completed, syncStatus, loading, refreshing, error, refresh, completeItem, uncompleteItem, dismissItem, restoreItem, undoToast, clearUndoToast } =
-    useFeed();
+  const {
+    items, completed, syncStatus, loading, refreshing, error,
+    refresh, completeItem, uncompleteItem, dismissItem, restoreItem,
+    undoToast, clearUndoToast,
+    pendingItems, isTriageOpen, triageLoading, newItemCount,
+    closeTriage, acceptTriage, dismissTriageItem, dismissAllTriage,
+  } = useFeed();
   const { create, update, remove } = useNativeTasks(refresh);
 
   const [showAddForm, setShowAddForm] = useState(false);
@@ -45,13 +51,13 @@ export default function FeedPage() {
         </span>
 
         <div className="flex items-center gap-3">
-          {/* Refresh button */}
+          {/* Refresh button with new-item badge */}
           <button
             type="button"
             onClick={refresh}
-            disabled={refreshing}
+            disabled={triageLoading}
             aria-label="Refresh feed"
-            className="bg-transparent border-0 p-1 flex items-center cursor-pointer text-zinc-500 disabled:cursor-default"
+            className="relative bg-transparent border-0 p-1 flex items-center cursor-pointer text-zinc-500 disabled:cursor-default"
           >
             <svg
               width="16"
@@ -62,11 +68,16 @@ export default function FeedPage() {
               strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className={refreshing ? 'animate-spin' : ''}
+              className={triageLoading ? 'animate-spin' : ''}
             >
               <path d="M13.5 2.5A7 7 0 1 0 14.5 9"/>
               <path d="M14.5 2.5v4h-4"/>
             </svg>
+            {newItemCount > 0 && !isTriageOpen && (
+              <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-black text-white text-[0.5rem] font-bold rounded-full flex items-center justify-center leading-none">
+                {newItemCount > 9 ? '9+' : newItemCount}
+              </span>
+            )}
           </button>
 
           {/* Settings link */}
@@ -108,7 +119,7 @@ export default function FeedPage() {
         {/* Sync status row */}
         {Object.values(syncStatus).some((s) => s.status === 'connected') && (
           <div className="text-[0.7rem] text-zinc-400 mb-2 flex items-center gap-1.5">
-            {refreshing ? (
+            {triageLoading ? (
               <>
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="animate-spin">
                   <path d="M9 5A4 4 0 1 0 5 1"/>
@@ -212,6 +223,16 @@ export default function FeedPage() {
           </button>
         </div>
       )}
+      {/* T036/T037 — Triage sheet: review new items on refresh */}
+      <TriageSheet
+        isOpen={isTriageOpen}
+        loading={triageLoading}
+        items={pendingItems}
+        onClose={closeTriage}
+        onAcceptAll={acceptTriage}
+        onDismissAll={dismissAllTriage}
+        onDismissItem={dismissTriageItem}
+      />
     </div>
   );
 }

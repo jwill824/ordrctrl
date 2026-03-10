@@ -112,3 +112,26 @@ If the source integration is disconnected and reconnected later, new `SyncCacheI
 | 4 | Undo | Client-side toast, `DELETE /dismiss` endpoint, session-scoped |
 | 5 | Management page | `GET /api/feed/dismissed` paginated; restore via same `DELETE /dismiss` |
 | 6 | Lifecycle cleanup | `onDelete: Cascade` handles sync item deletion automatically |
+
+---
+
+## 7. Triage Inbox Pattern — Intentional Feed Population
+
+### Decision
+Manual refresh opens a bottom sheet (triage inbox) showing only incoming new items. Users review and accept or dismiss before items land in the feed. Background polling (15-min interval) silently detects new items and shows a badge count without auto-opening the sheet.
+
+Key design choices:
+- **Close = Accept All**: Dismissing the sheet via backdrop/× accepts remaining items — avoids accidental data loss
+- **No staged server state**: New items are diffed client-side using a `knownIds` Set; no new backend endpoints or schema changes needed
+- **Badge on background poll**: Background detection shows count badge on refresh button; doesn't interrupt the user
+- **Dismiss from triage**: Calls the existing `PATCH /items/:itemId/dismiss` endpoint — reuses spec 005 dismiss infrastructure
+
+### Rationale
+- Aligns with "intentional workspace" design principle — users control what enters the feed
+- Zero backend changes required — pure frontend pattern on top of existing dismiss endpoints
+- Bottom sheet is less disruptive than a modal; close gesture is naturally "accept all" which matches user expectation
+
+### Alternatives Considered
+- **Auto-populate + let users dismiss after**: Original spec 005 behavior. Rejected as the primary UX — users reported the feed filling up feels overwhelming. Dismiss-from-feed is retained as a secondary affordance.
+- **Separate staging server state**: A `STAGED` enum value on SyncOverride requiring backend migration. Rejected — unnecessary complexity when the diff can be computed client-side from known IDs.
+- **Auto-open triage on background poll**: Opening the sheet automatically every 15 min would be highly disruptive. Badge-only is the correct pattern for background detection.
