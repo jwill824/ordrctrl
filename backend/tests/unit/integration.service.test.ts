@@ -174,12 +174,12 @@ describe('integration.service - disconnectIntegration', () => {
   });
 
   it('calls adapter disconnect for the integration', async () => {
-    mockPrisma.integration.findUnique.mockResolvedValue({ id: 'int-calendar', status: 'connected' });
+    mockPrisma.integration.findFirst.mockResolvedValue({ id: 'int-calendar', serviceId: 'apple_calendar', status: 'connected' });
 
     const mockDisconnect = vi.fn().mockResolvedValue(undefined);
     mockGetAdapter.mockReturnValue({ disconnect: mockDisconnect });
 
-    await disconnectIntegration('user-1', 'apple_calendar');
+    await disconnectIntegration('user-1', 'int-calendar');
 
     expect(mockDisconnect).toHaveBeenCalledWith('int-calendar');
   });
@@ -191,10 +191,10 @@ describe('integration.service - updateCalendarEventWindow', () => {
   });
 
   it('updates calendarEventWindowDays with valid days', async () => {
-    mockPrisma.integration.findUnique.mockResolvedValue({ id: 'int-1', status: 'connected' });
+    mockPrisma.integration.findFirst.mockResolvedValue({ id: 'int-1', status: 'connected' });
     mockPrisma.integration.update = vi.fn().mockResolvedValue({});
 
-    await updateCalendarEventWindow('user-1', 14);
+    await updateCalendarEventWindow('user-1', 'int-1', 14);
 
     expect(mockPrisma.integration.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: { calendarEventWindowDays: 14 } })
@@ -202,11 +202,11 @@ describe('integration.service - updateCalendarEventWindow', () => {
   });
 
   it('throws INTEGRATION_NOT_FOUND for non-existent integration', async () => {
-    mockPrisma.integration.findUnique.mockResolvedValue(null);
+    mockPrisma.integration.findFirst.mockResolvedValue(null);
 
-    await expect(updateCalendarEventWindow('user-1', 14)).rejects.toThrow(AppError);
+    await expect(updateCalendarEventWindow('user-1', 'int-1', 14)).rejects.toThrow(AppError);
     try {
-      await updateCalendarEventWindow('user-1', 14);
+      await updateCalendarEventWindow('user-1', 'int-1', 14);
     } catch (e: any) {
       expect(e.code).toBe('INTEGRATION_NOT_FOUND');
     }

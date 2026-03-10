@@ -2,7 +2,7 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 
 vi.mock('../../src/lib/db.js', () => ({
   prisma: {
-    integration: { findUnique: vi.fn() },
+    integration: { findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn(), count: vi.fn() },
   },
 }));
 
@@ -151,16 +151,15 @@ describe('AppleCalendarAdapter - connect + credential flow', () => {
     vi.clearAllMocks();
   });
 
-  it('connect() with valid CredentialPayload mocks 207 PROPFIND and upserts integration', async () => {
-    mockPrisma.integration = {
-      ...mockPrisma.integration,
-      upsert: vi.fn().mockResolvedValue({ id: 'int-new', status: 'connected' }),
-    };
+  it('connect() with valid CredentialPayload mocks 207 PROPFIND and creates integration', async () => {
+    mockPrisma.integration.findFirst.mockResolvedValue(null);
+    mockPrisma.integration.count.mockResolvedValue(0);
+    mockPrisma.integration.create.mockResolvedValue({ id: 'int-new', status: 'connected' });
     mockFetch.mockResolvedValueOnce({ ok: true, status: 207 });
 
     const result = await adapter.connect('user-1', { type: 'credential', email: 'user@icloud.com', password: 'testpassword' });
     expect(result.integrationId).toBe('int-new');
-    expect(mockPrisma.integration.upsert).toHaveBeenCalled();
+    expect(mockPrisma.integration.create).toHaveBeenCalled();
   });
 
   it('connect() with OAuthPayload throws NotSupportedError', async () => {
@@ -184,26 +183,29 @@ describe('AppleCalendarAdapter - connect + credential flow', () => {
   });
 
   it('connect() with calendarEventWindowDays: 14 stores 14 on integration record', async () => {
-    const upsertMock = vi.fn().mockResolvedValue({ id: 'int-new', status: 'connected' });
-    mockPrisma.integration = { ...mockPrisma.integration, upsert: upsertMock };
+    mockPrisma.integration.findFirst.mockResolvedValue(null);
+    mockPrisma.integration.count.mockResolvedValue(0);
+    const createMock = vi.fn().mockResolvedValue({ id: 'int-new', status: 'connected' });
+    mockPrisma.integration.create = createMock;
     mockFetch.mockResolvedValueOnce({ ok: true, status: 207 });
 
     await adapter.connect('user-1', { type: 'credential', email: 'user@icloud.com', password: 'testpassword' }, { calendarEventWindowDays: 14 });
 
-    const upsertCall = upsertMock.mock.calls[0][0];
-    expect(upsertCall.create.calendarEventWindowDays).toBe(14);
-    expect(upsertCall.update.calendarEventWindowDays).toBe(14);
+    const createCall = createMock.mock.calls[0][0];
+    expect(createCall.data.calendarEventWindowDays).toBe(14);
   });
 
   it('connect() with no calendarEventWindowDays defaults to 30', async () => {
-    const upsertMock = vi.fn().mockResolvedValue({ id: 'int-new', status: 'connected' });
-    mockPrisma.integration = { ...mockPrisma.integration, upsert: upsertMock };
+    mockPrisma.integration.findFirst.mockResolvedValue(null);
+    mockPrisma.integration.count.mockResolvedValue(0);
+    const createMock = vi.fn().mockResolvedValue({ id: 'int-new', status: 'connected' });
+    mockPrisma.integration.create = createMock;
     mockFetch.mockResolvedValueOnce({ ok: true, status: 207 });
 
     await adapter.connect('user-1', { type: 'credential', email: 'user@icloud.com', password: 'testpassword' });
 
-    const upsertCall = upsertMock.mock.calls[0][0];
-    expect(upsertCall.create.calendarEventWindowDays).toBe(30);
+    const createCall = createMock.mock.calls[0][0];
+    expect(createCall.data.calendarEventWindowDays).toBe(30);
   });
 
   it('refreshToken() throws NotSupportedError', async () => {

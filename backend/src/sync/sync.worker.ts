@@ -30,8 +30,8 @@ export function startSyncWorker(): void {
       where: { id: integrationId },
     });
 
-    if (!integration || integration.status === 'disconnected') {
-      logger.info('Skipping sync for disconnected integration', { integrationId });
+    if (!integration || integration.status === 'disconnected' || integration.paused) {
+      logger.info('Skipping sync for disconnected/paused integration', { integrationId });
       return;
     }
 

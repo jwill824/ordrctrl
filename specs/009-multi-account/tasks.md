@@ -15,9 +15,9 @@
 
 **Purpose**: Apply the database changes required by every user story. No user story work can begin until the migration is applied and backfill is verified.
 
-- [ ] T001 Update `backend/prisma/schema.prisma` — add `accountIdentifier String`, `label String?`, `paused Boolean @default(false)` to Integration; change `@@unique([userId, serviceId])` → `@@unique([userId, serviceId, accountIdentifier])`
-- [ ] T002 Create Prisma migration `add-multi-account` in `backend/prisma/migrations/` — 3-step SQL: (1) add nullable columns, (2) set NOT NULL + new unique constraint, (3) drop old unique index
-- [ ] T003 Write backfill script `backend/prisma/migrations/add-multi-account/backfill.ts` — decrypt each Integration's `encryptedAccessToken`, extract account email (Google `id_token` sub, Microsoft stored `mail`, Apple `email` credential), write to `accountIdentifier`; fall back to `"unknown@<serviceId>"` on failure
+- [X] T001 Update `backend/prisma/schema.prisma` — add `accountIdentifier String`, `label String?`, `paused Boolean @default(false)` to Integration; change `@@unique([userId, serviceId])` → `@@unique([userId, serviceId, accountIdentifier])`
+- [X] T002 Create Prisma migration `add-multi-account` in `backend/prisma/migrations/` — 3-step SQL: (1) add nullable columns, (2) set NOT NULL + new unique constraint, (3) drop old unique index
+- [X] T003 Write backfill script `backend/prisma/migrations/add-multi-account/backfill.ts` — decrypt each Integration's `encryptedAccessToken`, extract account email (Google `id_token` sub, Microsoft stored `mail`, Apple `email` credential), write to `accountIdentifier`; fall back to `"unknown@<serviceId>"` on failure
 
 **Checkpoint**: Run `cd backend && npx prisma migrate dev` — confirm Integration rows have `accountIdentifier` populated and the old unique constraint is gone.
 
@@ -29,12 +29,12 @@
 
 **⚠️ CRITICAL**: Complete before any user story frontend work begins.
 
-- [ ] T004 Update `backend/src/integrations/_adapter/types.ts` — change `connect()` return type from `Promise<{ integrationId: string }>` to `Promise<{ integrationId: string; accountIdentifier: string }>`, add `AccountLimitError` and `DuplicateAccountError` typed error classes
-- [ ] T005 [P] Update `backend/src/integrations/gmail/gmail.adapter.ts` — decode `id_token` JWT after token exchange, extract `email` claim as `accountIdentifier`; change `upsert on {userId_serviceId}` → create/update on `(userId, serviceId, accountIdentifier)`
-- [ ] T006 [P] Update `backend/src/integrations/microsoft-tasks/microsoft-tasks.adapter.ts` — call `GET https://graph.microsoft.com/v1.0/me` immediately after token exchange, use `mail` field as `accountIdentifier`; change upsert logic to create/update on `(userId, serviceId, accountIdentifier)`
-- [ ] T007 [P] Update `backend/src/integrations/apple-calendar/apple-calendar.adapter.ts` — use `email` from the credential payload as `accountIdentifier`; change upsert logic to create/update on `(userId, serviceId, accountIdentifier)`
-- [ ] T008 Update `backend/src/integrations/integration.service.ts` — enforce 5-account limit before insert (count where `{userId, serviceId}`, throw `AccountLimitError` if ≥ 5); detect duplicate connect (check existing row with same `accountIdentifier`, throw `DuplicateAccountError` if found); update tokens if reconnecting the same account
-- [ ] T009 Update `backend/src/feed/feed.service.ts` — change `source` field from `SERVICE_DISPLAY_NAMES[serviceId]` to `integration.label ?? integration.accountIdentifier`; update all queries that build FeedItems to join/include `label` and `accountIdentifier` from Integration
+- [X] T004 Update `backend/src/integrations/_adapter/types.ts` — change `connect()` return type from `Promise<{ integrationId: string }>` to `Promise<{ integrationId: string; accountIdentifier: string }>`, add `AccountLimitError` and `DuplicateAccountError` typed error classes
+- [X] T005 [P] Update `backend/src/integrations/gmail/gmail.adapter.ts` — decode `id_token` JWT after token exchange, extract `email` claim as `accountIdentifier`; change `upsert on {userId_serviceId}` → create/update on `(userId, serviceId, accountIdentifier)`
+- [X] T006 [P] Update `backend/src/integrations/microsoft-tasks/microsoft-tasks.adapter.ts` — call `GET https://graph.microsoft.com/v1.0/me` immediately after token exchange, use `mail` field as `accountIdentifier`; change upsert logic to create/update on `(userId, serviceId, accountIdentifier)`
+- [X] T007 [P] Update `backend/src/integrations/apple-calendar/apple-calendar.adapter.ts` — use `email` from the credential payload as `accountIdentifier`; change upsert logic to create/update on `(userId, serviceId, accountIdentifier)`
+- [X] T008 Update `backend/src/integrations/integration.service.ts` — enforce 5-account limit before insert (count where `{userId, serviceId}`, throw `AccountLimitError` if ≥ 5); detect duplicate connect (check existing row with same `accountIdentifier`, throw `DuplicateAccountError` if found); update tokens if reconnecting the same account
+- [X] T009 Update `backend/src/feed/feed.service.ts` — change `source` field from `SERVICE_DISPLAY_NAMES[serviceId]` to `integration.label ?? integration.accountIdentifier`; update all queries that build FeedItems to join/include `label` and `accountIdentifier` from Integration
 
 **Checkpoint**: Backend unit tests for adapters and integration.service pass with the new logic in place.
 
@@ -48,7 +48,7 @@
 
 ### Backend — US1
 
-- [ ] T010 [US1] Update `backend/src/api/integrations.routes.ts` — catch `DuplicateAccountError` from adapter and redirect to `/onboarding?error=duplicate_account&serviceId=<id>`; catch `AccountLimitError` and redirect to `/onboarding?error=account_limit_reached&serviceId=<id>`; include `accountIdentifier`, `label`, `paused` in the `GET /api/integrations` response shape
+- [X] T010 [US1] Update `backend/src/api/integrations.routes.ts` — catch `DuplicateAccountError` from adapter and redirect to `/onboarding?error=duplicate_account&serviceId=<id>`; catch `AccountLimitError` and redirect to `/onboarding?error=account_limit_reached&serviceId=<id>`; include `accountIdentifier`, `label`, `paused` in the `GET /api/integrations` response shape
 - [ ] T011 [US1] Add unit tests to `backend/tests/unit/integration.service.test.ts` — (1) throws `AccountLimitError` when 5 accounts already exist for `(userId, serviceId)`; (2) throws `DuplicateAccountError` when same `accountIdentifier` already connected; (3) creates new row when under limit and identifier is unique; (4) updates tokens when reconnecting same account
 - [ ] T012 [P] [US1] Add unit tests to `backend/tests/unit/gmail.adapter.test.ts` — verify `accountIdentifier` is extracted from `id_token` email claim; verify error is thrown if `id_token` missing or malformed
 - [ ] T013 [US1] Add contract tests to `backend/tests/contract/integrations.test.ts` — (1) `GET /api/integrations` response includes `accountIdentifier`, `label`, `paused` per account; (2) callback redirect on duplicate account; (3) callback redirect on account limit
@@ -132,8 +132,8 @@
 
 - [ ] T031 [US5] Add `PATCH /api/integrations/:integrationId/pause` route to `backend/src/api/integrations.routes.ts` — accept `{ "paused": boolean }`; ownership check; return `{ id, paused, status }`; return 400 if integration is not `connected` status when trying to pause
 - [ ] T032 [US5] Add `pauseIntegration(integrationId, userId, paused)` to `backend/src/integrations/integration.service.ts` — validate integration is `connected` before pausing; update `paused` flag; if resuming (`paused: false`), trigger an immediate sync job via BullMQ
-- [ ] T033 [P] [US5] Update `backend/src/sync/sync.scheduler.ts` — add `WHERE paused = false` filter to the scheduled sync query so paused integrations are skipped
-- [ ] T034 [P] [US5] Update `backend/src/sync/sync.worker.ts` (manual sync trigger path) — skip integrations where `paused = true` when processing a user's manual refresh
+- [X] T033 [P] [US5] Update `backend/src/sync/sync.scheduler.ts` — add `WHERE paused = false` filter to the scheduled sync query so paused integrations are skipped
+- [X] T034 [P] [US5] Update `backend/src/sync/sync.worker.ts` (manual sync trigger path) — skip integrations where `paused = true` when processing a user's manual refresh
 - [ ] T035 [US5] Add contract tests to `backend/tests/contract/integrations.test.ts` — `PATCH /pause` toggles state; 400 when integration not connected; paused account skipped in next sync
 
 ### Frontend — US5

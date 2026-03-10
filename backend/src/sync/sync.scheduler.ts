@@ -46,7 +46,7 @@ export async function unscheduleIntegrationSync(integrationId: string): Promise<
  */
 export async function bootstrapSyncScheduler(): Promise<void> {
   const integrations = await prisma.integration.findMany({
-    where: { status: 'connected' },
+    where: { status: 'connected', paused: false },
     select: { id: true, userId: true },
   });
 
@@ -63,7 +63,7 @@ export async function bootstrapSyncScheduler(): Promise<void> {
  */
 export async function triggerManualSync(userId: string): Promise<number> {
   const integrations = await prisma.integration.findMany({
-    where: { userId, status: 'connected' },
+    where: { userId, status: 'connected', paused: false },
     select: { id: true },
   });
 
