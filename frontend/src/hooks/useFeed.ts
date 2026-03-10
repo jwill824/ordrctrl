@@ -38,6 +38,9 @@ interface UseFeedReturn {
   dismissItem: (itemId: string) => Promise<void>;
   restoreItem: (itemId: string) => Promise<void>;
   clearUndoToast: () => void;
+  clearCompleted: () => Promise<void>;
+  clearedCount: number | null;
+  clearClearedToast: () => void;
 }
 
 // T032 — 15-minute poll interval (matches UI label "Auto-sync every 15 min")
@@ -53,6 +56,7 @@ export function useFeed(): UseFeedReturn {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [undoToast, setUndoToast] = useState<UndoToast | null>(null);
+  const [clearedCount, setClearedCount] = useState<number | null>(null);
 
   // T033 — Triage state
   const [pendingItems, setPendingItems] = useState<FeedItem[]>([]);
@@ -305,6 +309,27 @@ export function useFeed(): UseFeedReturn {
 
   const clearUndoToast = useCallback(() => setUndoToast(null), []);
 
+  // T008 — Clear all completed tasks (bulk dismiss)
+  const clearCompleted = useCallback(async () => {
+    // Capture snapshot before the optimistic update (updaters are deferred in React 18)
+    const snapshot = data;
+    setData((prev) => ({ ...prev, completed: [] }));
+
+    try {
+      const result = await feedService.clearAllCompleted();
+      setClearedCount(result.clearedCount);
+      // Silent reload to pick up any state changes from server
+      await reloadFeed();
+    } catch (err) {
+      // Roll back optimistic update
+      setData(snapshot);
+      setError((err as Error).message);
+    }
+  }, [data, reloadFeed]);
+
+  // T014 — Reset the cleared count toast
+  const clearClearedToast = useCallback(() => setClearedCount(null), []);
+
   return {
     items: data.items,
     completed: data.completed,
@@ -329,5 +354,8 @@ export function useFeed(): UseFeedReturn {
     dismissItem,
     restoreItem,
     clearUndoToast,
+    clearCompleted,
+    clearedCount,
+    clearClearedToast,
   };
 }

@@ -14,6 +14,7 @@ import {
   completeNativeTask,
   uncompleteNativeTask,
   uncompleteSyncItem,
+  clearCompletedItems,
   dismissFeedItem,
   restoreFeedItem,
   getDismissedItems,
@@ -139,6 +140,18 @@ export async function registerFeedRoutes(app: FastifyInstance): Promise<void> {
         }
         throw err;
       }
+    }
+  );
+
+  // POST /api/feed/completed/clear
+  app.post(
+    '/api/feed/completed/clear',
+    async (request: FastifyRequest, reply) => {
+      const userId = requireAuth(request, reply);
+      if (!userId) return;
+
+      const result = await clearCompletedItems(userId);
+      return reply.send(result);
     }
   );
 

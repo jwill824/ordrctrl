@@ -464,3 +464,120 @@ describe('buildFeed() — dismissed items excluded', () => {
     );
   });
 });
+
+// T006 — Unit tests for clearCompletedItems()
+import { clearCompletedItems } from '../../src/feed/feed.service.js';
+
+describe('clearCompletedItems()', () => {
+  beforeEach(() => {
+    // Ensure bulk-operation mocks exist
+    const p = prisma as Record<string, Record<string, unknown>>;
+    if (!p['syncCacheItem']['findMany']) {
+      p['syncCacheItem']['findMany'] = vi.fn();
+    }
+    if (!p['nativeTask']['findMany']) {
+      p['nativeTask']['findMany'] = vi.fn();
+    }
+    if (!p['syncOverride']['createMany']) {
+      p['syncOverride']['createMany'] = vi.fn();
+    }
+    if (!p['nativeTask']['updateMany']) {
+      p['nativeTask']['updateMany'] = vi.fn();
+    }
+  });
+
+  it('bulk-creates DISMISSED overrides for eligible sync items', async () => {
+    mockPrismaExtended.syncCacheItem.findMany.mockResolvedValue([
+      { id: 'sync-1' },
+      { id: 'sync-2' },
+    ]);
+    mockPrismaExtended.nativeTask.findMany.mockResolvedValue([]);
+    const p = prisma as Record<string, Record<string, ReturnType<typeof vi.fn>>>;
+    p['syncOverride']['createMany'] = vi.fn().mockResolvedValue({ count: 2 });
+
+    const result = await clearCompletedItems('user-1');
+
+    expect(p['syncOverride']['createMany']).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skipDuplicates: true,
+        data: expect.arrayContaining([
+          expect.objectContaining({ syncCacheItemId: 'sync-1', overrideType: 'DISMISSED' }),
+          expect.objectContaining({ syncCacheItemId: 'sync-2', overrideType: 'DISMISSED' }),
+        ]),
+      })
+    );
+    expect(result.clearedCount).toBe(2);
+  });
+
+  it('bulk-updates dismissed=true for eligible native tasks', async () => {
+    mockPrismaExtended.syncCacheItem.findMany.mockResolvedValue([]);
+    mockPrismaExtended.nativeTask.findMany.mockResolvedValue([
+      { id: 'task-1' },
+      { id: 'task-2' },
+    ]);
+    const p = prisma as Record<string, Record<string, ReturnType<typeof vi.fn>>>;
+    p['nativeTask']['updateMany'] = vi.fn().mockResolvedValue({ count: 2 });
+
+    const result = await clearCompletedItems('user-1');
+
+    expect(p['nativeTask']['updateMany']).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: { in: ['task-1', 'task-2'] } },
+        data: { dismissed: true },
+      })
+    );
+    expect(result.clearedCount).toBe(2);
+  });
+
+  it('excludes sync items with DISMISSED or REOPENED override from query', async () => {
+    mockPrismaExtended.syncCacheItem.findMany.mockResolvedValue([]);
+    mockPrismaExtended.nativeTask.findMany.mockResolvedValue([]);
+
+    await clearCompletedItems('user-1');
+
+    expect(mockPrismaExtended.syncCacheItem.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          completedInOrdrctrl: true,
+          syncOverrides: {
+            none: { overrideType: { in: ['DISMISSED', 'REOPENED'] } },
+          },
+        }),
+      })
+    );
+  });
+
+  it('excludes already-dismissed native tasks from query', async () => {
+    mockPrismaExtended.syncCacheItem.findMany.mockResolvedValue([]);
+    mockPrismaExtended.nativeTask.findMany.mockResolvedValue([]);
+
+    await clearCompletedItems('user-1');
+
+    expect(mockPrismaExtended.nativeTask.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ completed: true, dismissed: false }),
+      })
+    );
+  });
+
+  it('returns clearedCount=0 when nothing is eligible', async () => {
+    mockPrismaExtended.syncCacheItem.findMany.mockResolvedValue([]);
+    mockPrismaExtended.nativeTask.findMany.mockResolvedValue([]);
+
+    const result = await clearCompletedItems('user-1');
+
+    expect(result.clearedCount).toBe(0);
+  });
+
+  it('returns combined count for both sync and native items', async () => {
+    mockPrismaExtended.syncCacheItem.findMany.mockResolvedValue([{ id: 'sync-1' }]);
+    mockPrismaExtended.nativeTask.findMany.mockResolvedValue([{ id: 'task-1' }, { id: 'task-2' }]);
+    const p = prisma as Record<string, Record<string, ReturnType<typeof vi.fn>>>;
+    p['syncOverride']['createMany'] = vi.fn().mockResolvedValue({ count: 1 });
+    p['nativeTask']['updateMany'] = vi.fn().mockResolvedValue({ count: 2 });
+
+    const result = await clearCompletedItems('user-1');
+
+    expect(result.clearedCount).toBe(3);
+  });
+});
