@@ -160,7 +160,7 @@ export function FeedItemRow({ item, onComplete, onUncomplete, onDismiss, onClick
       {/* Inline local-override notice for reopened sync items */}
       {item.isJustReopened && !noticeDismissed && item.source !== 'ordrctrl' && (
         <div className="flex items-center gap-1.5 mt-1 ml-[1.875rem] text-[0.7rem] text-zinc-400">
-          <span>This change is local to ordrctrl and won't update {item.source}.</span>
+          <span>This change is local to ordrctrl and won&apos;t update {item.source}.</span>
           <button
             type="button"
             aria-label="Dismiss notice"

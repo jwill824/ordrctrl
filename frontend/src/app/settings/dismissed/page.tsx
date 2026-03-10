@@ -23,7 +23,7 @@ export default function DismissedSettingsPage() {
           Dismissed Items
         </h1>
         <p className="text-sm text-zinc-500">
-          Items you've dismissed from your feed. Restore any item to make it reappear.
+          Items you&apos;ve dismissed from your feed. Restore any item to make it reappear.
         </p>
       </div>
 
