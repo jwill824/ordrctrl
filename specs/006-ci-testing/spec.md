@@ -2,8 +2,8 @@
 
 **Feature Branch**: `006-ci-testing`  
 **Created**: 2026-03-10  
-**Status**: Draft  
-**Input**: Add GitHub Actions CI pipeline for automated testing on every pull request and push to main. Run backend unit and contract tests, frontend lint, and build verification. Surface test failures as PR checks. Fix the 15 pre-existing test failures currently in integration.service and apple-calendar tests.
+**Status**: Complete  
+**Input**: Add GitHub Actions CI pipeline for automated testing on every pull request and push to main. Run backend unit and contract tests, frontend lint, frontend unit tests, and build verification. Surface test failures as PR checks. Also fixed 15 pre-existing test failures in integration.service and apple-calendar tests, and added 65 frontend unit tests (Vitest + Testing Library).
 
 ## Overview
 
