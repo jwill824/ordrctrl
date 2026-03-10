@@ -32,6 +32,7 @@ interface UseFeedReturn {
   dismissAllTriage: () => Promise<void>;
   // Actions
   refresh: () => Promise<void>;
+  reloadFeed: () => Promise<void>;
   completeItem: (itemId: string) => Promise<void>;
   uncompleteItem: (itemId: string) => Promise<void>;
   dismissItem: (itemId: string) => Promise<void>;
@@ -77,16 +78,33 @@ export function useFeed(): UseFeedReturn {
     }
   }, []);
 
+  // T039 — Silent reload for native task mutations (create/update/delete).
+  // Updates the full feed + knownIds without triggering triage.
+  const reloadFeed = useCallback(async () => {
+    try {
+      const feed = await feedService.fetchFeed(true);
+      setData(feed);
+      // Absorb any new IDs directly into knownIds — they're user-initiated, not incoming sync
+      feed.items.forEach((i) => knownIdsRef.current.add(i.id));
+      setError(null);
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }, []);
+
   // Initial load — items go straight into the feed, no triage
   useEffect(() => {
     load();
   }, [load]);
 
-  // T035 — Background poll: silent fetch, badge new items without opening triage sheet
+  // T035/T040 — Background poll: silent fetch, badge only sync-sourced new items
   const backgroundPoll = useCallback(async () => {
     try {
       const feed = await feedService.fetchFeed(true);
-      const newItems = feed.items.filter((i) => !knownIdsRef.current.has(i.id));
+      // T040 — only sync: items are eligible for triage; native tasks are user-owned
+      const newItems = feed.items.filter(
+        (i) => !knownIdsRef.current.has(i.id) && i.id.startsWith('sync:')
+      );
       if (newItems.length > 0) {
         setPendingItems(newItems);
         setNewItemCount(newItems.length);
@@ -94,6 +112,7 @@ export function useFeed(): UseFeedReturn {
         setData((prev) => ({ ...prev, completed: feed.completed, syncStatus: feed.syncStatus }));
       } else {
         setData(feed);
+        feed.items.forEach((i) => knownIdsRef.current.add(i.id));
       }
     } catch {
       // Silent — don't surface background poll errors
@@ -108,19 +127,27 @@ export function useFeed(): UseFeedReturn {
     };
   }, [backgroundPoll]);
 
-  // T034 — Manual refresh: trigger sync + open triage sheet with new items
+  // T034/T040 — Manual refresh: trigger sync + open triage sheet with sync-sourced new items only
   const refresh = useCallback(async () => {
     setIsTriageOpen(true);
     setTriageLoading(true);
     try {
       await feedService.triggerSync();
       const feed = await feedService.fetchFeed(true);
-      const newItems = feed.items.filter((i) => !knownIdsRef.current.has(i.id));
+      // T040 — only sync: items go into triage; native tasks are always user-owned
+      const newItems = feed.items.filter(
+        (i) => !knownIdsRef.current.has(i.id) && i.id.startsWith('sync:')
+      );
       setPendingItems(newItems);
       setNewItemCount(newItems.length);
-      // Update completed + syncStatus but hold new active items in triage
+      // Non-triage items (native + already-known sync) land directly in the feed
+      const knownAndNative = feed.items.filter(
+        (i) => knownIdsRef.current.has(i.id) || i.id.startsWith('native:')
+      );
+      knownAndNative.forEach((i) => knownIdsRef.current.add(i.id));
       setData((prev) => ({
         ...prev,
+        items: knownAndNative,
         completed: feed.completed,
         syncStatus: feed.syncStatus,
       }));
@@ -267,13 +294,13 @@ export function useFeed(): UseFeedReturn {
       setUndoToast(null);
       try {
         await feedService.restoreItem(itemId);
-        // Reload feed to surface restored item
-        await load();
+        // Silent reload — restored item absorbs into knownIds, no triage
+        await reloadFeed();
       } catch (err) {
         setError((err as Error).message);
       }
     },
-    [load]
+    [reloadFeed]
   );
 
   const clearUndoToast = useCallback(() => setUndoToast(null), []);
@@ -296,6 +323,7 @@ export function useFeed(): UseFeedReturn {
     dismissTriageItem,
     dismissAllTriage,
     refresh,
+    reloadFeed,
     completeItem,
     uncompleteItem,
     dismissItem,

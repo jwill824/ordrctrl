@@ -20,12 +20,12 @@ import type { FeedItem } from '@/services/feed.service';
 export default function FeedPage() {
   const {
     items, completed, syncStatus, loading, refreshing, error,
-    refresh, completeItem, uncompleteItem, dismissItem, restoreItem,
+    refresh, reloadFeed, completeItem, uncompleteItem, dismissItem, restoreItem,
     undoToast, clearUndoToast,
     pendingItems, isTriageOpen, triageLoading, newItemCount,
     closeTriage, acceptTriage, dismissTriageItem, dismissAllTriage,
   } = useFeed();
-  const { create, update, remove } = useNativeTasks(refresh);
+  const { create, update, remove } = useNativeTasks(reloadFeed);
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingTask, setEditingTask] = useState<FeedItem | null>(null);
