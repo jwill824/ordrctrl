@@ -1,9 +1,15 @@
-# Feature Specification: Multi-Account Support
+# Feature Specification: Multi-Account Integration Support + User Account Menu
 
 **Feature Branch**: `009-multi-account`
 **Created**: 2026-03-10
 **Status**: Draft
 **Input**: User description: "Add multi-account support so users can connect multiple accounts per integration (e.g. personal and work Google accounts) and have all tasks aggregated in one feed"
+
+> **Terminology note**: This spec uses two distinct account concepts throughout:
+> - **ordrctrl user account** — the user's identity in ordrctrl itself (email + password, session, logout). One per person.
+> - **Integration account** — an external service account (e.g., a Gmail inbox) connected to ordrctrl. A user may connect multiple integration accounts per service.
+>
+> "Multi-account support" in this spec refers exclusively to connecting **multiple integration accounts** per service. The ordrctrl user identity remains singular.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -57,7 +63,25 @@ A user with personal and work Gmail accounts wants to label each account so they
 
 ---
 
-### User Story 4 — Pause Syncing for an Individual Account (Priority: P3)
+### User Story 4 — User Account Menu: Logout and App Navigation (Priority: P1)
+
+Currently there is no way for a user to sign out of their ordrctrl user account or navigate between settings sections from the feed. An account menu in the persistent navigation bar provides sign-out and a central navigation point. This is about the ordrctrl user session — entirely separate from the integration accounts being connected.
+
+**Why this priority**: Sign-out is a fundamental requirement of any authenticated application. Without it, users on shared devices cannot end their session. Shipping multi-account integration support without a visible sign-out path would be a significant UX gap.
+
+**Independent Test**: Can be fully tested independently of any integration account changes by opening the account menu from the feed header, confirming the signed-in ordrctrl email is displayed, clicking "Sign out", and verifying the user lands on the login page with their session destroyed.
+
+**Acceptance Scenarios**:
+
+1. **Given** a user is on the feed page, **When** they look at the top navigation bar, **Then** they see an account icon that opens the account menu.
+2. **Given** a user opens the account menu, **When** the menu is visible, **Then** it shows their ordrctrl email address and a "Sign out" option.
+3. **Given** a user clicks "Sign out", **When** the action completes, **Then** their ordrctrl session is destroyed and they are redirected to the login page.
+4. **Given** a user opens the account menu, **When** the menu is visible, **Then** it also includes links to all settings sections (Integrations, Feed preferences, Dismissed items) — consolidating what is currently scattered across icon buttons.
+5. **Given** a user's ordrctrl session has expired, **When** they attempt any authenticated action, **Then** they are redirected to the login page automatically.
+
+---
+
+### User Story 5 — Pause Syncing for an Individual Account (Priority: P3)
 
 A user with multiple accounts wants to pause syncing for one account (e.g., turn off personal Gmail while on vacation) without disconnecting it.
 
@@ -84,23 +108,26 @@ A user with multiple accounts wants to pause syncing for one account (e.g., turn
 
 ### Functional Requirements
 
-- **FR-001**: Users MUST be able to connect more than one account per integration service (e.g., two Gmail accounts) from the integration settings page.
-- **FR-002**: Each connected account MUST be stored and managed independently — connection, sync status, token lifecycle, and error state are tracked per account, not per service.
-- **FR-003**: The system MUST prevent a user from connecting the same external account (same account identifier at the source service) twice.
-- **FR-004**: Feed items MUST indicate which connected account they originated from, using either the account's email address or a user-set nickname.
-- **FR-005**: Users MUST be able to disconnect a single account without affecting other connected accounts for the same service.
-- **FR-006**: Users MUST be able to assign a custom nickname (label) to each connected account; the label defaults to the account's email address if no nickname is set.
-- **FR-007**: The system MUST enforce a limit of 5 connected accounts per user per service to prevent abuse.
-- **FR-008**: A token error or sync failure on one account MUST NOT prevent other accounts for the same service from syncing.
-- **FR-009**: When an account is disconnected, all cached tasks and sync overrides associated with that account MUST be removed.
-- **FR-010**: Users MAY pause and resume syncing for individual accounts without disconnecting them (P3).
-- **FR-011**: The import filter (sub-source selector) MUST be configurable per account, not per service, so users can apply different import rules to each account.
+- **FR-001**: Users MUST be able to connect more than one integration account per service (e.g., two Gmail inboxes) from the integration settings page.
+- **FR-002**: Each connected integration account MUST be stored and managed independently — connection, sync status, token lifecycle, and error state are tracked per integration account, not per service.
+- **FR-003**: The system MUST prevent a user from connecting the same external integration account (same account identifier at the source service) twice.
+- **FR-004**: Feed items MUST indicate which connected integration account they originated from, using either the account's email address or a user-set nickname.
+- **FR-005**: Users MUST be able to disconnect a single integration account without affecting other connected accounts for the same service.
+- **FR-006**: Users MUST be able to assign a custom nickname (label) to each connected integration account; the label defaults to the account's email address if no nickname is set.
+- **FR-007**: The system MUST enforce a limit of 5 connected integration accounts per user per service to prevent abuse.
+- **FR-008**: A token error or sync failure on one integration account MUST NOT prevent other accounts for the same service from syncing.
+- **FR-009**: When an integration account is disconnected, all cached tasks and sync overrides associated with that account MUST be removed.
+- **FR-010**: Users MAY pause and resume syncing for individual integration accounts without disconnecting them (P3).
+- **FR-011**: The import filter (sub-source selector) MUST be configurable per integration account, not per service, so users can apply different import rules to each account.
+- **FR-012**: Users MUST be able to sign out of their ordrctrl user account from any authenticated page via an account menu in the navigation bar.
+- **FR-013**: The account menu MUST display the signed-in user's ordrctrl email address to confirm their active identity.
 
 ### Key Entities
 
-- **Account**: A specific authenticated connection between a user and one account at an integration service. Has a label (nickname or email), sync status, error state, and optional pause state. A user may have multiple Accounts for the same service.
-- **Integration (service grouping)**: The display grouping for all accounts connected to a particular service for a user. Shown as a single card in settings, expanded to list individual accounts.
-- **Feed Item account source**: The relationship between a feed item and the specific account it came from, enabling per-account labeling in the feed.
+- **ordrctrl User Account**: The user's singular identity in ordrctrl — email, password, and session. Created at registration, managed separately from any integration connections. This is what the user signs out of.
+- **Integration Account**: A specific authenticated connection between a user and one external service account (e.g., a Gmail inbox). Has a label, sync status, error state, and optional pause state. A user may have multiple integration accounts per service.
+- **Integration Service (grouping)**: The display grouping for all integration accounts connected to a particular service. Shown as a single card in settings, expanded to list individual integration accounts.
+- **Feed Item account source**: The relationship between a feed item and the specific integration account it came from, enabling per-account labeling in the feed.
 
 ## Success Criteria *(mandatory)*
 
@@ -110,19 +137,20 @@ A user with multiple accounts wants to pause syncing for one account (e.g., turn
 - **SC-002**: 100% of feed items from services with multiple accounts connected display a distinguishable account label (nickname or email address).
 - **SC-003**: Disconnecting one account removes only that account's tasks from the feed — zero cross-account data loss.
 - **SC-004**: A token error on one account does not prevent other accounts for the same service from syncing — independently verified per account.
-- **SC-005**: Users can connect up to 5 accounts per service; attempting to add a 6th is blocked with a clear, user-friendly message.
+- **SC-005**: Users can connect up to 5 integration accounts per service; attempting to add a 6th is blocked with a clear, user-friendly message.
+- **SC-006**: Users can sign out of their ordrctrl user account from the feed page in one click; session is fully destroyed on sign-out.
 
 ## Assumptions
 
-- The OAuth consent flow is already implemented per service; multi-account reuses the same flow, storing the result as a new account record rather than overwriting the existing one.
+- The OAuth consent flow is already implemented per service; multi-account reuses the same flow, storing the result as a new integration account record rather than overwriting the existing one.
 - "Multi-account" applies to OAuth-based services (Gmail, Microsoft Tasks). Apple Calendar uses basic auth and is out of scope for this feature.
-- The existing duplicate-suspect mechanism will continue to flag tasks that appear across multiple connected accounts without changes.
-- Existing single-account users are unaffected; their single connection is treated as an account with no data migration needed.
-- The import filter per account (FR-011) may be complex enough to defer to a follow-up spec if it significantly increases the implementation scope of P1.
+- The existing duplicate-suspect mechanism will continue to flag tasks that appear across multiple connected integration accounts without changes.
+- Existing single-account users are unaffected; their single connection is treated as an integration account with no data migration needed.
+- The import filter per integration account (FR-011) may be complex enough to defer to a follow-up spec if it significantly increases the implementation scope of P1.
 
 ## Out of Scope
 
-- Cross-user account sharing (one source account shared between multiple ordrctrl users).
-- Account switching or profile views (the feed always aggregates all connected accounts).
+- Cross-user account sharing (one integration source account shared between multiple ordrctrl users).
+- Changing the ordrctrl user account password or email from within the app (future profile management feature).
 - Multi-account support for Apple Calendar basic auth.
 - Mobile app UI considerations (addressed in a separate spec).

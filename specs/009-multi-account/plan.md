@@ -1,11 +1,15 @@
-# Implementation Plan: Multi-Account Support
+# Implementation Plan: Multi-Account Integration Support + User Account Menu
 
 **Branch**: `009-multi-account` | **Date**: 2026-03-10 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/009-multi-account/spec.md`
 
 ## Summary
 
-Allow users to connect more than one account per integration service (e.g., personal + work Gmail). Each account syncs independently and is identified by its email address or a user-set nickname. The core change is replacing the `@@unique([userId, serviceId])` constraint on `Integration` with `@@unique([userId, serviceId, accountIdentifier])`, updating all three OAuth adapters to retrieve and store the account identifier, adding label/pause management endpoints, and updating the feed to show per-account source labels.
+Two related improvements ship together:
+
+1. **Multi-account integration support**: Allow users to connect more than one integration account per service (e.g., personal + work Gmail). Each integration account syncs independently and is identified by its email address or a user-set nickname. The core change is replacing the `@@unique([userId, serviceId])` constraint on `Integration` with `@@unique([userId, serviceId, accountIdentifier])`, updating all three OAuth adapters to retrieve and store the account identifier, adding label/pause management endpoints, and updating the feed to show per-account source labels.
+
+2. **User account menu (sign-out + navigation)**: Add a persistent account menu to the feed navigation bar so users can sign out of their ordrctrl user account and navigate to all settings sections. Uses the existing `POST /api/auth/logout` and `GET /api/auth/me` endpoints — no new backend work required.
 
 ## Technical Context
 
@@ -87,8 +91,9 @@ frontend/
 │   ├── hooks/
 │   │   └── useIntegrations.ts            # Group by serviceId; label/pause actions
 │   ├── components/
-│   │   └── integrations/
-│   │       └── IntegrationCard.tsx       # Multi-account list; Add account button
+│   │   ├── integrations/
+│   │   │   └── IntegrationCard.tsx       # Multi-account list; Add account button
+│   │   └── AccountMenu.tsx               # Dropdown: ordrctrl email + Sign out + nav links
 │   ├── services/
 │   │   └── integrations.service.ts       # updateLabel(), pauseIntegration()
 │   └── app/
@@ -98,6 +103,8 @@ frontend/
     └── unit/
         ├── components/integrations/
         │   └── IntegrationCard.test.tsx
+        ├── components/
+        │   └── AccountMenu.test.tsx
         └── hooks/
             └── useIntegrations.test.ts
 ```
