@@ -118,3 +118,78 @@ describe('MicrosoftTasksAdapter - selective import', () => {
     expect(subSources).toEqual([]);
   });
 });
+
+describe('MicrosoftTasksAdapter - source completion', () => {
+  let adapter: MicrosoftTasksAdapter;
+  let mockFetch: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    adapter = new MicrosoftTasksAdapter();
+    mockFetch = vi.fn();
+    global.fetch = mockFetch;
+    vi.clearAllMocks();
+  });
+
+  const baseIntegration = {
+    id: 'int-1',
+    status: 'connected',
+    encryptedAccessToken: 'token',
+    importEverything: true,
+    selectedSubSourceIds: [],
+  };
+
+  it('returns completed: true for tasks with status=completed', async () => {
+    mockPrisma.integration.findUnique.mockResolvedValue(baseIntegration);
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ value: [{ id: 'list1', displayName: 'My Tasks' }] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          value: [
+            { id: 'task1', title: 'Pending Task', status: 'notStarted' },
+            { id: 'task2', title: 'Done Task', status: 'completed' },
+          ],
+        }),
+      });
+
+    const items = await adapter.sync('int-1');
+    expect(items).toHaveLength(2);
+
+    const pending = items.find((i) => i.externalId === 'task1');
+    const done = items.find((i) => i.externalId === 'task2');
+    expect(pending?.completed).toBe(false);
+    expect(done?.completed).toBe(true);
+  });
+
+  it('includes all tasks regardless of status (no server-side filter)', async () => {
+    mockPrisma.integration.findUnique.mockResolvedValue(baseIntegration);
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ value: [{ id: 'list1', displayName: 'My Tasks' }] }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          value: [
+            { id: 't1', title: 'A', status: 'notStarted' },
+            { id: 't2', title: 'B', status: 'inProgress' },
+            { id: 't3', title: 'C', status: 'completed' },
+          ],
+        }),
+      });
+
+    const items = await adapter.sync('int-1');
+    // All 3 returned — no server-side filter on 'completed'
+    expect(items).toHaveLength(3);
+
+    // Verify the tasks URL does NOT include the old completed filter
+    const tasksCallUrl = mockFetch.mock.calls[1][0] as string;
+    expect(tasksCallUrl).not.toContain("status ne 'completed'");
+  });
+});

@@ -47,6 +47,8 @@ export async function persistCacheItems(
         syncedAt: now,
         expiresAt,
         rawPayload: item.rawPayload as Prisma.InputJsonValue,
+        // If the adapter explicitly signals completion, mark it at create time
+        ...(item.completed === true ? { completedAtSource: true } : {}),
       },
       update: {
         itemType: item.itemType,
@@ -57,11 +59,94 @@ export async function persistCacheItems(
         syncedAt: now,
         expiresAt,
         rawPayload: item.rawPayload as Prisma.InputJsonValue,
+        // If the adapter explicitly signals completion, propagate to cache
+        ...(item.completed === true ? { completedAtSource: true } : {}),
       },
     });
   }
 
   logger.info('Cache items persisted', { integrationId, count: items.length });
+}
+
+/**
+ * Mark cache items as completed at source using set-difference:
+ * any item for this integration whose externalId is NOT in `returnedExternalIds`
+ * is treated as absent from the source's active list → completedAtSource = true.
+ *
+ * Only operates on items that are still non-expired and not already completedAtSource.
+ */
+export async function markMissingItemsAsSourceCompleted(
+  integrationId: string,
+  returnedExternalIds: string[]
+): Promise<number> {
+  const result = await prisma.syncCacheItem.updateMany({
+    where: {
+      integrationId,
+      expiresAt: { gt: new Date() },
+      completedAtSource: false,
+      ...(returnedExternalIds.length > 0
+        ? { externalId: { notIn: returnedExternalIds } }
+        : {}),
+    },
+    data: { completedAtSource: true },
+  });
+
+  if (result.count > 0) {
+    logger.info('Items marked as source-completed (set-difference)', {
+      integrationId,
+      count: result.count,
+    });
+  }
+  return result.count;
+}
+
+/**
+ * Propagate source completion to ordrctrl:
+ * For each SyncCacheItem where completedAtSource=true and completedInOrdrctrl=false,
+ * check for a REOPENED SyncOverride. If none exists, set completedInOrdrctrl=true.
+ *
+ * A REOPENED override means the user explicitly reopened the item after source completion —
+ * user intent always wins; we skip those items entirely.
+ */
+export async function applySourceCompletions(integrationId: string): Promise<number> {
+  const pendingItems = await prisma.syncCacheItem.findMany({
+    where: {
+      integrationId,
+      completedAtSource: true,
+      completedInOrdrctrl: false,
+    },
+    select: { id: true },
+  });
+
+  if (pendingItems.length === 0) return 0;
+
+  const itemIds = pendingItems.map((i) => i.id);
+
+  // Find items that have a REOPENED override — these must be skipped
+  const overriddenIds = await prisma.syncOverride
+    .findMany({
+      where: {
+        syncCacheItemId: { in: itemIds },
+        overrideType: 'REOPENED',
+      },
+      select: { syncCacheItemId: true },
+    })
+    .then((rows) => new Set(rows.map((r) => r.syncCacheItemId)));
+
+  const toCompleteIds = itemIds.filter((id) => !overriddenIds.has(id));
+  if (toCompleteIds.length === 0) return 0;
+
+  const result = await prisma.syncCacheItem.updateMany({
+    where: { id: { in: toCompleteIds } },
+    data: { completedInOrdrctrl: true, completedAt: new Date() },
+  });
+
+  logger.info('Source completions applied to ordrctrl', {
+    integrationId,
+    completed: result.count,
+    skippedByOverride: overriddenIds.size,
+  });
+  return result.count;
 }
 
 /**

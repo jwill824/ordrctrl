@@ -7,7 +7,7 @@ import { prisma } from '../lib/db.js';
 import { getAdapter } from '../integrations/index.js';
 import type { ServiceId } from '../integrations/_adapter/types.js';
 import { TokenRefreshError } from '../integrations/_adapter/types.js';
-import { persistCacheItems, cleanupStaleCacheItems } from './cache.service.js';
+import { persistCacheItems, cleanupStaleCacheItems, markMissingItemsAsSourceCompleted, applySourceCompletions } from './cache.service.js';
 
 export interface SyncJobData {
   integrationId: string;
@@ -71,6 +71,13 @@ export function startSyncWorker(): void {
 
       // Persist items
       await persistCacheItems(integrationId, userId, items);
+
+      // Apply source-side completions:
+      // 1. Items explicitly marked completed by adapter (completed=true in NormalizedItem)
+      // 2. Items absent from this sync result (set-difference / inbox_removal)
+      const returnedIds = items.map((i) => i.externalId);
+      await markMissingItemsAsSourceCompleted(integrationId, returnedIds);
+      await applySourceCompletions(integrationId);
 
       // Update integration lastSyncAt + clear error
       await prisma.integration.update({

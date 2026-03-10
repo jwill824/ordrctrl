@@ -26,6 +26,7 @@ export interface IntegrationStatusItem {
   lastSyncAt: string | null;
   lastSyncError: string | null;
   gmailSyncMode: 'all_unread' | 'starred_only' | null;
+  gmailCompletionMode: 'inbox_removal' | 'read' | null;
   importEverything: boolean;
   selectedSubSourceIds: string[];
   maskedEmail: string | null;
@@ -56,6 +57,7 @@ export async function listIntegrations(userId: string): Promise<IntegrationStatu
       lastSyncAt: true,
       lastSyncError: true,
       gmailSyncMode: true,
+      gmailCompletionMode: true,
       importEverything: true,
       selectedSubSourceIds: true,
       encryptedAccessToken: true,
@@ -94,6 +96,12 @@ export async function listIntegrations(userId: string): Promise<IntegrationStatu
           ? 'all_unread'
           : found?.gmailSyncMode === 'starred_only'
           ? 'starred_only'
+          : null,
+      gmailCompletionMode:
+        found?.gmailCompletionMode === 'read'
+          ? 'read'
+          : found?.gmailCompletionMode === 'inbox_removal'
+          ? 'inbox_removal'
           : null,
       importEverything: found?.importEverything ?? true,
       selectedSubSourceIds: found?.selectedSubSourceIds ?? [],
@@ -261,6 +269,7 @@ export async function updateImportFilter(
       lastSyncAt: true,
       lastSyncError: true,
       gmailSyncMode: true,
+      gmailCompletionMode: true,
       importEverything: true,
       selectedSubSourceIds: true,
       encryptedAccessToken: true,
@@ -285,6 +294,12 @@ export async function updateImportFilter(
         ? 'all_unread'
         : updated.gmailSyncMode === 'starred_only'
         ? 'starred_only'
+        : null,
+    gmailCompletionMode:
+      updated.gmailCompletionMode === 'read'
+        ? 'read'
+        : updated.gmailCompletionMode === 'inbox_removal'
+        ? 'inbox_removal'
         : null,
     importEverything: updated.importEverything,
     selectedSubSourceIds: updated.selectedSubSourceIds,
@@ -316,8 +331,24 @@ export async function updateCalendarEventWindow(
 }
 
 /**
- * Run a sync job with proper error handling.
+ * Update gmailCompletionMode for the Gmail integration.
  */
+export async function updateGmailCompletionMode(
+  userId: string,
+  mode: 'inbox_removal' | 'read'
+): Promise<{ gmailCompletionMode: 'inbox_removal' | 'read' }> {
+  const integration = await prisma.integration.findUnique({
+    where: { userId_serviceId: { userId, serviceId: 'gmail' } },
+  });
+  if (!integration || integration.status === 'disconnected') {
+    throw new AppError('INTEGRATION_NOT_FOUND', 'Gmail integration not found or disconnected');
+  }
+  await prisma.integration.update({
+    where: { id: integration.id },
+    data: { gmailCompletionMode: mode },
+  });
+  return { gmailCompletionMode: mode };
+}
 export async function runSyncJob(integrationId: string, userId: string): Promise<NormalizedItem[]> {
   const integration = await prisma.integration.findUnique({ where: { id: integrationId } });
   if (!integration) return [];

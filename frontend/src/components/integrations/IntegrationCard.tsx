@@ -3,10 +3,11 @@
 // T041 — IntegrationCard component
 import { useState } from 'react';
 import { GmailSyncModeSelector } from './GmailSyncModeSelector';
+import { GmailCompletionModeSelector } from './GmailCompletionModeSelector';
 import { SubSourceSelector } from './SubSourceSelector';
 import { AppleCredentialForm } from './AppleCredentialForm';
 import { AppleConfirmationScreen } from './AppleConfirmationScreen';
-import { getConnectUrl, updateImportFilter, updateCalendarEventWindow } from '@/services/integrations.service';
+import { getConnectUrl, updateImportFilter, updateCalendarEventWindow, updateGmailCompletionMode } from '@/services/integrations.service';
 import type { ServiceId } from '@/services/integrations.service';
 
 const SERVICE_META: Record<
@@ -48,6 +49,7 @@ interface IntegrationCardProps {
   lastSyncAt?: string | null;
   lastSyncError?: string | null;
   gmailSyncMode?: 'all_unread' | 'starred_only' | null;
+  gmailCompletionMode?: 'inbox_removal' | 'read' | null;
   importEverything?: boolean;
   selectedSubSourceIds?: string[];
   maskedEmail?: string | null;
@@ -65,6 +67,7 @@ export function IntegrationCard({
   lastSyncAt,
   lastSyncError,
   gmailSyncMode,
+  gmailCompletionMode,
   importEverything = true,
   selectedSubSourceIds = [],
   maskedEmail,
@@ -77,6 +80,9 @@ export function IntegrationCard({
   const [disconnecting, setDisconnecting] = useState(false);
   const [gmailMode, setGmailMode] = useState<'all_unread' | 'starred_only'>(
     gmailSyncMode ?? 'starred_only'
+  );
+  const [completionMode, setCompletionMode] = useState<'inbox_removal' | 'read'>(
+    gmailCompletionMode ?? 'inbox_removal'
   );
   const [showGmailSelector, setShowGmailSelector] = useState(false);
   const [showImportFilter, setShowImportFilter] = useState(false);
@@ -149,6 +155,18 @@ export function IntegrationCard({
       {/* Gmail sync mode selector */}
       {serviceId === 'gmail' && (status === 'disconnected' || showGmailSelector) && (
         <GmailSyncModeSelector value={gmailMode} onChange={setGmailMode} />
+      )}
+
+      {/* Gmail completion mode selector — only shown for connected integrations */}
+      {serviceId === 'gmail' && status === 'connected' && showGmailSelector && (
+        <GmailCompletionModeSelector
+          value={completionMode}
+          onChange={async (mode) => {
+            setCompletionMode(mode);
+            await updateGmailCompletionMode(mode).catch(() => {});
+            onRefresh?.();
+          }}
+        />
       )}
 
       {/* Import filter panel */}

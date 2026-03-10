@@ -20,6 +20,8 @@ export interface NormalizedItem {
   endAt: Date | null;   // calendar events only
   subSourceId?: string;
   rawPayload: Record<string, unknown>; // never exposed in API responses
+  /** Whether the source system considers this item complete. undefined = adapter does not report completion state. */
+  completed?: boolean;
 }
 
 export interface SubSource {
