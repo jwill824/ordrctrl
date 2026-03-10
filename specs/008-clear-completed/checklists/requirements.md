@@ -1,7 +1,7 @@
 # Specification Quality Checklist: Clear Completed Tasks
 
-**Purpose**: Validate specification completeness and quality before proceeding to planning  
-**Created**: 2026-03-10  
+**Purpose**: Validate specification completeness and quality before proceeding to planning
+**Created**: 2026-03-10
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -31,7 +31,6 @@
 
 ## Notes
 
-- All items pass. Spec is ready for `/speckit.plan`.
-- US3 (cleared items don't reappear via sync) is marked P1 alongside US1 (bulk clear) — both are correctness requirements for the feature to feel functional.
-- The "clear vs dismiss" distinction is captured in Assumptions to avoid scope confusion during planning.
-- No clarification questions needed — all key decisions had clear reasonable defaults.
+- All 16 items pass. Spec is ready for `/speckit.plan`.
+- Key design decision captured in Assumptions: "clearing" = dismiss (not hard delete), consistent with existing dismiss/restore pattern.
+- Auto-clear (US3/FR-008-011) is a P2 story that can be implemented independently after P1 ships.
