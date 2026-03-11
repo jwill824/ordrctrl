@@ -7,6 +7,7 @@ import type { FeedItem } from '@/services/feed.service';
 const baseItem: FeedItem = {
   id: 'item-1',
   source: 'ordrctrl',
+  serviceId: 'ordrctrl',
   itemType: 'task',
   title: 'Write unit tests',
   dueAt: null,
@@ -90,7 +91,7 @@ describe('FeedItemRow', () => {
   });
 
   it('shows isJustReopened notice for external source items', () => {
-    const reopenedItem = { ...baseItem, source: 'Gmail', isJustReopened: true };
+    const reopenedItem = { ...baseItem, serviceId: 'gmail', source: 'Gmail', isJustReopened: true };
     render(<FeedItemRow item={reopenedItem} onComplete={vi.fn()} />);
     expect(screen.getByText(/local to ordrctrl/)).toBeInTheDocument();
   });
