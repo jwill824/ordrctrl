@@ -143,7 +143,7 @@ A user with multiple accounts wants to pause syncing for one account (e.g., turn
 ## Assumptions
 
 - The OAuth consent flow is already implemented per service; multi-account reuses the same flow, storing the result as a new integration account record rather than overwriting the existing one.
-- "Multi-account" applies to OAuth-based services (Gmail, Microsoft Tasks). Apple Calendar uses basic auth and is out of scope for this feature.
+- "Multi-account" applies to OAuth-based services (Gmail, Microsoft To Do). Apple Calendar uses basic auth and is out of scope for this feature.
 - The existing duplicate-suspect mechanism will continue to flag tasks that appear across multiple connected integration accounts without changes.
 - Existing single-account users are unaffected; their single connection is treated as an integration account with no data migration needed.
 - The import filter per integration account (FR-011) may be complex enough to defer to a follow-up spec if it significantly increases the implementation scope of P1.

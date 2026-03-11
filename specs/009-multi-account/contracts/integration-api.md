@@ -153,13 +153,17 @@ Already exists as the disconnect route. No URL change.
 
 ## Feed Item Changes
 
-### FeedItem.source field (modified)
+### FeedItem changes (modified + new field)
 
-**Current**: `source` = `SERVICE_DISPLAY_NAMES[serviceId]` (e.g., `"Gmail"`)
+**`source` field (modified)**: `source` = `integration.label ?? integration.accountIdentifier` (e.g., `"Work"` or `"work@company.com"`)
 
-**New**: `source` = `integration.label ?? integration.accountIdentifier` (e.g., `"Work"` or `"work@company.com"`)
+**`serviceId` field (new)**: `serviceId` = the integration's `serviceId` enum value (e.g., `"gmail"`, `"microsoft_tasks"`, `"apple_calendar"`). For native ordrctrl tasks: `"ordrctrl"`.
 
-No new fields added to `FeedItem`. The `source` field becomes account-level rather than service-level. The existing source badge in the UI continues to display this value.
+**UI rendering**: The feed item source label now renders as two components:
+1. A **colored service name badge** (e.g., `GMAIL` in red, `TO DO` in blue) keyed on `serviceId`
+2. A smaller **secondary account label** (`source` value = email or nickname) shown alongside when the account is from an external integration
+
+This replaces the single source badge that previously showed just the service display name.
 
 ---
 
@@ -177,9 +181,9 @@ Promise<{ integrationId: string }>
 Promise<{ integrationId: string; accountIdentifier: string }>
 ```
 
-All three adapters (Gmail, Microsoft Tasks, Apple Calendar) must return `accountIdentifier`:
+All three adapters (Gmail, Microsoft To Do, Apple Calendar) must return `accountIdentifier`:
 - **Gmail**: extract `email` from decoded `id_token` (Google includes email in all OAuth tokens).
-- **Microsoft Tasks**: call `GET https://graph.microsoft.com/v1.0/me` → `mail` field.
+- **Microsoft To Do**: call `GET https://graph.microsoft.com/v1.0/me` → `mail` field. Requires `User.Read` scope in both the authorization URL and token exchange request.
 - **Apple Calendar**: use the `email` field from the credential payload.
 
 ### connect() — upsert logic change
