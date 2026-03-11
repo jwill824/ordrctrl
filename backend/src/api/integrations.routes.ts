@@ -27,6 +27,7 @@ import {
 import { generateState, validateState } from '../lib/csrf.js';
 import { logger } from '../lib/logger.js';
 import { importFilterBodySchema } from './schemas/integrations.schemas.js';
+import { scheduleIntegrationSync } from '../sync/sync.scheduler.js';
 
 const VALID_SERVICE_IDS = ['gmail', 'microsoft_tasks', 'apple_calendar'];
 const APPLE_SERVICE_IDS = ['apple_calendar'];
@@ -125,6 +126,7 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
 
       try {
         const result = await connectIntegration(userId, serviceId, body, options);
+        await scheduleIntegrationSync(result.integrationId, userId);
         return reply.status(200).send({ integrationId: result.integrationId, accountIdentifier: result.accountIdentifier, status: 'connected' });
       } catch (err) {
         if (err instanceof InvalidCredentialsError) {
@@ -174,7 +176,8 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
 
       try {
         const syncMode = request.session.gmailSyncMode as 'all_unread' | 'starred_only' | undefined;
-        await connectIntegration(userId, serviceId, { type: 'oauth', authCode: code }, { gmailSyncMode: syncMode });
+        const result = await connectIntegration(userId, serviceId, { type: 'oauth', authCode: code }, { gmailSyncMode: syncMode });
+        await scheduleIntegrationSync(result.integrationId, userId);
 
         request.session.oauthState = undefined;
         request.session.gmailSyncMode = undefined;
@@ -218,7 +221,8 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
       }
 
       try {
-        await connectIntegration(userId, serviceId, { type: 'oauth', authCode: code });
+        const postResult = await connectIntegration(userId, serviceId, { type: 'oauth', authCode: code });
+        await scheduleIntegrationSync(postResult.integrationId, userId);
 
         request.session.oauthState = undefined;
         request.session.gmailSyncMode = undefined;
