@@ -162,16 +162,18 @@ function AccountRow({ account, serviceId, onDisconnect, onUpdateLabel, onPauseAc
           {disconnecting ? '…' : 'Disconnect'}
         </button>
       )}
-      {/* Per-account import filter — only for services that support sub-sources */}
-      {account.status === 'connected' && serviceId === 'gmail' && (
+      {/* Per-account controls */}
+      {account.status === 'connected' && (
         <>
-          <button
-            type="button"
-            onClick={() => { setShowSyncMode((v) => !v); setShowFilter(false); }}
-            className="text-[0.65rem] text-zinc-400 hover:text-zinc-700 shrink-0"
-          >
-            Mode
-          </button>
+          {serviceId === 'gmail' && (
+            <button
+              type="button"
+              onClick={() => { setShowSyncMode((v) => !v); setShowFilter(false); }}
+              className="text-[0.65rem] text-zinc-400 hover:text-zinc-700 shrink-0"
+            >
+              Mode
+            </button>
+          )}
           <button
             type="button"
             onClick={() => { setShowFilter((v) => !v); setShowSyncMode(false); }}
