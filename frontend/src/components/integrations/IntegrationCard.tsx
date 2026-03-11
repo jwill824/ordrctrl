@@ -7,7 +7,7 @@ import { GmailCompletionModeSelector } from './GmailCompletionModeSelector';
 import { SubSourceSelector } from './SubSourceSelector';
 import { AppleCredentialForm } from './AppleCredentialForm';
 import { AppleConfirmationScreen } from './AppleConfirmationScreen';
-import { getConnectUrl, updateImportFilter, updateCalendarEventWindow, updateGmailCompletionMode } from '@/services/integrations.service';
+import { getConnectUrl, updateImportFilter, updateCalendarEventWindow, updateGmailCompletionMode, updateGmailSyncMode } from '@/services/integrations.service';
 import type { ServiceId, IntegrationStatus } from '@/services/integrations.service';
 
 const SERVICE_META: Record<
@@ -58,6 +58,9 @@ function AccountRow({ account, serviceId, onDisconnect, onUpdateLabel, onPauseAc
   const [labelDraft, setLabelDraft] = useState(account.label ?? '');
   const [savingLabel, setSavingLabel] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
+  const [showSyncMode, setShowSyncMode] = useState(false);
+  const [syncMode, setSyncMode] = useState<'all_unread' | 'starred_only'>(account.gmailSyncMode ?? 'starred_only');
+  const [completionMode, setCompletionMode] = useState<'inbox_removal' | 'read'>(account.gmailCompletionMode ?? 'inbox_removal');
 
   const displayName = account.label || account.accountIdentifier;
 
@@ -161,15 +164,44 @@ function AccountRow({ account, serviceId, onDisconnect, onUpdateLabel, onPauseAc
       )}
       {/* Per-account import filter — only for services that support sub-sources */}
       {account.status === 'connected' && serviceId === 'gmail' && (
-        <button
-          type="button"
-          onClick={() => setShowFilter((v) => !v)}
-          className="text-[0.65rem] text-zinc-400 hover:text-zinc-700 shrink-0"
-        >
-          Filter
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={() => { setShowSyncMode((v) => !v); setShowFilter(false); }}
+            className="text-[0.65rem] text-zinc-400 hover:text-zinc-700 shrink-0"
+          >
+            Mode
+          </button>
+          <button
+            type="button"
+            onClick={() => { setShowFilter((v) => !v); setShowSyncMode(false); }}
+            className="text-[0.65rem] text-zinc-400 hover:text-zinc-700 shrink-0"
+          >
+            Filter
+          </button>
+        </>
       )}
     </div>
+    {showSyncMode && account.status === 'connected' && serviceId === 'gmail' && (
+      <div className="mt-1 pl-4 space-y-2">
+        <GmailSyncModeSelector
+          value={syncMode}
+          onChange={async (mode) => {
+            setSyncMode(mode);
+            await updateGmailSyncMode(account.id, mode).catch(() => {});
+            onRefresh?.();
+          }}
+        />
+        <GmailCompletionModeSelector
+          value={completionMode}
+          onChange={async (mode) => {
+            setCompletionMode(mode);
+            await updateGmailCompletionMode(account.id, mode).catch(() => {});
+            onRefresh?.();
+          }}
+        />
+      </div>
+    )}
     {showFilter && account.status === 'connected' && (
       <div className="mt-1 pl-4">
         <SubSourceSelector
@@ -251,7 +283,6 @@ export function IntegrationCard({
     gmailCompletionModeFallback ?? 'inbox_removal'
   );
   const [showGmailSelector, setShowGmailSelector] = useState(false);
-  const [showImportFilter, setShowImportFilter] = useState(false);
   const [eventWindow, setEventWindow] = useState<number>(calendarEventWindowDays ?? 30);
   const meta = SERVICE_META[serviceId];
   const isApple = serviceId === 'apple_calendar';
@@ -340,13 +371,13 @@ export function IntegrationCard({
         </div>
       )}
 
-      {/* Gmail sync mode selector */}
-      {serviceId === 'gmail' && (status === 'disconnected' || showGmailSelector) && (
+      {/* Gmail sync mode selector — only in onboarding (disconnected) pre-connect */}
+      {serviceId === 'gmail' && !hasAccounts && status === 'disconnected' && (
         <GmailSyncModeSelector value={gmailMode} onChange={setGmailMode} />
       )}
 
-      {/* Gmail completion mode selector — only shown for connected integrations */}
-      {serviceId === 'gmail' && status === 'connected' && showGmailSelector && (
+      {/* Gmail completion mode selector — only in legacy single-account connected mode */}
+      {serviceId === 'gmail' && !hasAccounts && status === 'connected' && showGmailSelector && (
         <GmailCompletionModeSelector
           value={completionMode}
           onChange={async (mode) => {
@@ -357,20 +388,7 @@ export function IntegrationCard({
         />
       )}
 
-      {/* Import filter panel */}
-      {showImportFilter && status === 'connected' && primaryAccount?.id && (
-        <SubSourceSelector
-          integrationId={primaryAccount.id}
-          importEverything={importEverything}
-          selectedSubSourceIds={selectedSubSourceIds}
-          onSave={async (filter) => {
-            await updateImportFilter(primaryAccount.id, filter);
-            setShowImportFilter(false);
-            onRefresh?.();
-          }}
-          onCancel={() => setShowImportFilter(false)}
-        />
-      )}
+      {/* Import filter panel — rendered per-account via AccountRow */}
 
       {/* Calendar event window selector for Apple Calendar */}
       {serviceId === 'apple_calendar' && status === 'connected' && (
@@ -396,28 +414,9 @@ export function IntegrationCard({
 
       {/* Actions */}
       <div className="flex gap-2 flex-wrap mt-3.5">
-        {/* Multi-account mode: show service-level settings + Add account */}
+        {/* Multi-account mode: Add account button */}
         {hasAccounts && (
           <>
-            {serviceId === 'gmail' && (
-              <button
-                type="button"
-                className={btnSmall}
-                onClick={() => setShowGmailSelector((v) => !v)}
-              >
-                {showGmailSelector ? 'Hide options' : 'Sync mode'}
-              </button>
-            )}
-            {/* Import filter shown per-account row for multi-account; only show card-level for single account */}
-            {accounts.length <= 1 && (
-              <button
-                type="button"
-                className={btnSmall}
-                onClick={() => setShowImportFilter((v) => !v)}
-              >
-                {showImportFilter ? 'Hide filter' : 'Edit import filter'}
-              </button>
-            )}
             <a
               href={connectHref}
               title={accounts.length >= 5 ? 'Maximum of 5 accounts reached' : undefined}
@@ -488,22 +487,6 @@ export function IntegrationCard({
 
         {!hasAccounts && status === 'connected' && !onboardingMode && (
           <>
-            {serviceId === 'gmail' && (
-              <button
-                type="button"
-                className={btnSmall}
-                onClick={() => setShowGmailSelector((v) => !v)}
-              >
-                Sync mode
-              </button>
-            )}
-            <button
-              type="button"
-              className={btnSmall}
-              onClick={() => setShowImportFilter((v) => !v)}
-            >
-              {showImportFilter ? 'Hide filter' : 'Edit import filter'}
-            </button>
             {!isApple && (
               <a href={reconnectHref} className={btnSmall}>
                 Reconnect
