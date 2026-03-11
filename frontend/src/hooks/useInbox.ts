@@ -3,7 +3,7 @@
 // T010 — useInbox hook
 // Fetches inbox groups and exposes per-item and bulk triage actions.
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import * as inboxService from '@/services/inbox.service';
 import type { InboxGroup } from '@/services/inbox.service';
 
@@ -24,6 +24,7 @@ export function useInbox(): UseInboxReturn {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -41,13 +42,19 @@ export function useInbox(): UseInboxReturn {
   useEffect(() => {
     void load();
 
+    // Poll every 60 seconds so new items from sync appear automatically
+    timerRef.current = setInterval(() => { void load(); }, 60_000);
+
     function handleVisibilityChange() {
       if (document.visibilityState === 'visible') {
         void load();
       }
     }
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      if (timerRef.current !== null) clearInterval(timerRef.current);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [load]);
 
   const acceptItem = useCallback(

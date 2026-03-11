@@ -12,6 +12,7 @@ export function InboxPage() {
     total,
     loading,
     error,
+    reload,
     acceptItem,
     dismissItem,
     acceptAllInGroup,
@@ -42,6 +43,14 @@ export function InboxPage() {
               {total} item{total !== 1 ? 's' : ''}
             </span>
           )}
+          <button
+            type="button"
+            onClick={() => void reload()}
+            className="ml-auto text-xs text-zinc-400 hover:text-zinc-700"
+            aria-label="Refresh inbox"
+          >
+            ↻ Refresh
+          </button>
         </div>
 
         {error && (
