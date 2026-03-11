@@ -8,6 +8,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useFeed } from '@/hooks/useFeed';
 import { useNativeTasks } from '@/hooks/useNativeTasks';
+import { useInboxCount } from '@/hooks/useInboxCount';
 import { FeedItemRow } from '@/components/feed/FeedItem';
 import { CompletedSection } from '@/components/feed/CompletedSection';
 import { IntegrationErrorBanner } from '@/components/feed/IntegrationErrorBanner';
@@ -23,11 +24,12 @@ export default function FeedPage() {
     items, completed, syncStatus, loading, refreshing, error,
     refresh, reloadFeed, completeItem, uncompleteItem, dismissItem, restoreItem,
     undoToast, clearUndoToast,
-    pendingItems, isTriageOpen, triageLoading, newItemCount,
+    pendingItems, isTriageOpen, triageLoading,
     closeTriage, acceptTriage, dismissTriageItem, dismissAllTriage,
     clearCompleted, clearedCount, clearClearedToast,
   } = useFeed();
   const { create, update, remove } = useNativeTasks(reloadFeed);
+  const { inboxCount } = useInboxCount();
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingTask, setEditingTask] = useState<FeedItem | null>(null);
@@ -75,9 +77,9 @@ export default function FeedPage() {
               <path d="M13.5 2.5A7 7 0 1 0 14.5 9"/>
               <path d="M14.5 2.5v4h-4"/>
             </svg>
-            {newItemCount > 0 && !isTriageOpen && (
+            {inboxCount > 0 && (
               <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-black text-white text-[0.5rem] font-bold rounded-full flex items-center justify-center leading-none">
-                {newItemCount > 9 ? '9+' : newItemCount}
+                {inboxCount > 9 ? '9+' : inboxCount}
               </span>
             )}
           </button>

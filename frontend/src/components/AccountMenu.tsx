@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { useInboxCount } from '@/hooks/useInboxCount';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -11,6 +12,7 @@ export function AccountMenu() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { inboxCount } = useInboxCount();
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -50,6 +52,14 @@ export function AccountMenu() {
             <p className="truncate text-sm font-medium text-gray-900">{user?.email}</p>
           </div>
           <nav className="py-1">
+            <a href="/inbox" className="flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+              <span>Inbox</span>
+              {inboxCount > 0 && (
+                <span className="ml-2 min-w-[1.25rem] h-5 bg-black text-white text-[0.6rem] font-bold rounded-full flex items-center justify-center px-1">
+                  {inboxCount > 99 ? '99+' : inboxCount}
+                </span>
+              )}
+            </a>
             <a href="/settings/integrations" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
               Integrations
             </a>

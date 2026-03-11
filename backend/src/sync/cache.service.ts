@@ -49,6 +49,7 @@ export async function persistCacheItems(
         rawPayload: item.rawPayload as Prisma.InputJsonValue,
         // If the adapter explicitly signals completion, mark it at create time
         ...(item.completed === true ? { completedAtSource: true } : {}),
+        pendingInbox: true,
       },
       update: {
         itemType: item.itemType,
@@ -172,6 +173,7 @@ export async function getCacheItemsForUser(userId: string, excludeIds: string[] 
     where: {
       userId,
       expiresAt: { gt: new Date() },
+      pendingInbox: false,
       ...(excludeIds.length > 0 ? { id: { notIn: excludeIds } } : {}),
     },
     include: {
