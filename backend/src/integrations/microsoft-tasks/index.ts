@@ -163,7 +163,7 @@ export class MicrosoftTasksAdapter implements IntegrationAdapter {
     const integration = await prisma.integration.findUnique({
       where: { id: integrationId },
     });
-    if (!integration || integration.status !== 'connected') return [];
+    if (!integration || integration.status === 'disconnected') return [];
 
     const accessToken = decrypt(integration.encryptedAccessToken);
     const importEverything = integration.importEverything ?? true;

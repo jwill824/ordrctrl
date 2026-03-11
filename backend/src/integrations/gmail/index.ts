@@ -151,7 +151,7 @@ export class GmailAdapter implements IntegrationAdapter {
     const integration = await prisma.integration.findUnique({
       where: { id: integrationId },
     });
-    if (!integration || integration.status !== 'connected') return [];
+    if (!integration || integration.status === 'disconnected') return [];
 
     const accessToken = decrypt(integration.encryptedAccessToken);
     const syncMode = integration.gmailSyncMode ?? 'starred_only';

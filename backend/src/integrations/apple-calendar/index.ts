@@ -181,7 +181,7 @@ export class AppleCalendarAdapter implements IntegrationAdapter {
 
   async sync(integrationId: string): Promise<NormalizedItem[]> {
     const integration = await prisma.integration.findUnique({ where: { id: integrationId } });
-    if (!integration || integration.status !== 'connected') return [];
+    if (!integration || integration.status === 'disconnected') return [];
 
     const email = decrypt(integration.encryptedAccessToken);
     const asp = decrypt(integration.encryptedRefreshToken!);
