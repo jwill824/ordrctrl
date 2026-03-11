@@ -351,7 +351,7 @@ export function IntegrationCard({
           value={completionMode}
           onChange={async (mode) => {
             setCompletionMode(mode);
-            await updateGmailCompletionMode(mode).catch(() => {});
+            await updateGmailCompletionMode(primaryAccount?.id ?? '', mode).catch(() => {});
             onRefresh?.();
           }}
         />
@@ -382,7 +382,7 @@ export function IntegrationCard({
             onChange={async (e) => {
               const days = Number(e.target.value) as 7 | 14 | 30 | 60;
               setEventWindow(days);
-              await updateCalendarEventWindow(days).catch(() => {});
+              await updateCalendarEventWindow(primaryAccount?.id ?? '', days).catch(() => {});
               onRefresh?.();
             }}
             className="border border-zinc-300 px-2 py-1 text-xs"

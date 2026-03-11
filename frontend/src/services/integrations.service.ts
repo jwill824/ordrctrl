@@ -130,8 +130,8 @@ export async function confirmWithExisting(serviceId: ServiceId): Promise<{ integ
   return res.json();
 }
 
-export async function updateCalendarEventWindow(days: 7 | 14 | 30 | 60): Promise<void> {
-  const res = await fetch(`${API_URL}/api/integrations/apple_calendar/event-window`, {
+export async function updateCalendarEventWindow(integrationId: string, days: 7 | 14 | 30 | 60): Promise<void> {
+  const res = await fetch(`${API_URL}/api/integrations/${integrationId}/event-window`, {
     method: 'PUT',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
@@ -143,8 +143,8 @@ export async function updateCalendarEventWindow(days: 7 | 14 | 30 | 60): Promise
   }
 }
 
-export async function updateGmailCompletionMode(mode: 'inbox_removal' | 'read'): Promise<void> {
-  const res = await fetch(`${API_URL}/api/integrations/gmail/completion-mode`, {
+export async function updateGmailCompletionMode(integrationId: string, mode: 'inbox_removal' | 'read'): Promise<void> {
+  const res = await fetch(`${API_URL}/api/integrations/${integrationId}/completion-mode`, {
     method: 'PATCH',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
