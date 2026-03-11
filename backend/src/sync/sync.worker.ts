@@ -6,7 +6,7 @@ import { logger } from '../lib/logger.js';
 import { prisma } from '../lib/db.js';
 import { getAdapter } from '../integrations/index.js';
 import type { ServiceId } from '../integrations/_adapter/types.js';
-import { TokenRefreshError } from '../integrations/_adapter/types.js';
+import { TokenRefreshError, InvalidCredentialsError } from '../integrations/_adapter/types.js';
 import { persistCacheItems, cleanupStaleCacheItems, markMissingItemsAsSourceCompleted, applySourceCompletions } from './cache.service.js';
 import { clearExpiredCompleted } from '../feed/feed.service.js';
 import { getUserSettings } from '../user/user.service.js';
@@ -45,7 +45,16 @@ export function startSyncWorker(): void {
       try {
         items = await adapter.sync(integrationId);
       } catch (syncErr) {
-        if (syncErr instanceof TokenRefreshError) {
+        if (syncErr instanceof InvalidCredentialsError) {
+          // Permanent auth failure (e.g. 403 scope denied) — no point refreshing
+          const reason = (syncErr as Error).message || 'Access denied';
+          await prisma.integration.update({
+            where: { id: integrationId },
+            data: { status: 'error', lastSyncError: reason },
+          });
+          logger.error('Permanent auth failure, integration marked error', { integrationId, error: reason });
+          return;
+        } else if (syncErr instanceof TokenRefreshError) {
           // Try token refresh once
           try {
             logger.info('Attempting token refresh', { integrationId });
