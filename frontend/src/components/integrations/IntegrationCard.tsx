@@ -24,7 +24,7 @@ const SERVICE_META: Record<
     ),
   },
   microsoft_tasks: {
-    label: 'Microsoft Tasks',
+    label: 'Microsoft To Do',
     description: 'Pull in tasks from Microsoft To Do and Planner.',
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="#0078d4" aria-hidden="true">

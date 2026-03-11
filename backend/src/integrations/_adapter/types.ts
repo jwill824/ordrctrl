@@ -7,7 +7,7 @@ export type ServiceId =
 
 export const SERVICE_DISPLAY_NAMES: Record<ServiceId, string> = {
   gmail: 'Gmail',
-  microsoft_tasks: 'Microsoft Tasks',
+  microsoft_tasks: 'Microsoft To Do',
   apple_calendar: 'Apple Calendar',
 };
 

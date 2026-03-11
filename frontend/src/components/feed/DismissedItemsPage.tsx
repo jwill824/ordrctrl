@@ -21,7 +21,7 @@ function formatDismissedDate(iso: string): string {
 function sourceLabel(source: string): string {
   const labels: Record<string, string> = {
     gmail: 'Gmail',
-    microsoft_tasks: 'Microsoft Tasks',
+    microsoft_tasks: 'Microsoft To Do',
     apple_calendar: 'Apple Calendar',
     ordrctrl: 'ordrctrl',
   };

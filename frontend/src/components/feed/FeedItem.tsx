@@ -16,7 +16,7 @@ const SERVICE_COLORS: Record<string, string> = {
 const SERVICE_NAMES: Record<string, string> = {
   gmail: 'Gmail',
   apple_reminders: 'Reminders',
-  microsoft_tasks: 'Tasks',
+  microsoft_tasks: 'To Do',
   apple_calendar: 'Calendar',
   ordrctrl: 'ordrctrl',
 };
