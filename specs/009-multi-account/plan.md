@@ -69,11 +69,11 @@ backend/
 │   │   ├── _adapter/
 │   │   │   └── types.ts             # connect() return type; new error types
 │   │   ├── gmail/
-│   │   │   └── gmail.adapter.ts     # accountIdentifier from id_token
+│   │   │   └── index.ts             # accountIdentifier from id_token
 │   │   ├── microsoft-tasks/
-│   │   │   └── microsoft-tasks.adapter.ts  # accountIdentifier from /me endpoint
+│   │   │   └── index.ts             # accountIdentifier from /me endpoint
 │   │   ├── apple-calendar/
-│   │   │   └── apple-calendar.adapter.ts   # accountIdentifier from credential email
+│   │   │   └── index.ts             # accountIdentifier from credential email
 │   │   └── integration.service.ts   # 5-account limit; duplicate account guard
 │   ├── api/
 │   │   └── integrations.routes.ts   # PATCH /label, PATCH /pause; error redirects
@@ -82,7 +82,7 @@ backend/
 └── tests/
     ├── unit/
     │   ├── integration.service.test.ts   # limit + dedup
-    │   └── gmail.adapter.test.ts         # accountIdentifier extraction
+    │   └── gmail.sync.test.ts            # accountIdentifier extraction
     └── contract/
         └── integrations.test.ts          # new endpoints
 

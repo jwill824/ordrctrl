@@ -84,6 +84,64 @@ No change to the redirect URL. After connecting, the new account is added (not u
 
 ---
 
+### PATCH /api/integrations/:integrationId/sync-mode (NEW)
+
+Update the Gmail sync mode for a specific account. Gmail only.
+
+**Request:**
+```json
+{
+  "syncMode": "all_unread"
+}
+```
+- `syncMode`: `"all_unread"` | `"starred_only"`
+
+**Response 200:**
+```json
+{ "id": "uuid", "gmailSyncMode": "all_unread" }
+```
+
+**Response 400** (invalid value):
+```json
+{ "error": "Invalid sync mode" }
+```
+
+**Response 404** (not found or not owned by user):
+```json
+{ "error": "Not found" }
+```
+
+---
+
+### PATCH /api/integrations/:integrationId/completion-mode (NEW)
+
+Update the Gmail completion mode for a specific account. Gmail only.
+
+**Request:**
+```json
+{
+  "completionMode": "inbox_removal"
+}
+```
+- `completionMode`: `"inbox_removal"` | `"read_only"` | `"archive"`
+
+**Response 200:**
+```json
+{ "id": "uuid", "gmailCompletionMode": "inbox_removal" }
+```
+
+**Response 400** (invalid value):
+```json
+{ "error": "Invalid completion mode" }
+```
+
+**Response 404** (not found or not owned by user):
+```json
+{ "error": "Not found" }
+```
+
+---
+
 ### PATCH /api/integrations/:integrationId/label (NEW)
 
 Update the display label (nickname) for a specific account.
@@ -164,6 +222,21 @@ Already exists as the disconnect route. No URL change.
 2. A smaller **secondary account label** (`source` value = email or nickname) shown alongside when the account is from an external integration
 
 This replaces the single source badge that previously showed just the service display name.
+
+---
+
+## Integration Settings UI Changes
+
+### Per-account controls (IntegrationCard AccountRow)
+
+Each connected account row in `IntegrationCard` exposes the following inline controls:
+
+- **Pause / Resume** button — toggles sync for this account
+- **Disconnect** button — removes this account
+- **Mode** button *(Gmail only)* — opens an inline panel with `GmailSyncModeSelector` + `GmailCompletionModeSelector`. Calls `PATCH /:integrationId/sync-mode` and `PATCH /:integrationId/completion-mode`.
+- **Filter** button *(all services)* — opens an inline `SubSourceSelector` for this account. Calls `PATCH /:integrationId/import-filter`. Available for Gmail (labels), Microsoft To Do (task lists), and Apple Calendar (calendars), since all three adapters implement `listSubSources`.
+
+Mode and Filter panels are mutually exclusive — opening one closes the other.
 
 ---
 

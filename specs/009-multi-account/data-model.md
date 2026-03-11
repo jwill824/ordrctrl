@@ -90,18 +90,22 @@ CREATE UNIQUE INDEX "Integration_userId_serviceId_accountIdentifier_key"
 [Not connected]
       │
       ▼ connect (OAuth or credential)
-  [connected] ←─────────────────┐
-      │                          │
-      ├─ pause ──► [paused]      │
-      │             │            │
-      │           resume ────────┘
+  [connected] ←─────────────────────┐
+      │                              │
+      ├─ pause ──► [paused]          │
+      │             │                │
+      │           resume ────────────┘
       │
       ├─ token error ──► [error]
       │                    │
-      │                  reconnect ──► [connected]
+      │                  sync retry (token refresh succeeds) ──► [connected] (auto-heal)
+      │                    │
+      │                  reconnect (manual) ──► [connected]
       │
       └─ disconnect ──► [removed] (row deleted)
 ```
+
+**Note on error state**: When an integration is in `error` state, the sync worker will still attempt to run it (it only skips `disconnected` integrations). If the token refresh succeeds during a retry, the integration auto-heals back to `connected` without user intervention. Only a deliberate disconnect permanently removes the integration.
 
 ---
 

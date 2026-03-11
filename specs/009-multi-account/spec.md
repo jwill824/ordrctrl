@@ -2,7 +2,7 @@
 
 **Feature Branch**: `009-multi-account`
 **Created**: 2026-03-10
-**Status**: Draft
+**Status**: Implemented
 **Input**: User description: "Add multi-account support so users can connect multiple accounts per integration (e.g. personal and work Google accounts) and have all tasks aggregated in one feed"
 
 > **Terminology note**: This spec uses two distinct account concepts throughout:
@@ -118,7 +118,7 @@ A user with multiple accounts wants to pause syncing for one account (e.g., turn
 - **FR-008**: A token error or sync failure on one integration account MUST NOT prevent other accounts for the same service from syncing.
 - **FR-009**: When an integration account is disconnected, all cached tasks and sync overrides associated with that account MUST be removed.
 - **FR-010**: Users MAY pause and resume syncing for individual integration accounts without disconnecting them (P3).
-- **FR-011**: The import filter (sub-source selector) MUST be configurable per integration account, not per service, so users can apply different import rules to each account.
+- **FR-011**: The import filter (sub-source selector) MUST be configurable per integration account, not per service, so users can apply different import rules to each account. This applies to all three adapters: Gmail (labels), Microsoft To Do (task lists), and Apple Calendar (calendars).
 - **FR-012**: Users MUST be able to sign out of their ordrctrl user account from any authenticated page via an account menu in the navigation bar.
 - **FR-013**: The account menu MUST display the signed-in user's ordrctrl email address to confirm their active identity.
 
@@ -143,7 +143,7 @@ A user with multiple accounts wants to pause syncing for one account (e.g., turn
 ## Assumptions
 
 - The OAuth consent flow is already implemented per service; multi-account reuses the same flow, storing the result as a new integration account record rather than overwriting the existing one.
-- "Multi-account" applies to OAuth-based services (Gmail, Microsoft To Do). Apple Calendar uses basic auth and is out of scope for this feature.
+- "Multi-account" applies to OAuth-based services (Gmail, Microsoft To Do). Apple Calendar uses basic auth and multiple Apple Calendar accounts are out of scope for this feature; however, the per-account import filter UI (FR-011) is provided for existing Apple Calendar accounts since the adapter already supports `listSubSources`.
 - The existing duplicate-suspect mechanism will continue to flag tasks that appear across multiple connected integration accounts without changes.
 - Existing single-account users are unaffected; their single connection is treated as an integration account with no data migration needed.
 - The import filter per integration account (FR-011) may be complex enough to defer to a follow-up spec if it significantly increases the implementation scope of P1.
@@ -152,5 +152,5 @@ A user with multiple accounts wants to pause syncing for one account (e.g., turn
 
 - Cross-user account sharing (one integration source account shared between multiple ordrctrl users).
 - Changing the ordrctrl user account password or email from within the app (future profile management feature).
-- Multi-account support for Apple Calendar basic auth.
+- Multi-account support for connecting additional Apple Calendar accounts (basic auth limitation).
 - Mobile app UI considerations (addressed in a separate spec).
