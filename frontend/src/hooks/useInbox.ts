@@ -40,6 +40,14 @@ export function useInbox(): UseInboxReturn {
 
   useEffect(() => {
     void load();
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        void load();
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [load]);
 
   const acceptItem = useCallback(
