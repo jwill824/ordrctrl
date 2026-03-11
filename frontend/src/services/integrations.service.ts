@@ -143,6 +143,19 @@ export async function updateCalendarEventWindow(integrationId: string, days: 7 |
   }
 }
 
+export async function updateGmailSyncMode(integrationId: string, mode: 'all_unread' | 'starred_only'): Promise<void> {
+  const res = await fetch(`${API_URL}/api/integrations/${integrationId}/sync-mode`, {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mode }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error((data as any).message || 'Failed to update Gmail sync mode');
+  }
+}
+
 export async function updateGmailCompletionMode(integrationId: string, mode: 'inbox_removal' | 'read'): Promise<void> {
   const res = await fetch(`${API_URL}/api/integrations/${integrationId}/completion-mode`, {
     method: 'PATCH',

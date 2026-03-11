@@ -376,6 +376,36 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
     }
   );
 
+  // PATCH /api/integrations/:integrationId/sync-mode — update Gmail sync mode
+  const syncModeBodySchema = z.object({
+    mode: z.enum(['all_unread', 'starred_only']),
+  });
+
+  app.patch(
+    '/api/integrations/:integrationId/sync-mode',
+    async (request: FastifyRequest<{ Params: { integrationId: string } }>, reply) => {
+      const userId = requireAuth(request, reply);
+      if (!userId) return;
+
+      const { integrationId } = request.params;
+
+      const parsed = syncModeBodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'ValidationError', message: parsed.error.errors[0]?.message });
+      }
+
+      try {
+        const result = await updateGmailSyncMode(userId, integrationId, parsed.data.mode);
+        return reply.status(200).send(result);
+      } catch (err: any) {
+        if (err instanceof AppError && err.code === 'INTEGRATION_NOT_FOUND') {
+          return reply.status(404).send({ error: 'INTEGRATION_NOT_FOUND', message: err.message });
+        }
+        return reply.status(500).send({ error: 'InternalError', message: err.message });
+      }
+    }
+  );
+
   // PATCH /api/integrations/:integrationId/completion-mode — update Gmail completion mode
   const completionModeBodySchema = z.object({
     mode: z.enum(['inbox_removal', 'read']),
