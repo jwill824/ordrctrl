@@ -30,8 +30,8 @@ export function startSyncWorker(): void {
       where: { id: integrationId },
     });
 
-    if (!integration || integration.status === 'disconnected') {
-      logger.info('Skipping sync for disconnected integration', { integrationId });
+    if (!integration || integration.status === 'disconnected' || integration.paused) {
+      logger.info('Skipping sync for disconnected/paused integration', { integrationId });
       return;
     }
 
@@ -52,17 +52,18 @@ export function startSyncWorker(): void {
             await adapter.refreshToken(integrationId);
             items = await adapter.sync(integrationId);
           } catch (refreshErr) {
+            const reason = (refreshErr as Error).message || 'Unknown error';
             // Token refresh failed — mark integration as error
             await prisma.integration.update({
               where: { id: integrationId },
               data: {
                 status: 'error',
-                lastSyncError: 'Token refresh failed. Please reconnect.',
+                lastSyncError: `Token refresh failed. Please reconnect. (${reason})`,
               },
             });
             logger.error('Token refresh failed, integration marked error', {
               integrationId,
-              error: (refreshErr as Error).message,
+              error: reason,
             });
             return;
           }

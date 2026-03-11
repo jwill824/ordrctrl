@@ -9,6 +9,10 @@ vi.mock('../../src/integrations/integration.service.js', () => ({
   getSubSources: vi.fn(),
   updateImportFilter: vi.fn(),
   updateCalendarEventWindow: vi.fn(),
+  updateGmailCompletionMode: vi.fn(),
+  updateGmailSyncMode: vi.fn(),
+  updateLabel: vi.fn(),
+  pauseIntegration: vi.fn(),
   AppError: class AppError extends Error {
     constructor(public readonly code: string, message: string) {
       super(message);
@@ -20,6 +24,8 @@ vi.mock('../../src/integrations/integration.service.js', () => ({
 vi.mock('../../src/integrations/_adapter/types.js', () => ({
   InvalidCredentialsError: class extends Error { constructor(s: string) { super(s); } },
   ProviderUnavailableError: class extends Error { constructor(s: string) { super(s); } },
+  AccountLimitError: class extends Error { constructor(s: string, n: number) { super(s); } },
+  DuplicateAccountError: class extends Error { constructor(s: string, a: string) { super(s); } },
 }));
 
 vi.mock('../../src/lib/csrf.js', () => ({
@@ -50,7 +56,7 @@ async function buildApp() {
   return app;
 }
 
-describe('PUT /api/integrations/apple_calendar/event-window', () => {
+describe('PUT /api/integrations/:integrationId/event-window', () => {
   let app: Awaited<ReturnType<typeof buildApp>>;
 
   beforeEach(async () => {
@@ -67,7 +73,7 @@ describe('PUT /api/integrations/apple_calendar/event-window', () => {
 
     const res = await app.inject({
       method: 'PUT',
-      url: '/api/integrations/apple_calendar/event-window',
+      url: '/api/integrations/int-apple-1/event-window',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ days: 14 }),
     });
@@ -79,7 +85,7 @@ describe('PUT /api/integrations/apple_calendar/event-window', () => {
   it('invalid days (999) → 400', async () => {
     const res = await app.inject({
       method: 'PUT',
-      url: '/api/integrations/apple_calendar/event-window',
+      url: '/api/integrations/int-apple-1/event-window',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ days: 999 }),
     });
@@ -87,15 +93,18 @@ describe('PUT /api/integrations/apple_calendar/event-window', () => {
     expect(res.statusCode).toBe(400);
   });
 
-  it('apple_reminders serviceId → 400 UNSUPPORTED_SERVICE', async () => {
+  it('unknown integrationId → 404 INTEGRATION_NOT_FOUND', async () => {
+    const AppErrorClass = (await import('../../src/integrations/integration.service.js')).AppError as any;
+    mockUpdateCalendarEventWindow.mockRejectedValue(new AppErrorClass('INTEGRATION_NOT_FOUND', 'Not found'));
+
     const res = await app.inject({
       method: 'PUT',
-      url: '/api/integrations/apple_reminders/event-window',
+      url: '/api/integrations/nonexistent-id/event-window',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ days: 14 }),
     });
 
-    expect(res.statusCode).toBe(400);
-    expect(JSON.parse(res.body).error).toBe('UNSUPPORTED_SERVICE');
+    expect(res.statusCode).toBe(404);
+    expect(JSON.parse(res.body).error).toBe('INTEGRATION_NOT_FOUND');
   });
 });

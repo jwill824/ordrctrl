@@ -47,7 +47,7 @@ test.describe('US2 — Integration Onboarding', () => {
     // All 4 integration cards should be visible
     await expect(page.getByText('Gmail')).toBeVisible();
     await expect(page.getByText('Apple Reminders')).toBeVisible();
-    await expect(page.getByText('Microsoft Tasks')).toBeVisible();
+    await expect(page.getByText('Microsoft To Do')).toBeVisible();
     await expect(page.getByText('Apple Calendar')).toBeVisible();
   });
 

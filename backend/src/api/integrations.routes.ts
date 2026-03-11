@@ -12,16 +12,22 @@ import {
   updateImportFilter,
   updateCalendarEventWindow,
   updateGmailCompletionMode,
+  updateGmailSyncMode,
+  updateLabel,
+  pauseIntegration,
   AppError,
 } from '../integrations/integration.service.js';
 import type { ServiceId } from '../integrations/_adapter/types.js';
 import {
   InvalidCredentialsError,
   ProviderUnavailableError,
+  AccountLimitError,
+  DuplicateAccountError,
 } from '../integrations/_adapter/types.js';
 import { generateState, validateState } from '../lib/csrf.js';
 import { logger } from '../lib/logger.js';
 import { importFilterBodySchema } from './schemas/integrations.schemas.js';
+import { scheduleIntegrationSync } from '../sync/sync.scheduler.js';
 
 const VALID_SERVICE_IDS = ['gmail', 'microsoft_tasks', 'apple_calendar'];
 const APPLE_SERVICE_IDS = ['apple_calendar'];
@@ -59,6 +65,9 @@ const eventWindowBodySchema = z.object({
   days: z.union([z.literal(7), z.literal(14), z.literal(30), z.literal(60)]),
 });
 
+const labelBodySchema = z.object({ label: z.string().max(50) });
+const pauseBodySchema = z.object({ paused: z.boolean() });
+
 export async function registerIntegrationRoutes(app: FastifyInstance): Promise<void> {
   // GET /api/integrations — list all with status
   app.get('/api/integrations', async (request, reply) => {
@@ -68,7 +77,7 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
     return reply.send({ integrations });
   });
 
-  // GET /api/integrations/:serviceId/connect — initiate OAuth
+  // GET /api/integrations/:serviceId/connect — initiate OAuth (multi-account: no conflict check)
   app.get(
     '/api/integrations/:serviceId/connect',
     async (request: FastifyRequest<{ Params: { serviceId: string }; Querystring: { syncMode?: string } }>, reply) => {
@@ -78,15 +87,6 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
       const { serviceId } = request.params;
       if (!isValidServiceId(serviceId)) {
         return reply.status(400).send({ error: 'Bad Request', message: 'Unknown serviceId' });
-      }
-
-      const integrations = await listIntegrations(userId);
-      const existing = integrations.find((i) => i.serviceId === serviceId);
-      if (existing?.status === 'connected') {
-        return reply.status(409).send({
-          error: 'Conflict',
-          message: 'Integration already connected. Use reconnect to re-authorize.',
-        });
       }
 
       const query = connectQuerySchema.safeParse(request.query);
@@ -126,7 +126,8 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
 
       try {
         const result = await connectIntegration(userId, serviceId, body, options);
-        return reply.status(200).send({ integrationId: result.integrationId, status: 'connected' });
+        await scheduleIntegrationSync(result.integrationId, userId);
+        return reply.status(200).send({ integrationId: result.integrationId, accountIdentifier: result.accountIdentifier, status: 'connected' });
       } catch (err) {
         if (err instanceof InvalidCredentialsError) {
           return reply.status(401).send({ error: 'INVALID_CREDENTIALS', message: (err as Error).message });
@@ -136,6 +137,12 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
         }
         if (err instanceof AppError && err.code === 'NO_EXISTING_CREDENTIALS') {
           return reply.status(409).send({ error: 'NO_EXISTING_CREDENTIALS', message: err.message });
+        }
+        if (err instanceof AccountLimitError) {
+          return reply.status(409).send({ error: 'ACCOUNT_LIMIT_REACHED', message: (err as Error).message });
+        }
+        if (err instanceof DuplicateAccountError) {
+          return reply.status(409).send({ error: 'DUPLICATE_ACCOUNT', message: (err as Error).message });
         }
         logger.error('Apple connect error', { serviceId, error: (err as Error).message });
         return reply.status(500).send({ error: 'InternalError', message: (err as Error).message });
@@ -169,13 +176,20 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
 
       try {
         const syncMode = request.session.gmailSyncMode as 'all_unread' | 'starred_only' | undefined;
-        await connectIntegration(userId, serviceId, { type: 'oauth', authCode: code }, { gmailSyncMode: syncMode });
+        const result = await connectIntegration(userId, serviceId, { type: 'oauth', authCode: code }, { gmailSyncMode: syncMode });
+        await scheduleIntegrationSync(result.integrationId, userId);
 
         request.session.oauthState = undefined;
         request.session.gmailSyncMode = undefined;
 
         return reply.redirect(302, `${process.env.APP_URL}/onboarding?connected=${serviceId}`);
       } catch (err) {
+        if (err instanceof DuplicateAccountError) {
+          return reply.redirect(302, `${process.env.APP_URL}/onboarding?error=duplicate_account&serviceId=${serviceId}`);
+        }
+        if (err instanceof AccountLimitError) {
+          return reply.redirect(302, `${process.env.APP_URL}/onboarding?error=account_limit_reached&serviceId=${serviceId}`);
+        }
         logger.error('Integration callback error', { serviceId, error: (err as Error).message });
         return reply.redirect(302, `${process.env.APP_URL}/onboarding?error=${serviceId}&reason=server_error`);
       }
@@ -207,33 +221,37 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
       }
 
       try {
-        await connectIntegration(userId, serviceId, { type: 'oauth', authCode: code });
+        const postResult = await connectIntegration(userId, serviceId, { type: 'oauth', authCode: code });
+        await scheduleIntegrationSync(postResult.integrationId, userId);
 
         request.session.oauthState = undefined;
         request.session.gmailSyncMode = undefined;
 
         return reply.redirect(302, `${process.env.APP_URL}/onboarding?connected=${serviceId}`);
       } catch (err) {
+        if (err instanceof DuplicateAccountError) {
+          return reply.redirect(302, `${process.env.APP_URL}/onboarding?error=duplicate_account&serviceId=${serviceId}`);
+        }
+        if (err instanceof AccountLimitError) {
+          return reply.redirect(302, `${process.env.APP_URL}/onboarding?error=account_limit_reached&serviceId=${serviceId}`);
+        }
         logger.error('Integration POST callback error', { serviceId, error: (err as Error).message });
         return reply.redirect(302, `${process.env.APP_URL}/onboarding?error=${serviceId}&reason=server_error`);
       }
     }
   );
 
-  // DELETE /api/integrations/:serviceId — disconnect
+  // DELETE /api/integrations/:integrationId — disconnect by integration ID
   app.delete(
-    '/api/integrations/:serviceId',
-    async (request: FastifyRequest<{ Params: { serviceId: string } }>, reply) => {
+    '/api/integrations/:integrationId',
+    async (request: FastifyRequest<{ Params: { integrationId: string } }>, reply) => {
       const userId = requireAuth(request, reply);
       if (!userId) return;
 
-      const { serviceId } = request.params;
-      if (!isValidServiceId(serviceId)) {
-        return reply.status(400).send({ error: 'Bad Request', message: 'Unknown serviceId' });
-      }
+      const { integrationId } = request.params;
 
       try {
-        await disconnectIntegration(userId, serviceId);
+        await disconnectIntegration(userId, integrationId);
         return reply.status(204).send();
       } catch (err) {
         const msg = (err as Error).message;
@@ -281,18 +299,15 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
     return reply.status(202).send({ message: 'Sync queued', count });
   });
 
-  // GET /api/integrations/:serviceId/sub-sources — list available sub-sources
+  // GET /api/integrations/:integrationId/sub-sources — list available sub-sources
   app.get(
-    '/api/integrations/:serviceId/sub-sources',
-    async (request: FastifyRequest<{ Params: { serviceId: string } }>, reply) => {
+    '/api/integrations/:integrationId/sub-sources',
+    async (request: FastifyRequest<{ Params: { integrationId: string } }>, reply) => {
       const userId = requireAuth(request, reply);
       if (!userId) return;
-      const { serviceId } = request.params;
-      if (!isValidServiceId(serviceId)) {
-        return reply.status(400).send({ error: 'Bad Request', message: 'Unknown serviceId' });
-      }
+      const { integrationId } = request.params;
       try {
-        const subSources = await getSubSources(userId, serviceId);
+        const subSources = await getSubSources(userId, integrationId);
         return reply.send({ subSources });
       } catch (err: any) {
         if (err.code === 'INTEGRATION_NOT_FOUND') {
@@ -307,16 +322,13 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
     }
   );
 
-  // PUT /api/integrations/:serviceId/import-filter — update import filter
+  // PUT /api/integrations/:integrationId/import-filter — update import filter
   app.put(
-    '/api/integrations/:serviceId/import-filter',
-    async (request: FastifyRequest<{ Params: { serviceId: string } }>, reply) => {
+    '/api/integrations/:integrationId/import-filter',
+    async (request: FastifyRequest<{ Params: { integrationId: string } }>, reply) => {
       const userId = requireAuth(request, reply);
       if (!userId) return;
-      const { serviceId } = request.params;
-      if (!isValidServiceId(serviceId)) {
-        return reply.status(400).send({ error: 'Bad Request', message: 'Unknown serviceId' });
-      }
+      const { integrationId } = request.params;
       const parsed = importFilterBodySchema.safeParse(request.body);
       if (!parsed.success) {
         return reply.status(400).send({ error: 'ValidationError', message: parsed.error.errors[0]?.message });
@@ -324,7 +336,7 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
       try {
         const result = await updateImportFilter(
           userId,
-          serviceId,
+          integrationId,
           parsed.data.importEverything,
           parsed.data.selectedSubSourceIds
         );
@@ -338,17 +350,14 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
     }
   );
 
-  // PUT /api/integrations/:serviceId/event-window — update calendar event window
+  // PUT /api/integrations/:integrationId/event-window — update calendar event window
   app.put(
-    '/api/integrations/:serviceId/event-window',
-    async (request: FastifyRequest<{ Params: { serviceId: string } }>, reply) => {
+    '/api/integrations/:integrationId/event-window',
+    async (request: FastifyRequest<{ Params: { integrationId: string } }>, reply) => {
       const userId = requireAuth(request, reply);
       if (!userId) return;
 
-      const { serviceId } = request.params;
-      if (serviceId !== 'apple_calendar') {
-        return reply.status(400).send({ error: 'UNSUPPORTED_SERVICE', message: 'This endpoint is only for apple_calendar' });
-      }
+      const { integrationId } = request.params;
 
       const parsed = eventWindowBodySchema.safeParse(request.body);
       if (!parsed.success) {
@@ -356,7 +365,7 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
       }
 
       try {
-        await updateCalendarEventWindow(userId, parsed.data.days);
+        await updateCalendarEventWindow(userId, integrationId, parsed.data.days);
         return reply.status(200).send({ calendarEventWindowDays: parsed.data.days });
       } catch (err: any) {
         if (err instanceof AppError && err.code === 'INTEGRATION_NOT_FOUND') {
@@ -367,16 +376,48 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
     }
   );
 
-  // PATCH /api/integrations/gmail/completion-mode — update Gmail completion mode
+  // PATCH /api/integrations/:integrationId/sync-mode — update Gmail sync mode
+  const syncModeBodySchema = z.object({
+    mode: z.enum(['all_unread', 'starred_only']),
+  });
+
+  app.patch(
+    '/api/integrations/:integrationId/sync-mode',
+    async (request: FastifyRequest<{ Params: { integrationId: string } }>, reply) => {
+      const userId = requireAuth(request, reply);
+      if (!userId) return;
+
+      const { integrationId } = request.params;
+
+      const parsed = syncModeBodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'ValidationError', message: parsed.error.errors[0]?.message });
+      }
+
+      try {
+        const result = await updateGmailSyncMode(userId, integrationId, parsed.data.mode);
+        return reply.status(200).send(result);
+      } catch (err: any) {
+        if (err instanceof AppError && err.code === 'INTEGRATION_NOT_FOUND') {
+          return reply.status(404).send({ error: 'INTEGRATION_NOT_FOUND', message: err.message });
+        }
+        return reply.status(500).send({ error: 'InternalError', message: err.message });
+      }
+    }
+  );
+
+  // PATCH /api/integrations/:integrationId/completion-mode — update Gmail completion mode
   const completionModeBodySchema = z.object({
     mode: z.enum(['inbox_removal', 'read']),
   });
 
   app.patch(
-    '/api/integrations/gmail/completion-mode',
-    async (request, reply) => {
+    '/api/integrations/:integrationId/completion-mode',
+    async (request: FastifyRequest<{ Params: { integrationId: string } }>, reply) => {
       const userId = requireAuth(request, reply);
       if (!userId) return;
+
+      const { integrationId } = request.params;
 
       const parsed = completionModeBodySchema.safeParse(request.body);
       if (!parsed.success) {
@@ -384,12 +425,56 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
       }
 
       try {
-        const result = await updateGmailCompletionMode(userId, parsed.data.mode);
+        const result = await updateGmailCompletionMode(userId, integrationId, parsed.data.mode);
         return reply.status(200).send(result);
       } catch (err: any) {
         if (err instanceof AppError && err.code === 'INTEGRATION_NOT_FOUND') {
           return reply.status(404).send({ error: 'INTEGRATION_NOT_FOUND', message: err.message });
         }
+        return reply.status(500).send({ error: 'InternalError', message: err.message });
+      }
+    }
+  );
+
+  // PATCH /api/integrations/:integrationId/label — set/clear nickname
+  app.patch(
+    '/api/integrations/:integrationId/label',
+    async (request: FastifyRequest<{ Params: { integrationId: string } }>, reply) => {
+      const userId = requireAuth(request, reply);
+      if (!userId) return;
+      const { integrationId } = request.params;
+      const parsed = labelBodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'Validation failed', details: parsed.error.errors });
+      }
+      try {
+        const result = await updateLabel(userId, integrationId, parsed.data.label || null);
+        return reply.send({ id: result.id, label: result.label, accountIdentifier: result.accountIdentifier });
+      } catch (err: any) {
+        if (err instanceof AppError && err.code === 'NOT_FOUND') return reply.status(404).send({ error: 'Not found' });
+        if (err instanceof AppError && err.code === 'VALIDATION_FAILED') return reply.status(400).send({ error: err.message });
+        return reply.status(500).send({ error: 'InternalError', message: err.message });
+      }
+    }
+  );
+
+  // PATCH /api/integrations/:integrationId/pause — pause/resume an integration
+  app.patch(
+    '/api/integrations/:integrationId/pause',
+    async (request: FastifyRequest<{ Params: { integrationId: string } }>, reply) => {
+      const userId = requireAuth(request, reply);
+      if (!userId) return;
+      const { integrationId } = request.params;
+      const parsed = pauseBodySchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'Validation failed', details: parsed.error.errors });
+      }
+      try {
+        const result = await pauseIntegration(userId, integrationId, parsed.data.paused);
+        return reply.send(result);
+      } catch (err: any) {
+        if (err instanceof AppError && err.code === 'NOT_FOUND') return reply.status(404).send({ error: 'Not found' });
+        if (err instanceof AppError && err.code === 'INVALID_STATE') return reply.status(400).send({ error: err.message });
         return reply.status(500).send({ error: 'InternalError', message: err.message });
       }
     }

@@ -176,7 +176,7 @@ export async function getCacheItemsForUser(userId: string, excludeIds: string[] 
     },
     include: {
       integration: {
-        select: { serviceId: true, status: true, lastSyncError: true },
+        select: { serviceId: true, status: true, lastSyncError: true, label: true, accountIdentifier: true },
       },
     },
     orderBy: { syncedAt: 'desc' },

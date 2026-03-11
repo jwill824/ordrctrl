@@ -7,7 +7,7 @@ export type ServiceId =
 
 export const SERVICE_DISPLAY_NAMES: Record<ServiceId, string> = {
   gmail: 'Gmail',
-  microsoft_tasks: 'Microsoft Tasks',
+  microsoft_tasks: 'Microsoft To Do',
   apple_calendar: 'Apple Calendar',
 };
 
@@ -67,7 +67,7 @@ export interface IntegrationAdapter {
     userId: string,
     payload: ConnectPayload,
     options?: ConnectOptions
-  ): Promise<{ integrationId: string }>;
+  ): Promise<{ integrationId: string; accountIdentifier: string }>;
 
   /**
    * Revokes tokens/credentials at the provider and deletes all stored credentials
@@ -131,5 +131,19 @@ export class ProviderUnavailableError extends Error {
   ) {
     super(`Provider ${serviceId} is unavailable${statusCode ? ` (HTTP ${statusCode})` : ''}`);
     this.name = 'ProviderUnavailableError';
+  }
+}
+
+export class AccountLimitError extends Error {
+  constructor(serviceId: string, limit: number) {
+    super(`Account limit reached for ${serviceId}: maximum ${limit} accounts per service`);
+    this.name = 'AccountLimitError';
+  }
+}
+
+export class DuplicateAccountError extends Error {
+  constructor(serviceId: string, accountIdentifier: string) {
+    super(`Account ${accountIdentifier} is already connected for ${serviceId}`);
+    this.name = 'DuplicateAccountError';
   }
 }

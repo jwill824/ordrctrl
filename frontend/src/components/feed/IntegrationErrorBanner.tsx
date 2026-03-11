@@ -10,7 +10,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 const SERVICE_DISPLAY: Record<string, string> = {
   gmail: 'Gmail',
   apple_calendar: 'Apple Calendar',
-  microsoft_tasks: 'Microsoft Tasks',
+  microsoft_tasks: 'Microsoft To Do',
 };
 
 interface IntegrationErrorBannerProps {

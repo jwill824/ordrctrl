@@ -25,6 +25,7 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter backend prisma:generate
       - run: pnpm --filter backend test
 
   backend-contract:
@@ -41,6 +42,7 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter backend prisma:generate
       - run: pnpm --filter backend test:contract
 
   frontend-unit:

@@ -15,6 +15,7 @@ import { FeedEmptyState } from '@/components/feed/FeedEmptyState';
 import { AddTaskForm } from '@/components/tasks/AddTaskForm';
 import { EditTaskModal } from '@/components/tasks/EditTaskModal';
 import { TriageSheet } from '@/components/feed/TriageSheet';
+import { AccountMenu } from '@/components/AccountMenu';
 import type { FeedItem } from '@/services/feed.service';
 
 export default function FeedPage() {
@@ -82,26 +83,7 @@ export default function FeedPage() {
           </button>
 
           {/* Settings link */}
-          <Link
-            href="/settings/integrations"
-            className="text-zinc-500 no-underline text-xs"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-label="Settings">
-              <circle cx="8" cy="8" r="2.5"/>
-              <path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M2.93 2.93l1.06 1.06M12.01 12.01l1.06 1.06M2.93 13.07l1.06-1.06M12.01 3.99l1.06-1.06"/>
-            </svg>
-          </Link>
-          {/* Dismissed items link */}
-          <Link
-            href="/settings/dismissed"
-            aria-label="Dismissed items"
-            title="Dismissed items"
-            className="text-zinc-500 no-underline"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden>
-              <path d="M2 2l12 12M14 2L2 14"/>
-            </svg>
-          </Link>
+          <AccountMenu />
         </div>
       </header>
 

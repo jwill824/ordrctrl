@@ -5,12 +5,17 @@ import * as integrationsService from '@/services/integrations.service';
 
 vi.mock('@/services/integrations.service');
 
-const mockIntegration = {
+const mockAccount = {
+  id: 'uuid-1',
   serviceId: 'gmail' as const,
+  accountIdentifier: 'test@gmail.com',
+  label: null,
+  paused: false,
   status: 'connected' as const,
   lastSyncAt: null,
   lastSyncError: null,
   gmailSyncMode: 'starred_only' as const,
+  gmailCompletionMode: null,
   importEverything: false,
   selectedSubSourceIds: [],
 };
@@ -26,13 +31,23 @@ describe('useIntegrations', () => {
     expect(result.current.loading).toBe(true);
   });
 
-  it('loads integrations on mount and clears loading', async () => {
-    vi.mocked(integrationsService.listIntegrations).mockResolvedValue([mockIntegration]);
+  it('loads accounts on mount and clears loading', async () => {
+    vi.mocked(integrationsService.listIntegrations).mockResolvedValue([mockAccount]);
     const { result } = renderHook(() => useIntegrations());
 
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.integrations).toEqual([mockIntegration]);
+    expect(result.current.allAccounts).toEqual([mockAccount]);
     expect(result.current.error).toBeNull();
+  });
+
+  it('groups accounts by serviceId', async () => {
+    vi.mocked(integrationsService.listIntegrations).mockResolvedValue([mockAccount]);
+    const { result } = renderHook(() => useIntegrations());
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.grouped.gmail).toEqual([mockAccount]);
+    expect(result.current.grouped.microsoft_tasks).toEqual([]);
+    expect(result.current.grouped.apple_calendar).toEqual([]);
   });
 
   it('sets error message on fetch failure', async () => {
@@ -43,6 +58,6 @@ describe('useIntegrations', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.error).toBe('Network error');
-    expect(result.current.integrations).toEqual([]);
+    expect(result.current.allAccounts).toEqual([]);
   });
 });
