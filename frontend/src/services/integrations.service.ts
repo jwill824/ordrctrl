@@ -62,8 +62,8 @@ export async function triggerSync(): Promise<void> {
   });
 }
 
-export async function listSubSources(serviceId: ServiceId): Promise<SubSource[]> {
-  const res = await fetch(`${API_URL}/api/integrations/${serviceId}/sub-sources`, {
+export async function listSubSources(integrationId: string): Promise<SubSource[]> {
+  const res = await fetch(`${API_URL}/api/integrations/${integrationId}/sub-sources`, {
     credentials: 'include',
   });
   if (!res.ok) {
@@ -75,10 +75,10 @@ export async function listSubSources(serviceId: ServiceId): Promise<SubSource[]>
 }
 
 export async function updateImportFilter(
-  serviceId: ServiceId,
+  integrationId: string,
   filter: { importEverything: boolean; selectedSubSourceIds: string[] }
 ): Promise<IntegrationStatus> {
-  const res = await fetch(`${API_URL}/api/integrations/${serviceId}/import-filter`, {
+  const res = await fetch(`${API_URL}/api/integrations/${integrationId}/import-filter`, {
     method: 'PUT',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },

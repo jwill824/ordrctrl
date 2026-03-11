@@ -326,13 +326,13 @@ export function IntegrationCard({
       )}
 
       {/* Import filter panel */}
-      {showImportFilter && status === 'connected' && (
+      {showImportFilter && status === 'connected' && primaryAccount?.id && (
         <SubSourceSelector
-          serviceId={serviceId}
+          integrationId={primaryAccount.id}
           importEverything={importEverything}
           selectedSubSourceIds={selectedSubSourceIds}
           onSave={async (filter) => {
-            await updateImportFilter(serviceId, filter);
+            await updateImportFilter(primaryAccount.id, filter);
             setShowImportFilter(false);
             onRefresh?.();
           }}

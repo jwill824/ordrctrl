@@ -87,13 +87,13 @@ function IntegrationSettingsContent() {
                   onRefresh={refresh}
                 />
                 {/* Auto-open import filter panel for post-OAuth flow */}
-                {isAutoOpen && primaryAccount?.status === 'connected' && (
+                {isAutoOpen && primaryAccount?.status === 'connected' && primaryAccount?.id && (
                   <SubSourceSelector
-                    serviceId={serviceId}
+                    integrationId={primaryAccount.id}
                     importEverything={true}
                     selectedSubSourceIds={[]}
                     onSave={async (filter) => {
-                      await updateImportFilter(serviceId, filter);
+                      await updateImportFilter(primaryAccount.id, filter);
                       setAutoOpenServiceId(null);
                       refresh?.();
                     }}

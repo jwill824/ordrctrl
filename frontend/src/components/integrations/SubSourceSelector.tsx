@@ -4,12 +4,11 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   listSubSources,
   updateImportFilter,
-  type ServiceId,
   type SubSource,
 } from '@/services/integrations.service';
 
 interface SubSourceSelectorProps {
-  serviceId: ServiceId;
+  integrationId: string;
   importEverything: boolean;
   selectedSubSourceIds: string[];
   onSave: (filter: { importEverything: boolean; selectedSubSourceIds: string[] }) => Promise<void>;
@@ -17,7 +16,7 @@ interface SubSourceSelectorProps {
 }
 
 export function SubSourceSelector({
-  serviceId,
+  integrationId,
   importEverything: initialImportEverything,
   selectedSubSourceIds: initialSelectedIds,
   onSave,
@@ -35,14 +34,14 @@ export function SubSourceSelector({
     setLoading(true);
     setError(null);
     try {
-      const sources = await listSubSources(serviceId);
+      const sources = await listSubSources(integrationId);
       setSubSources(sources);
     } catch (err) {
       setError((err as Error).message || 'Failed to load sub-sources');
     } finally {
       setLoading(false);
     }
-  }, [serviceId]);
+  }, [integrationId]);
 
   useEffect(() => {
     fetchSubSources();
