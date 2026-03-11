@@ -242,15 +242,26 @@ export class GmailAdapter implements IntegrationAdapter {
 
   async listSubSources(integrationId: string): Promise<SubSource[]> {
     try {
-      const integration = await prisma.integration.findUnique({
+      let integration = await prisma.integration.findUnique({
         where: { id: integrationId },
       });
       if (!integration) return [];
 
-      const accessToken = decrypt(integration.encryptedAccessToken);
-      const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/labels', {
+      let accessToken = decrypt(integration.encryptedAccessToken);
+      let res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/labels', {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
+
+      // On 401, try refreshing the token once then retry
+      if (res.status === 401) {
+        await this.refreshToken(integrationId);
+        integration = await prisma.integration.findUnique({ where: { id: integrationId } });
+        if (!integration) return [];
+        accessToken = decrypt(integration.encryptedAccessToken);
+        res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/labels', {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+      }
 
       if (!res.ok) return [];
 

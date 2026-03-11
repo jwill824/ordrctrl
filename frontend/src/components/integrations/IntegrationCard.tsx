@@ -45,16 +45,19 @@ const SERVICE_META: Record<
 
 interface AccountRowProps {
   account: IntegrationStatus;
+  serviceId: ServiceId;
   onDisconnect?: (integrationId: string) => Promise<void>;
   onUpdateLabel?: (integrationId: string, label: string) => Promise<void>;
   onPauseAccount?: (integrationId: string, paused: boolean) => Promise<void>;
+  onRefresh?: () => void;
 }
 
-function AccountRow({ account, onDisconnect, onUpdateLabel, onPauseAccount }: AccountRowProps) {
+function AccountRow({ account, serviceId, onDisconnect, onUpdateLabel, onPauseAccount, onRefresh }: AccountRowProps) {
   const [disconnecting, setDisconnecting] = useState(false);
   const [editingLabel, setEditingLabel] = useState(false);
   const [labelDraft, setLabelDraft] = useState(account.label ?? '');
   const [savingLabel, setSavingLabel] = useState(false);
+  const [showFilter, setShowFilter] = useState(false);
 
   const displayName = account.label || account.accountIdentifier;
 
@@ -87,6 +90,7 @@ function AccountRow({ account, onDisconnect, onUpdateLabel, onPauseAccount }: Ac
   };
 
   return (
+  <>
     <div className="flex items-center gap-2 py-1.5 border-t border-zinc-100 first:border-t-0">
       <span className={`w-2 h-2 rounded-full shrink-0 ${statusDot}`} aria-hidden="true" />
       <div className="flex-1 min-w-0">
@@ -155,7 +159,33 @@ function AccountRow({ account, onDisconnect, onUpdateLabel, onPauseAccount }: Ac
           {disconnecting ? '…' : 'Disconnect'}
         </button>
       )}
+      {/* Per-account import filter — only for services that support sub-sources */}
+      {account.status === 'connected' && serviceId === 'gmail' && (
+        <button
+          type="button"
+          onClick={() => setShowFilter((v) => !v)}
+          className="text-[0.65rem] text-zinc-400 hover:text-zinc-700 shrink-0"
+        >
+          Filter
+        </button>
+      )}
     </div>
+    {showFilter && account.status === 'connected' && (
+      <div className="mt-1 pl-4">
+        <SubSourceSelector
+          integrationId={account.id}
+          importEverything={account.importEverything ?? true}
+          selectedSubSourceIds={account.selectedSubSourceIds ?? []}
+          onSave={async (filter) => {
+            await updateImportFilter(account.id, filter);
+            setShowFilter(false);
+            onRefresh?.();
+          }}
+          onCancel={() => setShowFilter(false)}
+        />
+      </div>
+    )}
+  </>
   );
 }
 
@@ -286,9 +316,11 @@ export function IntegrationCard({
             <AccountRow
               key={account.id}
               account={account}
+              serviceId={serviceId}
               onDisconnect={onDisconnect}
               onUpdateLabel={onUpdateLabel}
               onPauseAccount={onPauseAccount}
+              onRefresh={onRefresh}
             />
           ))}
         </div>
