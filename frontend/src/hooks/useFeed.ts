@@ -94,12 +94,45 @@ export function useFeed(): UseFeedReturn {
     };
   }, [backgroundPoll]);
 
-  // Manual refresh: trigger sync then reload feed.
+  // Manual refresh: trigger sync, wait for all integrations to complete, then reload.
   // New items from sync land in the inbox (pendingInbox=true) — users review there.
   const refresh = useCallback(async () => {
     setRefreshing(true);
     try {
+      // Snapshot current lastSyncAt timestamps before triggering
+      const preSyncTimes = Object.fromEntries(
+        Object.entries(data.syncStatus)
+          .filter(([, s]) => s.status === 'connected')
+          .map(([id, s]) => [id, s.lastSyncAt])
+      );
+      const connectedCount = Object.keys(preSyncTimes).length;
+
       await feedService.triggerSync();
+
+      if (connectedCount === 0) {
+        await reloadFeed();
+        return;
+      }
+
+      // Poll feed every 2s until all connected integrations have an updated lastSyncAt
+      // (meaning the sync job completed), or until 30s timeout
+      const POLL_MS = 2_000;
+      const TIMEOUT_MS = 30_000;
+      const deadline = Date.now() + TIMEOUT_MS;
+
+      while (Date.now() < deadline) {
+        await new Promise<void>((r) => setTimeout(r, POLL_MS));
+        const feed = await feedService.fetchFeed(false);
+        setData(feed);
+
+        const allDone = Object.entries(preSyncTimes).every(([id, before]) => {
+          const after = feed.syncStatus[id]?.lastSyncAt;
+          return after && after !== before;
+        });
+        if (allDone) break;
+      }
+
+      // Final reload with completed items
       await reloadFeed();
       setError(null);
     } catch (err) {
@@ -107,7 +140,7 @@ export function useFeed(): UseFeedReturn {
     } finally {
       setRefreshing(false);
     }
-  }, [reloadFeed]);
+  }, [data.syncStatus, reloadFeed]);
 
   const completeItem = useCallback(
     async (itemId: string) => {
