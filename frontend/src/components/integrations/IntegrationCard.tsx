@@ -408,13 +408,16 @@ export function IntegrationCard({
                 {showGmailSelector ? 'Hide options' : 'Sync mode'}
               </button>
             )}
-            <button
-              type="button"
-              className={btnSmall}
-              onClick={() => setShowImportFilter((v) => !v)}
-            >
-              {showImportFilter ? 'Hide filter' : 'Edit import filter'}
-            </button>
+            {/* Import filter shown per-account row for multi-account; only show card-level for single account */}
+            {accounts.length <= 1 && (
+              <button
+                type="button"
+                className={btnSmall}
+                onClick={() => setShowImportFilter((v) => !v)}
+              >
+                {showImportFilter ? 'Hide filter' : 'Edit import filter'}
+              </button>
+            )}
             <a
               href={connectHref}
               title={accounts.length >= 5 ? 'Maximum of 5 accounts reached' : undefined}
