@@ -15,7 +15,6 @@ import { IntegrationErrorBanner } from '@/components/feed/IntegrationErrorBanner
 import { FeedEmptyState } from '@/components/feed/FeedEmptyState';
 import { AddTaskForm } from '@/components/tasks/AddTaskForm';
 import { EditTaskModal } from '@/components/tasks/EditTaskModal';
-import { TriageSheet } from '@/components/feed/TriageSheet';
 import { AccountMenu } from '@/components/AccountMenu';
 import type { FeedItem } from '@/services/feed.service';
 
@@ -24,8 +23,6 @@ export default function FeedPage() {
     items, completed, syncStatus, loading, refreshing, error,
     refresh, reloadFeed, completeItem, uncompleteItem, dismissItem, restoreItem,
     undoToast, clearUndoToast,
-    pendingItems, isTriageOpen, triageLoading,
-    closeTriage, acceptTriage, dismissTriageItem, dismissAllTriage,
     clearCompleted, clearedCount, clearClearedToast,
   } = useFeed();
   const { create, update, remove } = useNativeTasks(reloadFeed);
@@ -83,7 +80,7 @@ export default function FeedPage() {
             <button
               type="button"
               onClick={refresh}
-              disabled={triageLoading}
+              disabled={refreshing}
               aria-label="Refresh feed"
               className="relative bg-transparent border-0 p-1 flex items-center cursor-pointer text-zinc-500 disabled:cursor-default"
             >
@@ -96,7 +93,7 @@ export default function FeedPage() {
                 strokeWidth="1.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className={triageLoading ? 'animate-spin' : ''}
+                className={refreshing ? 'animate-spin' : ''}
               >
                 <path d="M13.5 2.5A7 7 0 1 0 14.5 9"/>
                 <path d="M14.5 2.5v4h-4"/>
@@ -124,7 +121,7 @@ export default function FeedPage() {
         {/* Sync status row */}
         {Object.values(syncStatus).some((s) => s.status === 'connected') && (
           <div className="text-[0.7rem] text-zinc-400 mb-2 flex items-center gap-1.5">
-            {triageLoading ? (
+            {refreshing ? (
               <>
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="animate-spin">
                   <path d="M9 5A4 4 0 1 0 5 1"/>
@@ -227,7 +224,7 @@ export default function FeedPage() {
         </div>
       )}
 
-      {/* T017 — Undo toast for dismiss */}
+      {/* Undo toast for dismiss */}
       {undoToast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-zinc-900 text-white text-sm px-4 py-2.5 shadow-lg z-30">
           <span>{undoToast.message}</span>
@@ -248,16 +245,6 @@ export default function FeedPage() {
           </button>
         </div>
       )}
-      {/* T036/T037 — Triage sheet: review new items on refresh */}
-      <TriageSheet
-        isOpen={isTriageOpen}
-        loading={triageLoading}
-        items={pendingItems}
-        onClose={closeTriage}
-        onAcceptAll={acceptTriage}
-        onDismissAll={dismissAllTriage}
-        onDismissItem={dismissTriageItem}
-      />
     </div>
   );
 }

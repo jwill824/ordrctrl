@@ -1,7 +1,6 @@
 'use client';
 
 // T056 — useFeed hook
-// T032/T033/T034/T035 — Triage inbox: new items stage in a pending queue on refresh
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import * as feedService from '@/services/feed.service';
@@ -20,16 +19,6 @@ interface UseFeedReturn {
   error: string | null;
   refreshing: boolean;
   undoToast: UndoToast | null;
-  // Triage inbox
-  pendingItems: FeedItem[];
-  isTriageOpen: boolean;
-  triageLoading: boolean;
-  newItemCount: number;
-  openTriage: () => void;
-  closeTriage: () => void;
-  acceptTriage: () => void;
-  dismissTriageItem: (itemId: string) => Promise<void>;
-  dismissAllTriage: () => Promise<void>;
   // Actions
   refresh: () => Promise<void>;
   reloadFeed: () => Promise<void>;
@@ -43,7 +32,7 @@ interface UseFeedReturn {
   clearClearedToast: () => void;
 }
 
-// T032 — 15-minute poll interval (matches UI label "Auto-sync every 15 min")
+// 15-minute background poll interval
 const POLL_INTERVAL_MS = 15 * 60 * 1000;
 
 export function useFeed(): UseFeedReturn {
@@ -58,22 +47,12 @@ export function useFeed(): UseFeedReturn {
   const [undoToast, setUndoToast] = useState<UndoToast | null>(null);
   const [clearedCount, setClearedCount] = useState<number | null>(null);
 
-  // T033 — Triage state
-  const [pendingItems, setPendingItems] = useState<FeedItem[]>([]);
-  const [isTriageOpen, setIsTriageOpen] = useState(false);
-  const [triageLoading, setTriageLoading] = useState(false);
-  const [newItemCount, setNewItemCount] = useState(0);
-
-  // Track which item IDs are already known to the feed (so we can diff on refresh)
-  const knownIdsRef = useRef<Set<string>>(new Set());
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async () => {
     try {
       const feed = await feedService.fetchFeed(true);
       setData(feed);
-      // Populate knownIds on initial load (no triage for first load)
-      knownIdsRef.current = new Set(feed.items.map((i) => i.id));
       setError(null);
     } catch (err) {
       setError((err as Error).message);
@@ -82,48 +61,32 @@ export function useFeed(): UseFeedReturn {
     }
   }, []);
 
-  // T039 — Silent reload for native task mutations (create/update/delete).
-  // Updates the full feed + knownIds without triggering triage.
+  // Silent reload for native task mutations (create/update/delete).
   const reloadFeed = useCallback(async () => {
     try {
       const feed = await feedService.fetchFeed(true);
       setData(feed);
-      // Absorb any new IDs directly into knownIds — they're user-initiated, not incoming sync
-      feed.items.forEach((i) => knownIdsRef.current.add(i.id));
       setError(null);
     } catch (err) {
       setError((err as Error).message);
     }
   }, []);
 
-  // Initial load — items go straight into the feed, no triage
+  // Initial load
   useEffect(() => {
     load();
   }, [load]);
 
-  // T035/T040 — Background poll: silent fetch, badge only sync-sourced new items
+  // Background poll every 15 min — silently update feed with accepted items
   const backgroundPoll = useCallback(async () => {
     try {
       const feed = await feedService.fetchFeed(true);
-      // T040 — only sync: items are eligible for triage; native tasks are user-owned
-      const newItems = feed.items.filter(
-        (i) => !knownIdsRef.current.has(i.id) && i.id.startsWith('sync:')
-      );
-      if (newItems.length > 0) {
-        setPendingItems(newItems);
-        setNewItemCount(newItems.length);
-        // Update feed data (completed, syncStatus) but don't add new active items yet
-        setData((prev) => ({ ...prev, completed: feed.completed, syncStatus: feed.syncStatus }));
-      } else {
-        setData(feed);
-        feed.items.forEach((i) => knownIdsRef.current.add(i.id));
-      }
+      setData(feed);
     } catch {
       // Silent — don't surface background poll errors
     }
   }, []);
 
-  // T032 — Poll every 15 min (background, no triage auto-open)
   useEffect(() => {
     pollRef.current = setInterval(backgroundPoll, POLL_INTERVAL_MS);
     return () => {
@@ -131,92 +94,24 @@ export function useFeed(): UseFeedReturn {
     };
   }, [backgroundPoll]);
 
-  // T034/T040 — Manual refresh: trigger sync + open triage sheet with sync-sourced new items only
+  // Manual refresh: trigger sync then reload feed.
+  // New items from sync land in the inbox (pendingInbox=true) — users review there.
   const refresh = useCallback(async () => {
-    setIsTriageOpen(true);
-    setTriageLoading(true);
+    setRefreshing(true);
     try {
       await feedService.triggerSync();
-      const feed = await feedService.fetchFeed(true);
-      // T040 — only sync: items go into triage; native tasks are always user-owned
-      const newItems = feed.items.filter(
-        (i) => !knownIdsRef.current.has(i.id) && i.id.startsWith('sync:')
-      );
-      setPendingItems(newItems);
-      setNewItemCount(newItems.length);
-      // Non-triage items (native + already-known sync) land directly in the feed
-      const knownAndNative = feed.items.filter(
-        (i) => knownIdsRef.current.has(i.id) || i.id.startsWith('native:')
-      );
-      knownAndNative.forEach((i) => knownIdsRef.current.add(i.id));
-      setData((prev) => ({
-        ...prev,
-        items: knownAndNative,
-        completed: feed.completed,
-        syncStatus: feed.syncStatus,
-      }));
+      await reloadFeed();
       setError(null);
     } catch (err) {
       setError((err as Error).message);
-      setIsTriageOpen(false);
     } finally {
-      setTriageLoading(false);
       setRefreshing(false);
     }
-  }, []);
-
-  const openTriage = useCallback(() => setIsTriageOpen(true), []);
-  const closeTriage = useCallback(() => {
-    // Closing without action = accept all (items land in feed)
-    setData((prev) => {
-      const merged = [...pendingItems, ...prev.items];
-      return { ...prev, items: merged };
-    });
-    pendingItems.forEach((i) => knownIdsRef.current.add(i.id));
-    setPendingItems([]);
-    setNewItemCount(0);
-    setIsTriageOpen(false);
-  }, [pendingItems]);
-
-  const acceptTriage = useCallback(() => {
-    // Merge all pending items into the active feed
-    setData((prev) => ({ ...prev, items: [...pendingItems, ...prev.items] }));
-    pendingItems.forEach((i) => knownIdsRef.current.add(i.id));
-    setPendingItems([]);
-    setNewItemCount(0);
-    setIsTriageOpen(false);
-  }, [pendingItems]);
-
-  const dismissTriageItem = useCallback(async (itemId: string) => {
-    try {
-      await feedService.dismissItem(itemId);
-      setPendingItems((prev) => {
-        const remaining = prev.filter((i) => i.id !== itemId);
-        setNewItemCount(remaining.length);
-        return remaining;
-      });
-      knownIdsRef.current.add(itemId);
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  }, []);
-
-  const dismissAllTriage = useCallback(async () => {
-    try {
-      await Promise.all(pendingItems.map((i) => feedService.dismissItem(i.id)));
-      pendingItems.forEach((i) => knownIdsRef.current.add(i.id));
-      setPendingItems([]);
-      setNewItemCount(0);
-      setIsTriageOpen(false);
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  }, [pendingItems]);
+  }, [reloadFeed]);
 
   const completeItem = useCallback(
     async (itemId: string) => {
       await feedService.completeItem(itemId);
-      // Optimistic update: move item to completed
       setData((prev) => {
         const item = prev.items.find((i) => i.id === itemId);
         if (!item) return prev;
@@ -234,7 +129,6 @@ export function useFeed(): UseFeedReturn {
 
   const uncompleteItem = useCallback(
     async (itemId: string) => {
-      // Snapshot for rollback
       let snapshot: typeof data | null = null;
       setData((prev) => {
         snapshot = prev;
@@ -250,7 +144,6 @@ export function useFeed(): UseFeedReturn {
       try {
         const result = await feedService.uncompleteItem(itemId);
         if (result.isLocalOverride) {
-          // Mark the item as just reopened so the inline notice renders
           setData((prev) => ({
             ...prev,
             items: prev.items.map((i) =>
@@ -259,7 +152,6 @@ export function useFeed(): UseFeedReturn {
           }));
         }
       } catch (err) {
-        // Roll back optimistic update
         if (snapshot) setData(snapshot);
         setError((err as Error).message);
       }
@@ -267,23 +159,17 @@ export function useFeed(): UseFeedReturn {
     []
   );
 
-  // T011 — Dismiss a feed item with optimistic update + undo toast
   const dismissItem = useCallback(
     async (itemId: string) => {
-      // Optimistically remove from feed
       let snapshot: typeof data | null = null;
       setData((prev) => {
         snapshot = prev;
         return { ...prev, items: prev.items.filter((i) => i.id !== itemId) };
       });
-
-      // Show undo toast
       setUndoToast({ itemId, message: 'Item dismissed' });
-
       try {
         await feedService.dismissItem(itemId);
       } catch (err) {
-        // Roll back on failure
         if (snapshot) setData(snapshot);
         setUndoToast(null);
         setError((err as Error).message);
@@ -292,13 +178,11 @@ export function useFeed(): UseFeedReturn {
     []
   );
 
-  // T016 — Restore (undo) a dismissed item
   const restoreItem = useCallback(
     async (itemId: string) => {
       setUndoToast(null);
       try {
         await feedService.restoreItem(itemId);
-        // Silent reload — restored item absorbs into knownIds, no triage
         await reloadFeed();
       } catch (err) {
         setError((err as Error).message);
@@ -309,25 +193,19 @@ export function useFeed(): UseFeedReturn {
 
   const clearUndoToast = useCallback(() => setUndoToast(null), []);
 
-  // T008 — Clear all completed tasks (bulk dismiss)
   const clearCompleted = useCallback(async () => {
-    // Capture snapshot before the optimistic update (updaters are deferred in React 18)
     const snapshot = data;
     setData((prev) => ({ ...prev, completed: [] }));
-
     try {
       const result = await feedService.clearAllCompleted();
       setClearedCount(result.clearedCount);
-      // Silent reload to pick up any state changes from server
       await reloadFeed();
     } catch (err) {
-      // Roll back optimistic update
       setData(snapshot);
       setError((err as Error).message);
     }
   }, [data, reloadFeed]);
 
-  // T014 — Reset the cleared count toast
   const clearClearedToast = useCallback(() => setClearedCount(null), []);
 
   return {
@@ -338,15 +216,6 @@ export function useFeed(): UseFeedReturn {
     refreshing,
     error,
     undoToast,
-    pendingItems,
-    isTriageOpen,
-    triageLoading,
-    newItemCount,
-    openTriage,
-    closeTriage,
-    acceptTriage,
-    dismissTriageItem,
-    dismissAllTriage,
     refresh,
     reloadFeed,
     completeItem,
