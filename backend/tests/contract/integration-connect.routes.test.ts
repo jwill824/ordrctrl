@@ -1,5 +1,10 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
+vi.mock('../../src/sync/sync.scheduler.js', () => ({
+  scheduleIntegrationSync: vi.fn(),
+  bootstrapSyncScheduler: vi.fn(),
+}));
+
 vi.mock('../../src/integrations/integration.service.js', () => ({
   listIntegrations: vi.fn(),
   getAuthorizationUrl: vi.fn(),
