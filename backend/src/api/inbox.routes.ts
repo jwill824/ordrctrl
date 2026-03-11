@@ -41,8 +41,14 @@ export async function registerInboxRoutes(app: FastifyInstance): Promise<void> {
     const userId = requireAuth(request, reply);
     if (!userId) return;
 
-    const result = await buildInbox(userId);
-    return reply.send(result);
+    try {
+      const result = await buildInbox(userId);
+      app.log.info({ userId, total: result.total, groups: result.groups.length }, '[inbox] buildInbox result');
+      return reply.send(result);
+    } catch (err) {
+      app.log.error({ userId, err }, '[inbox] buildInbox error');
+      return reply.status(500).send({ error: 'Internal server error' });
+    }
   });
 
   // GET /api/inbox/count

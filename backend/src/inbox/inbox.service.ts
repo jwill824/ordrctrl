@@ -2,6 +2,7 @@
 // buildInbox, getInboxCount, acceptInboxItem, dismissInboxItem, acceptAll, dismissAll
 
 import { prisma } from '../lib/db.js';
+import { logger } from '../lib/logger.js';
 
 export interface InboxItem {
   id: string; // "inbox:<syncCacheItemId>"
@@ -55,6 +56,8 @@ export async function buildInbox(userId: string): Promise<InboxResult> {
   });
   const dismissedIds = dismissedOverrides.map((d) => d.syncCacheItemId);
 
+  logger.info('[buildInbox] query params', { userId, dismissedCount: dismissedIds.length });
+
   const items = await prisma.syncCacheItem.findMany({
     where: {
       userId,
@@ -101,6 +104,7 @@ export async function buildInbox(userId: string): Promise<InboxResult> {
   }
 
   const groups = Array.from(groupMap.values());
+  logger.info('[buildInbox] result', { userId, itemCount: items.length, groupCount: groups.length });
   return { groups, total: items.length };
 }
 
