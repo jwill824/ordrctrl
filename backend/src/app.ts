@@ -8,6 +8,7 @@ import { registerIntegrationRoutes } from './api/integrations.routes.js';
 import { registerFeedRoutes } from './api/feed.routes.js';
 import { registerTaskRoutes } from './api/tasks.routes.js';
 import { registerUserRoutes } from './api/user.routes.js';
+import { registerInboxRoutes } from './api/inbox.routes.js';
 import { errorHandler, notFoundHandler } from './api/error-handler.js';
 
 export async function createApp(): Promise<FastifyInstance> {
@@ -51,6 +52,9 @@ export async function createApp(): Promise<FastifyInstance> {
 
   // User settings routes (Phase 8)
   await registerUserRoutes(app);
+
+  // Inbox routes (010-task-inbox)
+  await registerInboxRoutes(app);
 
   // Error handlers
   app.setErrorHandler(errorHandler);

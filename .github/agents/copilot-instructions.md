@@ -15,6 +15,8 @@ Auto-generated from all feature plans. Last updated: 2026-03-04
 - TypeScript (Node.js 18, Next.js 14) + Prisma ORM, Express-style API routes (Next.js App Router + custom backend), React 18, BullMQ (sync scheduler) (008-clear-completed)
 - TypeScript (Node.js 20, Next.js 14) + Fastify (backend), Next.js + React 18 (frontend), Prisma ORM, BullMQ (sync queue), Vitest (tests) (009-multi-account)
 - PostgreSQL (via Prisma) (009-multi-account)
+- TypeScript 5 (backend Node.js 20, frontend Next.js 14) + Fastify 4, Prisma 5, React 18, Tailwind CSS, BullMQ, Redis (010-task-inbox)
+- PostgreSQL (via Prisma ORM) (010-task-inbox)
 
 - TypeScript 5.x (frontend + backend) + Next.js 14 (frontend), Fastify 4 (backend API), Prisma (ORM), (001-mvp-core)
 
@@ -34,9 +36,9 @@ npm test && npm run lint
 TypeScript 5.x (frontend + backend): Follow standard conventions
 
 ## Recent Changes
+- 010-task-inbox: Added TypeScript 5 (backend Node.js 20, frontend Next.js 14) + Fastify 4, Prisma 5, React 18, Tailwind CSS, BullMQ, Redis
+- 010-task-inbox: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 - 009-multi-account: Added TypeScript (Node.js 20, Next.js 14) + Fastify (backend), Next.js + React 18 (frontend), Prisma ORM, BullMQ (sync queue), Vitest (tests)
-- 008-clear-completed: Added TypeScript (Node.js 18, Next.js 14) + Prisma ORM, Express-style API routes (Next.js App Router + custom backend), React 18, BullMQ (sync scheduler)
-- 007-source-sync: Added TypeScript — backend Node.js, frontend Next.js 14 / React 18 + Prisma ORM, BullMQ, existing IntegrationAdapter interface
 
 
 <!-- MANUAL ADDITIONS START -->

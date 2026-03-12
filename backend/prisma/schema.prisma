@@ -112,6 +112,7 @@ model SyncCacheItem {
   completedInOrdrctrl  Boolean   @default(false)
   completedAt          DateTime?
   completedAtSource    Boolean   @default(false)
+  pendingInbox         Boolean   @default(false)
   syncedAt             DateTime  @default(now())
   expiresAt            DateTime
   rawPayload           Json
@@ -124,6 +125,7 @@ model SyncCacheItem {
   @@index([userId, completedInOrdrctrl])
   @@index([integrationId, completedAtSource])
   @@index([expiresAt])
+  @@index([userId, pendingInbox])
 }
 
 model NativeTask {

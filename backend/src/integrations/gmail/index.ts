@@ -15,6 +15,7 @@ import {
   NotSupportedError,
   AccountLimitError,
   DuplicateAccountError,
+  InvalidCredentialsError,
 } from '../_adapter/types.js';
 
 let gmailClient: Client | null = null;
@@ -175,6 +176,10 @@ export class GmailAdapter implements IntegrationAdapter {
     });
 
     if (!listRes.ok) {
+      if (listRes.status === 403) {
+        // 403 = scope/permission denied — refresh won't help, needs re-authorization
+        throw new InvalidCredentialsError('gmail');
+      }
       throw new TokenRefreshError(integrationId, `Gmail list failed: ${listRes.status}`);
     }
 
