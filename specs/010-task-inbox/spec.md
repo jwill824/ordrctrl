@@ -11,6 +11,8 @@ When ordrctrl syncs tasks from external integrations (Gmail, Apple Calendar, Mic
 
 This feature introduces a **Task Inbox**: a staging area where all integration-sourced tasks land first. The user triages the inbox by accepting tasks into the feed or dismissing them. Native tasks created directly in ordrctrl bypass the inbox and go straight to the feed.
 
+> **Implementation note**: During development, the existing `TriageSheet` bottom-sheet (a feed-level staging area for new sync items on manual refresh) was removed in favor of the `/inbox` page. These two systems had overlapping responsibilities; the inbox is the single, authoritative staging surface. See research.md Decision 5 for details.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - View Staged Tasks in Inbox (Priority: P1)

@@ -52,11 +52,15 @@
 
 ---
 
-## Decision 5: Inbox Count Badge Location
+## Decision 5: Inbox Count Badge & Navigation
 
-**Decision**: `GET /api/inbox/count` endpoint feeds a badge on the AccountMenu "Inbox" link and the existing Refresh button badge on the feed page.
+**Decision**: `GET /api/inbox/count` feeds a badge on the AccountMenu "Inbox" link and the feed page Refresh button.
 
-**Rationale**: The feed page already has a `newItemCount` badge on the Refresh button. Reusing this for inbox count is a natural migration. The AccountMenu badge adds discoverability from the settings/navigation flow.
+**Implementation**: When `inboxCount > 0`, the Refresh button on the feed page becomes a `<Link href="/inbox">` with the badge count — clicking navigates directly to the inbox staging page. When the inbox is empty, it renders as a standard refresh button. The AccountMenu also shows the count badge on the "Inbox" nav item.
+
+**Rationale**: Making the badge itself the navigation target (not just an indicator) eliminates the ambiguity of a badge that shows inbox items but triggers a different action (feed triage). The user sees the count → clicks → arrives at the inbox. Zero cognitive disconnect.
+
+**TriageSheet removed**: The pre-existing `TriageSheet` bottom-sheet component (which staged new sync items on manual refresh) was removed when the inbox was implemented. The two systems had overlapping responsibilities — items can only be in one place. All new sync items now flow exclusively through `/inbox`. This also simplified `useFeed.ts` by removing ~200 lines of triage state and logic.
 
 ---
 
@@ -75,6 +79,16 @@
 **Decision**: DB migration adds `pendingInbox Boolean NOT NULL DEFAULT false`. All existing SyncCacheItems default to `false` (stay in feed). No data migration needed.
 
 **Rationale**: Grandfathers existing items per FR-011. Safe and zero-downtime.
+
+---
+
+## Decision 8: Manual Refresh — Sync Completion Polling
+
+**Decision**: After `POST /api/integrations/sync` (which returns 202 immediately), `refresh()` polls `GET /api/feed` every 2 seconds and compares `lastSyncAt` timestamps. Once all connected integrations show an updated `lastSyncAt`, the final feed reload fires. Timeout: 30 seconds.
+
+**Problem solved**: `triggerSync()` enqueues BullMQ jobs and returns immediately. The original `reloadFeed()` call ran before any job completed, so the refresh button appeared to do nothing — a full browser reload was required to see new tasks.
+
+**Rationale**: Polling the feed (which already includes integration `syncStatus.lastSyncAt`) requires no new API endpoint and leverages data already fetched. 2s interval is fast enough to feel responsive; 30s timeout handles edge cases like slow external APIs.
 
 ---
 
