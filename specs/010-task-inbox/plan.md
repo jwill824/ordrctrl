@@ -91,13 +91,18 @@ frontend/
 │   ├── services/
 │   │   └── inbox.service.ts                 ← NEW: API calls
 │   ├── hooks/
-│   │   └── useInbox.ts                      ← NEW: React hook with loading/error state
+│   │   ├── useInbox.ts                      ← NEW: React hook with polling + visibilitychange refresh
+│   │   └── useInboxCount.ts                 ← NEW: count badge polling hook
 │   └── app/feed/
-│       └── page.tsx                         ← MODIFIED: refresh badge uses inbox count
+│       └── page.tsx                         ← MODIFIED: refresh button → inbox link when count > 0;
+│                                                 refresh() polls lastSyncAt for completion;
+│                                                 TriageSheet removed (replaced by /inbox flow)
 └── tests/unit/components/inbox/
     ├── InboxItem.test.tsx                   ← NEW
     └── InboxGroup.test.tsx                  ← NEW
 ```
+
+> **Post-implementation note**: The `TriageSheet` component (a bottom-sheet that staged new sync items on manual refresh) was removed during implementation in favor of the `/inbox` page. All new sync items now flow exclusively through the inbox. The `useFeed` triage state (`pendingItems`, `isTriageOpen`, etc.) was also removed. See research.md Decision 5 for rationale.
 
 **Structure Decision**: Web application (Option 2). Follows the existing `backend/src/<domain>/` + `backend/src/api/` separation used by `feed/feed.service.ts` and `feed.routes.ts`. Frontend follows the existing `components/<domain>/` pattern used by `integrations/` components.
 

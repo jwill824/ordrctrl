@@ -67,7 +67,7 @@ User
 ## State Transitions: SyncCacheItem
 
 ```
-                    [sync creates new item]
+                    [sync creates NEW item]
                             │
                             ▼
                ┌─────────────────────────┐
@@ -79,23 +79,26 @@ User
               ┌─────────────┼─────────────┐
               │             │             │
          [accept]      [dismiss]    [item expires]
-              │             │             │
-              ▼             ▼             ▼
-   ┌──────────────┐  ┌───────────┐  ┌─────────────┐
-   │   FEED        │  │ DISMISSED │  │   EXPIRED   │
-   │ pendingInbox  │  │ pendingInbox=false +        │
-   │ = false       │  │ SyncOverride(DISMISSED)     │
-   └──────┬───────┘  └───────────┘  └─────────────┘
+         from /inbox   from /inbox        │
+              │             │             ▼
+              ▼             ▼        ┌─────────┐
+   ┌──────────────┐  ┌────────────┐  │ EXPIRED │
+   │   FEED        │  │ DISMISSED  │  │ (pruned)│
+   │ pendingInbox  │  │ pendingInbox=false      │
+   │ = false       │  │ + SyncOverride(DISMISSED)
+   └──────┬───────┘  └────────────┘  └─────────┘
           │
-     [feed dismiss]
+     [dismiss from feed]
           │
           ▼
-   ┌───────────┐
-   │ DISMISSED │
-   │ pendingInbox=false +
-   │ SyncOverride(DISMISSED)
-   └───────────┘
+   ┌────────────┐
+   │ DISMISSED  │
+   │ pendingInbox=false
+   │ + SyncOverride(DISMISSED)
+   └────────────┘
 ```
+
+> **Note**: The old TriageSheet staging flow (where items could be staged in a bottom-sheet on manual refresh) has been removed. The `/inbox` page is the sole staging area.
 
 ---
 
