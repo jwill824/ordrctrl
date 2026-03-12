@@ -4,6 +4,7 @@
 
 import { useState } from 'react';
 import type { FeedItem as FeedItemType } from '@/services/feed.service';
+import { useLiveDate } from '@/hooks/useLiveDate';
 
 const SERVICE_COLORS: Record<string, string> = {
   gmail: '#EA4335',
@@ -21,10 +22,9 @@ const SERVICE_NAMES: Record<string, string> = {
   ordrctrl: 'ordrctrl',
 };
 
-function formatDate(iso: string | null): string {
+function formatDate(iso: string | null, now: Date): string {
   if (!iso) return '';
   const d = new Date(iso);
-  const now = new Date();
   const diff = d.getTime() - now.getTime();
   const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
 
@@ -48,6 +48,8 @@ interface FeedItemProps {
   onComplete: (id: string) => void;
   onUncomplete?: (id: string) => void;
   onDismiss?: (id: string) => void;
+  onRestore?: (id: string) => void;
+  onPermanentDelete?: () => void;
   onClick?: (item: FeedItemType) => void;
 }
 
@@ -71,19 +73,20 @@ function DismissButton({ onDismiss }: { onDismiss: () => void }) {
   );
 }
 
-export function FeedItemRow({ item, onComplete, onUncomplete, onDismiss, onClick }: FeedItemProps) {
+export function FeedItemRow({ item, onComplete, onUncomplete, onDismiss, onRestore, onPermanentDelete, onClick }: FeedItemProps) {
   const [noticeDismissed, setNoticeDismissed] = useState(false);
+  const now = useLiveDate();
   const serviceColor = SERVICE_COLORS[item.serviceId] ?? '#a1a1aa';
   const serviceName = SERVICE_NAMES[item.serviceId] ?? item.serviceId;
   const showAccountLabel = item.serviceId !== 'ordrctrl' && item.source !== serviceName;
   const dateStr = item.dueAt
-    ? formatDate(item.dueAt)
+    ? formatDate(item.dueAt, now)
     : item.startAt
-    ? `${formatDate(item.startAt)} ${formatTime(item.startAt)}`.trim()
+    ? `${formatDate(item.startAt, now)} ${formatTime(item.startAt)}`.trim()
     : '';
 
   const isOverdue =
-    item.dueAt && new Date(item.dueAt) < new Date() && !item.completed;
+    item.dueAt && new Date(item.dueAt) < now && !item.completed;
 
   return (
     <div className={`group flex items-start gap-3 py-[0.875rem] border-b border-zinc-100 ${item.completed ? 'opacity-50' : ''}`}>
@@ -170,6 +173,30 @@ export function FeedItemRow({ item, onComplete, onUncomplete, onDismiss, onClick
       {/* T012/T017 — Dismiss button (hover-reveal) */}
       {onDismiss && !item.completed && (
         <DismissButton onDismiss={() => onDismiss(item.id)} />
+      )}
+
+      {/* Restore button (dismissed view) */}
+      {onRestore && (
+        <button
+          type="button"
+          aria-label="Restore item"
+          onClick={(e) => { e.stopPropagation(); onRestore(item.id); }}
+          className="flex-shrink-0 text-[0.65rem] font-semibold uppercase tracking-[0.06em] text-zinc-400 hover:text-black bg-transparent border-0 p-0 cursor-pointer"
+        >
+          Restore
+        </button>
+      )}
+
+      {/* Permanent delete button (dismissed view) */}
+      {onPermanentDelete && (
+        <button
+          type="button"
+          aria-label="Delete permanently"
+          onClick={(e) => { e.stopPropagation(); onPermanentDelete(); }}
+          className="flex-shrink-0 text-[0.65rem] font-semibold uppercase tracking-[0.06em] text-red-400 hover:text-red-600 bg-transparent border-0 p-0 cursor-pointer"
+        >
+          Delete
+        </button>
       )}
 
       {/* Inline local-override notice for reopened sync items */}

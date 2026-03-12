@@ -16,6 +16,8 @@ const baseItem: FeedItem = {
   completed: false,
   completedAt: null,
   isDuplicateSuspect: false,
+  dismissed: false,
+  hasUserDueAt: false,
 };
 
 describe('FeedItemRow', () => {
@@ -100,5 +102,39 @@ describe('FeedItemRow', () => {
     const reopenedItem = { ...baseItem, source: 'ordrctrl', isJustReopened: true };
     render(<FeedItemRow item={reopenedItem} onComplete={vi.fn()} />);
     expect(screen.queryByText(/local to ordrctrl/)).toBeNull();
+  });
+
+  it('renders Restore button when onRestore is provided', () => {
+    render(<FeedItemRow item={baseItem} onComplete={vi.fn()} onRestore={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Restore item' })).toBeInTheDocument();
+  });
+
+  it('calls onRestore with item id when Restore button clicked', async () => {
+    const onRestore = vi.fn();
+    render(<FeedItemRow item={baseItem} onComplete={vi.fn()} onRestore={onRestore} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Restore item' }));
+    expect(onRestore).toHaveBeenCalledWith('item-1');
+  });
+
+  it('does not render Restore button when onRestore is not provided', () => {
+    render(<FeedItemRow item={baseItem} onComplete={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: 'Restore item' })).toBeNull();
+  });
+
+  it('renders Delete permanently button when onPermanentDelete is provided', () => {
+    render(<FeedItemRow item={baseItem} onComplete={vi.fn()} onPermanentDelete={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Delete permanently' })).toBeInTheDocument();
+  });
+
+  it('calls onPermanentDelete when Delete permanently button clicked', async () => {
+    const onPermanentDelete = vi.fn();
+    render(<FeedItemRow item={baseItem} onComplete={vi.fn()} onPermanentDelete={onPermanentDelete} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Delete permanently' }));
+    expect(onPermanentDelete).toHaveBeenCalled();
+  });
+
+  it('does not render Delete permanently button when onPermanentDelete is not provided', () => {
+    render(<FeedItemRow item={baseItem} onComplete={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: 'Delete permanently' })).toBeNull();
   });
 });

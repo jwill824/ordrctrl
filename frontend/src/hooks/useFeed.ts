@@ -26,16 +26,23 @@ interface UseFeedReturn {
   uncompleteItem: (itemId: string) => Promise<void>;
   dismissItem: (itemId: string) => Promise<void>;
   restoreItem: (itemId: string) => Promise<void>;
+  permanentDeleteItem: (itemId: string) => Promise<void>;
+  setUserDueAt: (itemId: string, dueAt: string | null) => Promise<void>;
   clearUndoToast: () => void;
   clearCompleted: () => Promise<void>;
   clearedCount: number | null;
   clearClearedToast: () => void;
 }
 
+interface UseFeedOptions {
+  showDismissed?: boolean;
+}
+
 // 15-minute background poll interval
 const POLL_INTERVAL_MS = 15 * 60 * 1000;
 
-export function useFeed(): UseFeedReturn {
+export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
+  const { showDismissed = false } = options;
   const [data, setData] = useState<FeedResponse>({
     items: [],
     completed: [],
@@ -51,7 +58,7 @@ export function useFeed(): UseFeedReturn {
 
   const load = useCallback(async () => {
     try {
-      const feed = await feedService.fetchFeed(true);
+      const feed = await feedService.fetchFeed({ includeCompleted: true, showDismissed });
       setData(feed);
       setError(null);
     } catch (err) {
@@ -59,18 +66,18 @@ export function useFeed(): UseFeedReturn {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showDismissed]);
 
   // Silent reload for native task mutations (create/update/delete).
   const reloadFeed = useCallback(async () => {
     try {
-      const feed = await feedService.fetchFeed(true);
+      const feed = await feedService.fetchFeed({ includeCompleted: true, showDismissed });
       setData(feed);
       setError(null);
     } catch (err) {
       setError((err as Error).message);
     }
-  }, []);
+  }, [showDismissed]);
 
   // Initial load
   useEffect(() => {
@@ -80,12 +87,12 @@ export function useFeed(): UseFeedReturn {
   // Background poll every 15 min — silently update feed with accepted items
   const backgroundPoll = useCallback(async () => {
     try {
-      const feed = await feedService.fetchFeed(true);
+      const feed = await feedService.fetchFeed({ includeCompleted: true, showDismissed });
       setData(feed);
     } catch {
       // Silent — don't surface background poll errors
     }
-  }, []);
+  }, [showDismissed]);
 
   useEffect(() => {
     pollRef.current = setInterval(backgroundPoll, POLL_INTERVAL_MS);
@@ -122,7 +129,7 @@ export function useFeed(): UseFeedReturn {
 
       while (Date.now() < deadline) {
         await new Promise<void>((r) => setTimeout(r, POLL_MS));
-        const feed = await feedService.fetchFeed(false);
+        const feed = await feedService.fetchFeed({ showDismissed: false });
         setData(feed);
 
         const allDone = Object.entries(preSyncTimes).every(([id, before]) => {
@@ -241,6 +248,40 @@ export function useFeed(): UseFeedReturn {
 
   const clearClearedToast = useCallback(() => setClearedCount(null), []);
 
+  const permanentDeleteItem = useCallback(
+    async (itemId: string) => {
+      setData((prev) => ({ ...prev, items: prev.items.filter((i) => i.id !== itemId) }));
+      try {
+        await feedService.permanentDeleteItem(itemId);
+      } catch (err) {
+        await reloadFeed();
+        setError((err as Error).message);
+      }
+    },
+    [reloadFeed]
+  );
+
+  const setUserDueAt = useCallback(
+    async (itemId: string, dueAt: string | null) => {
+      // Optimistic update
+      setData((prev) => ({
+        ...prev,
+        items: prev.items.map((i) =>
+          i.id === itemId
+            ? { ...i, dueAt, hasUserDueAt: dueAt !== null && i.id.startsWith('sync:') }
+            : i
+        ),
+      }));
+      try {
+        await feedService.setUserDueAt(itemId, dueAt);
+      } catch (err) {
+        await reloadFeed();
+        setError((err as Error).message);
+      }
+    },
+    [reloadFeed]
+  );
+
   return {
     items: data.items,
     completed: data.completed,
@@ -255,6 +296,8 @@ export function useFeed(): UseFeedReturn {
     uncompleteItem,
     dismissItem,
     restoreItem,
+    permanentDeleteItem,
+    setUserDueAt,
     clearUndoToast,
     clearCompleted,
     clearedCount,

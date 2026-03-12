@@ -15,6 +15,8 @@ export interface FeedItem {
   completedAt: string | null;
   isDuplicateSuspect: boolean;
   isJustReopened?: boolean;
+  dismissed: boolean;
+  hasUserDueAt: boolean;
 }
 
 export interface SyncStatusEntry {
@@ -44,9 +46,12 @@ export interface DismissedItemsResponse {
   hasMore: boolean;
 }
 
-export async function fetchFeed(includeCompleted = false): Promise<FeedResponse> {
-  const url = `${API_URL}/api/feed${includeCompleted ? '?includeCompleted=true' : ''}`;
-  const res = await fetch(url, { credentials: 'include' });
+export async function fetchFeed(options: { includeCompleted?: boolean; showDismissed?: boolean } = {}): Promise<FeedResponse> {
+  const params = new URLSearchParams();
+  if (options.includeCompleted) params.set('includeCompleted', 'true');
+  if (options.showDismissed) params.set('showDismissed', 'true');
+  const query = params.toString() ? `?${params.toString()}` : '';
+  const res = await fetch(`${API_URL}/api/feed${query}`, { credentials: 'include' });
   if (!res.ok) throw new Error('Failed to load feed');
   return res.json();
 }
@@ -132,4 +137,28 @@ export async function clearAllCompleted(): Promise<{ clearedCount: number }> {
     throw new Error(data.message || 'Failed to clear completed items');
   }
   return res.json();
+}
+
+export async function permanentDeleteItem(itemId: string): Promise<void> {
+  const res = await fetch(`${API_URL}/api/feed/items/${itemId}/permanent`, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to permanently delete item');
+  }
+}
+
+export async function setUserDueAt(itemId: string, dueAt: string | null): Promise<void> {
+  const res = await fetch(`${API_URL}/api/feed/items/${itemId}/user-due-date`, {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dueAt }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to set due date');
+  }
 }

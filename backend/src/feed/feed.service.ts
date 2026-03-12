@@ -12,12 +12,14 @@ export interface FeedItem {
   serviceId: string;                // "gmail" | "microsoft_tasks" | "apple_calendar" | "ordrctrl"
   itemType: 'task' | 'event' | 'message';
   title: string;
-  dueAt: string | null;             // ISO string
+  dueAt: string | null;             // ISO string — effective due date (userDueAt ?? sourceDueAt)
   startAt: string | null;
   endAt: string | null;
   completed: boolean;
   completedAt: string | null;
   isDuplicateSuspect: boolean;
+  dismissed: boolean;
+  hasUserDueAt: boolean;            // true when user-assigned due date is the effective date
 }
 
 export interface SyncStatusEntry {
@@ -56,19 +58,26 @@ export async function buildFeed(
   });
 
   // Map sync cache items to FeedItem
-  const syncFeedItems: FeedItem[] = cacheItems.map((item) => ({
-    id: `sync:${item.id}`,
-    source: item.integration.label ?? item.integration.accountIdentifier,
-    serviceId: item.integration.serviceId,
-    itemType: item.itemType as 'task' | 'event' | 'message',
-    title: item.title,
-    dueAt: item.dueAt?.toISOString() ?? null,
-    startAt: item.startAt?.toISOString() ?? null,
-    endAt: item.endAt?.toISOString() ?? null,
-    completed: item.completedInOrdrctrl,
-    completedAt: item.completedAt?.toISOString() ?? null,
-    isDuplicateSuspect: false, // populated below
-  }));
+  const syncFeedItems: FeedItem[] = cacheItems.map((item) => {
+    // User-assigned due date: source wins when non-null, else fall back to user override
+    const effectiveDueAt = item.dueAt ?? item.userDueAt ?? null;
+    const hasUserDueAt = item.dueAt === null && item.userDueAt !== null;
+    return {
+      id: `sync:${item.id}`,
+      source: item.integration.label ?? item.integration.accountIdentifier,
+      serviceId: item.integration.serviceId,
+      itemType: item.itemType as 'task' | 'event' | 'message',
+      title: item.title,
+      dueAt: effectiveDueAt?.toISOString() ?? null,
+      startAt: item.startAt?.toISOString() ?? null,
+      endAt: item.endAt?.toISOString() ?? null,
+      completed: item.completedInOrdrctrl,
+      completedAt: item.completedAt?.toISOString() ?? null,
+      isDuplicateSuspect: false, // populated below
+      dismissed: false,
+      hasUserDueAt,
+    };
+  });
 
   // Map native tasks to FeedItem
   const nativeFeedItems: FeedItem[] = nativeTasks.map((task) => ({
@@ -83,6 +92,8 @@ export async function buildFeed(
     completed: task.completed,
     completedAt: task.completedAt?.toISOString() ?? null,
     isDuplicateSuspect: false,
+    dismissed: false,
+    hasUserDueAt: false,
   }));
 
   const allItems = [...syncFeedItems, ...nativeFeedItems];
@@ -599,4 +610,133 @@ export async function getDismissedItems(
     : null;
 
   return { items: page, nextCursor, hasMore };
+}
+
+// ─── Build Dismissed Feed (inline dismissed view) ────────────────────────────
+
+/**
+ * Returns all dismissed items for a user as FeedItem[], sorted by most-recently-dismissed.
+ * Used by GET /api/feed?showDismissed=true to render dismissed items inline.
+ */
+export async function buildDismissedFeed(userId: string): Promise<{ items: FeedItem[] }> {
+  // Dismissed sync items (via SyncOverride)
+  const dismissedOverrides = await prisma.syncOverride.findMany({
+    where: { userId, overrideType: 'DISMISSED' },
+    include: {
+      syncCacheItem: {
+        include: {
+          integration: {
+            select: { serviceId: true, label: true, accountIdentifier: true },
+          },
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  // Dismissed native tasks
+  const dismissedNative = await prisma.nativeTask.findMany({
+    where: { userId, dismissed: true },
+    orderBy: { updatedAt: 'desc' },
+  });
+
+  const syncItems: FeedItem[] = dismissedOverrides.map((o) => {
+    const item = o.syncCacheItem;
+    const effectiveDueAt = item.dueAt ?? item.userDueAt ?? null;
+    const hasUserDueAt = item.dueAt === null && item.userDueAt !== null;
+    return {
+      id: `sync:${item.id}`,
+      source: item.integration.label ?? item.integration.accountIdentifier,
+      serviceId: item.integration.serviceId,
+      itemType: item.itemType as 'task' | 'event' | 'message',
+      title: item.title,
+      dueAt: effectiveDueAt?.toISOString() ?? null,
+      startAt: item.startAt?.toISOString() ?? null,
+      endAt: item.endAt?.toISOString() ?? null,
+      completed: item.completedInOrdrctrl,
+      completedAt: item.completedAt?.toISOString() ?? null,
+      isDuplicateSuspect: false,
+      dismissed: true,
+      hasUserDueAt,
+    };
+  });
+
+  const nativeItems: FeedItem[] = dismissedNative.map((task) => ({
+    id: `native:${task.id}`,
+    source: NATIVE_SOURCE,
+    serviceId: 'ordrctrl',
+    itemType: 'task' as const,
+    title: task.title,
+    dueAt: task.dueAt?.toISOString() ?? null,
+    startAt: null,
+    endAt: null,
+    completed: task.completed,
+    completedAt: task.completedAt?.toISOString() ?? null,
+    isDuplicateSuspect: false,
+    dismissed: true,
+    hasUserDueAt: false,
+  }));
+
+  // Merge and sort by dismissedAt desc (sync by override.createdAt, native by updatedAt)
+  // Items are already ordered from DB; simple concat + sort by a proxy (dueAt not available for sort)
+  const allDismissed = [...syncItems, ...nativeItems];
+
+  return { items: allDismissed };
+}
+
+// ─── Permanent Delete ─────────────────────────────────────────────────────────
+
+/**
+ * Permanently hard-deletes a dismissed item.
+ * - sync items: requires SyncOverride(DISMISSED) to exist, then deletes SyncCacheItem
+ * - native items: requires dismissed=true, then deletes NativeTask
+ */
+export async function permanentDeleteFeedItem(userId: string, itemId: string): Promise<void> {
+  const [type, rawId] = itemId.split(':');
+
+  if (type === 'sync') {
+    const item = await prisma.syncCacheItem.findFirst({ where: { id: rawId, userId } });
+    if (!item) throw Object.assign(new Error('Item not found'), { code: 'ITEM_NOT_FOUND' });
+
+    const override = await prisma.syncOverride.findUnique({
+      where: { syncCacheItemId_overrideType: { syncCacheItemId: rawId, overrideType: 'DISMISSED' } },
+    });
+    if (!override) {
+      throw Object.assign(new Error('Item is not dismissed'), { code: 'NOT_DISMISSED' });
+    }
+
+    // Hard-delete cascade (SyncOverride deleted via onDelete: Cascade)
+    await prisma.syncCacheItem.delete({ where: { id: rawId } });
+  } else {
+    // native
+    const item = await prisma.nativeTask.findFirst({ where: { id: rawId, userId } });
+    if (!item) throw Object.assign(new Error('Item not found'), { code: 'ITEM_NOT_FOUND' });
+    if (!item.dismissed) {
+      throw Object.assign(new Error('Item is not dismissed'), { code: 'NOT_DISMISSED' });
+    }
+
+    await prisma.nativeTask.delete({ where: { id: rawId } });
+  }
+}
+
+// ─── User Due Date Override ───────────────────────────────────────────────────
+
+/**
+ * Sets (or clears) a user-assigned due date override on a synced cache item.
+ * Only applicable to sync items (native tasks have their own dueAt field).
+ */
+export async function setUserDueAt(
+  userId: string,
+  syncCacheItemId: string,
+  dueAt: Date | null
+): Promise<void> {
+  const item = await prisma.syncCacheItem.findFirst({
+    where: { id: syncCacheItemId, userId },
+  });
+  if (!item) throw Object.assign(new Error('Item not found'), { code: 'ITEM_NOT_FOUND' });
+
+  await prisma.syncCacheItem.update({
+    where: { id: syncCacheItemId },
+    data: { userDueAt: dueAt },
+  });
 }

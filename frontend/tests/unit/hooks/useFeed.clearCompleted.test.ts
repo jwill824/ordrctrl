@@ -14,6 +14,7 @@ const emptyFeed: feedService.FeedResponse = {
 const completedItem: feedService.FeedItem = {
   id: 'native:task-1',
   source: 'ordrctrl',
+  serviceId: 'ordrctrl',
   itemType: 'task',
   title: 'Done task',
   dueAt: null,
@@ -22,6 +23,8 @@ const completedItem: feedService.FeedItem = {
   completed: true,
   completedAt: '2026-03-10T10:00:00Z',
   isDuplicateSuspect: false,
+  dismissed: false,
+  hasUserDueAt: false,
 };
 
 describe('useFeed — clearCompleted', () => {

@@ -1,15 +1,15 @@
 'use client';
 
 // T055 + T061 — Feed page
-// Renders active FeedItem[], CompletedSection, IntegrationErrorBanner[], FeedEmptyState,
-// manual Refresh button, sync status row, FAB for AddTaskForm, EditTaskModal for native tasks.
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { useFeed } from '@/hooks/useFeed';
 import { useNativeTasks } from '@/hooks/useNativeTasks';
 import { useInboxCount } from '@/hooks/useInboxCount';
-import { FeedItemRow } from '@/components/feed/FeedItem';
+import { FeedSection } from '@/components/feed/FeedSection';
 import { CompletedSection } from '@/components/feed/CompletedSection';
 import { IntegrationErrorBanner } from '@/components/feed/IntegrationErrorBanner';
 import { FeedEmptyState } from '@/components/feed/FeedEmptyState';
@@ -18,13 +18,17 @@ import { EditTaskModal } from '@/components/tasks/EditTaskModal';
 import { AccountMenu } from '@/components/AccountMenu';
 import type { FeedItem } from '@/services/feed.service';
 
-export default function FeedPage() {
+function FeedPageContent() {
+  const searchParams = useSearchParams();
+  const showDismissed = searchParams.get('showDismissed') === 'true';
+
   const {
     items, completed, syncStatus, loading, refreshing, error,
     refresh, reloadFeed, completeItem, uncompleteItem, dismissItem, restoreItem,
+    permanentDeleteItem, setUserDueAt,
     undoToast, clearUndoToast,
     clearCompleted, clearedCount, clearClearedToast,
-  } = useFeed();
+  } = useFeed({ showDismissed });
   const { create, update, remove } = useNativeTasks(reloadFeed);
   const { inboxCount } = useInboxCount();
 
@@ -37,11 +41,13 @@ export default function FeedPage() {
   const isEmpty = items.length === 0 && !loading;
 
   const handleItemClick = (item: FeedItem) => {
-    // Only native tasks are editable via modal
-    if (item.id.startsWith('native:')) {
-      setEditingTask(item);
-    }
+    // Native tasks: edit via modal. Sync tasks: edit due date via modal.
+    setEditingTask(item);
   };
+
+  // Split active items into dated and undated sections
+  const datedItems = items.filter((i) => i.dueAt !== null);
+  const undatedItems = items.filter((i) => i.dueAt === null);
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -52,7 +58,6 @@ export default function FeedPage() {
         </span>
 
         <div className="flex items-center gap-3">
-          {/* Inbox link (shown when inbox has items) or Refresh button */}
           {inboxCount > 0 ? (
             <Link
               href="/inbox"
@@ -101,25 +106,21 @@ export default function FeedPage() {
             </button>
           )}
 
-          {/* Settings link */}
           <AccountMenu />
         </div>
       </header>
 
       {/* Main content */}
       <main className="flex-1 max-w-[40rem] w-full mx-auto px-5 pt-4 pb-24">
-        {/* Error banner */}
         {error && (
           <div className="border-l-2 border-red-500 py-1 pl-3 text-[0.8rem] text-red-600 mb-4">
             {error}
           </div>
         )}
 
-        {/* Integration error banners */}
-        <IntegrationErrorBanner syncStatus={syncStatus} />
+        {!showDismissed && <IntegrationErrorBanner syncStatus={syncStatus} />}
 
-        {/* Sync status row */}
-        {Object.values(syncStatus).some((s) => s.status === 'connected') && (
+        {!showDismissed && Object.values(syncStatus).some((s) => s.status === 'connected') && (
           <div className="text-[0.7rem] text-zinc-400 mb-2 flex items-center gap-1.5">
             {refreshing ? (
               <>
@@ -134,8 +135,17 @@ export default function FeedPage() {
           </div>
         )}
 
-        {/* Add task form (shown inline when FAB clicked) */}
-        {showAddForm && (
+        {showDismissed && (
+          <div className="flex items-center gap-2 mb-4">
+            <Link href="/feed" className="text-[0.7rem] text-zinc-400 hover:text-black no-underline">
+              ← Back to feed
+            </Link>
+            <span className="text-zinc-200">|</span>
+            <span className="text-[0.7rem] text-zinc-500">Dismissed items</span>
+          </div>
+        )}
+
+        {!showDismissed && showAddForm && (
           <AddTaskForm
             onSubmit={async (title, dueAt) => {
               await create(title, dueAt);
@@ -145,37 +155,55 @@ export default function FeedPage() {
           />
         )}
 
-        {/* Loading state */}
         {loading && (
           <div className="text-zinc-400 text-sm pt-8 text-center">
             Loading…
           </div>
         )}
 
-        {/* Empty state */}
-        {isEmpty && <FeedEmptyState hasIntegrations={hasIntegrations} />}
-
-        {/* Feed items */}
-        {!loading && items.length > 0 && (
-          <div>
-            {items.map((item) => (
-              <FeedItemRow
-                key={item.id}
-                item={item}
-                onComplete={completeItem}
-                onDismiss={dismissItem}
-                onClick={item.id.startsWith('native:') ? handleItemClick : undefined}
-              />
-            ))}
-          </div>
+        {/* Dismissed view */}
+        {showDismissed && !loading && (
+          <FeedSection
+            label="Dismissed"
+            items={items}
+            emptyMessage="No dismissed items."
+            onComplete={completeItem}
+            onRestore={restoreItem}
+            onPermanentDelete={permanentDeleteItem}
+          />
         )}
 
-        {/* Completed section */}
-        <CompletedSection items={completed} onUncomplete={uncompleteItem} onClear={clearCompleted} />
+        {/* Normal feed view */}
+        {!showDismissed && !loading && (
+          <>
+            {isEmpty && <FeedEmptyState hasIntegrations={hasIntegrations} />}
+
+            {items.length > 0 && (
+              <>
+                <FeedSection
+                  label="Upcoming"
+                  items={datedItems}
+                  onComplete={completeItem}
+                  onDismiss={dismissItem}
+                  onEdit={handleItemClick}
+                />
+                <FeedSection
+                  label="No Date"
+                  items={undatedItems}
+                  onComplete={completeItem}
+                  onDismiss={dismissItem}
+                  onEdit={handleItemClick}
+                />
+              </>
+            )}
+
+            <CompletedSection items={completed} onUncomplete={uncompleteItem} onClear={clearCompleted} />
+          </>
+        )}
       </main>
 
-      {/* Floating Action Button — Add task */}
-      {!showAddForm && (
+      {/* FAB — Add task (normal feed only) */}
+      {!showDismissed && !showAddForm && (
         <button
           type="button"
           onClick={() => setShowAddForm(true)}
@@ -193,7 +221,12 @@ export default function FeedPage() {
         <EditTaskModal
           task={editingTask}
           onSave={async (id, fields) => {
-            await update(id, fields);
+            if (id.startsWith('sync:')) {
+              // For sync items, only due date can be changed via user override
+              await setUserDueAt(id, fields.dueAt ?? null);
+            } else {
+              await update(id, fields);
+            }
             setEditingTask(null);
           }}
           onDelete={async (id) => {
@@ -204,12 +237,12 @@ export default function FeedPage() {
         />
       )}
 
-      {/* T007 — Cleared completed toast */}
+      {/* Cleared completed toast */}
       {clearedCount !== null && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-zinc-900 text-white text-sm px-4 py-2.5 shadow-lg z-30">
           <span>
             Cleared {clearedCount} completed task{clearedCount !== 1 ? 's' : ''} — find them in{' '}
-            <Link href="/settings/dismissed" className="text-zinc-300 underline underline-offset-2 hover:text-white">
+            <Link href="/feed?showDismissed=true" className="text-zinc-300 underline underline-offset-2 hover:text-white">
               Dismissed Items
             </Link>
           </span>
@@ -246,5 +279,13 @@ export default function FeedPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function FeedPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white" />}>
+      <FeedPageContent />
+    </Suspense>
   );
 }
