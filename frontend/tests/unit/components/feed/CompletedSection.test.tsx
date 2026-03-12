@@ -7,6 +7,7 @@ import type { FeedItem } from '@/services/feed.service';
 const makeItem = (id: string, title: string): FeedItem => ({
   id,
   source: 'ordrctrl',
+  serviceId: 'ordrctrl',
   itemType: 'task',
   title,
   dueAt: null,
@@ -15,6 +16,8 @@ const makeItem = (id: string, title: string): FeedItem => ({
   completed: true,
   completedAt: '2026-03-10T10:00:00Z',
   isDuplicateSuspect: false,
+  dismissed: false,
+  hasUserDueAt: false,
 });
 
 describe('CompletedSection', () => {

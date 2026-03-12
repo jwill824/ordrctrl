@@ -113,6 +113,7 @@ model SyncCacheItem {
   completedAt          DateTime?
   completedAtSource    Boolean   @default(false)
   pendingInbox         Boolean   @default(false)
+  userDueAt            DateTime?
   syncedAt             DateTime  @default(now())
   expiresAt            DateTime
   rawPayload           Json

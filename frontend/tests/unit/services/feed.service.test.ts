@@ -36,7 +36,7 @@ describe('feed.service', () => {
 
     it('appends ?includeCompleted=true when requested', async () => {
       global.fetch = mockOk({ items: [], completed: [], syncStatus: {} });
-      await fetchFeed(true);
+      await fetchFeed({ includeCompleted: true });
       expect(global.fetch).toHaveBeenCalledWith(
         `${BASE}/api/feed?includeCompleted=true`,
         { credentials: 'include' }

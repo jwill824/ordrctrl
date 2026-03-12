@@ -203,3 +203,56 @@ describe('POST /api/feed/completed/clear', () => {
     expect(res.body).toHaveProperty('error');
   });
 });
+
+// T020 — Contract tests for GET /api/feed?showDismissed=true
+describe('GET /api/feed?showDismissed=true', () => {
+  it('returns 401 when unauthenticated', async () => {
+    if (!request) return;
+    const res = await request.get('/api/feed?showDismissed=true');
+    expect(res.status).toBe(401);
+  });
+});
+
+// T020 — Contract tests for DELETE /api/feed/items/:itemId/permanent
+describe('DELETE /api/feed/items/:itemId/permanent', () => {
+  it('returns 401 when unauthenticated', async () => {
+    if (!request) return;
+    const res = await request
+      .delete('/api/feed/items/sync:00000000-0000-0000-0000-000000000000/permanent');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 400 for malformed itemId format', async () => {
+    if (!request) return;
+    const res = await request
+      .delete('/api/feed/items/not-a-valid-id/permanent');
+    expect([400, 401]).toContain(res.status);
+  });
+});
+
+// T030 — Contract tests for PATCH /api/feed/items/:itemId/user-due-date
+describe('PATCH /api/feed/items/:itemId/user-due-date', () => {
+  it('returns 401 when unauthenticated', async () => {
+    if (!request) return;
+    const res = await request
+      .patch('/api/feed/items/sync:00000000-0000-0000-0000-000000000000/user-due-date')
+      .send({ dueAt: '2027-01-15T12:00:00Z' });
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 400 for malformed itemId (non-sync prefix)', async () => {
+    if (!request) return;
+    const res = await request
+      .patch('/api/feed/items/native:00000000-0000-0000-0000-000000000000/user-due-date')
+      .send({ dueAt: '2027-01-15T12:00:00Z' });
+    expect([400, 401]).toContain(res.status);
+  });
+
+  it('returns 400 for invalid ISO date body', async () => {
+    if (!request) return;
+    const res = await request
+      .patch('/api/feed/items/sync:00000000-0000-0000-0000-000000000000/user-due-date')
+      .send({ dueAt: 'not-a-date' });
+    expect([400, 401]).toContain(res.status);
+  });
+});

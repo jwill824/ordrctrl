@@ -581,3 +581,119 @@ describe('clearCompletedItems()', () => {
     expect(result.clearedCount).toBe(3);
   });
 });
+
+// ─── T019 + T029 — permanentDeleteFeedItem() and setUserDueAt() ───────────────
+
+import { permanentDeleteFeedItem, setUserDueAt } from '../../src/feed/feed.service.js';
+
+describe('permanentDeleteFeedItem()', () => {
+  beforeEach(() => {
+    const p = prisma as Record<string, unknown>;
+    const sc = p['syncCacheItem'] as Record<string, unknown>;
+    if (!sc['delete']) sc['delete'] = vi.fn();
+    const nt = p['nativeTask'] as Record<string, unknown>;
+    if (!nt['delete']) nt['delete'] = vi.fn();
+  });
+
+  it('hard-deletes a dismissed sync item', async () => {
+    mockPrismaExtended.syncCacheItem.findFirst.mockResolvedValue({ id: 'item-1', userId: 'user-1' });
+    mockPrismaExtended.syncOverride.findUnique.mockResolvedValue({ id: 'override-1', overrideType: 'DISMISSED' });
+    const p = prisma as Record<string, Record<string, ReturnType<typeof vi.fn>>>;
+    p['syncCacheItem']['delete'] = vi.fn().mockResolvedValue({});
+
+    await permanentDeleteFeedItem('user-1', 'sync:item-1');
+
+    expect(p['syncCacheItem']['delete']).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'item-1' } })
+    );
+  });
+
+  it('throws ITEM_NOT_FOUND when sync item does not exist', async () => {
+    mockPrismaExtended.syncCacheItem.findFirst.mockResolvedValue(null);
+
+    await expect(permanentDeleteFeedItem('user-1', 'sync:missing')).rejects.toMatchObject({
+      code: 'ITEM_NOT_FOUND',
+    });
+  });
+
+  it('throws NOT_DISMISSED when sync item has no DISMISSED override', async () => {
+    mockPrismaExtended.syncCacheItem.findFirst.mockResolvedValue({ id: 'item-1', userId: 'user-1' });
+    mockPrismaExtended.syncOverride.findUnique.mockResolvedValue(null);
+
+    await expect(permanentDeleteFeedItem('user-1', 'sync:item-1')).rejects.toMatchObject({
+      code: 'NOT_DISMISSED',
+    });
+  });
+
+  it('hard-deletes a dismissed native task', async () => {
+    mockPrismaExtended.nativeTask.findFirst.mockResolvedValue({ id: 'task-1', userId: 'user-1', dismissed: true });
+    const p = prisma as Record<string, Record<string, ReturnType<typeof vi.fn>>>;
+    p['nativeTask']['delete'] = vi.fn().mockResolvedValue({});
+
+    await permanentDeleteFeedItem('user-1', 'native:task-1');
+
+    expect(p['nativeTask']['delete']).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'task-1' } })
+    );
+  });
+
+  it('throws NOT_DISMISSED when native task is not dismissed', async () => {
+    mockPrismaExtended.nativeTask.findFirst.mockResolvedValue({ id: 'task-1', userId: 'user-1', dismissed: false });
+
+    await expect(permanentDeleteFeedItem('user-1', 'native:task-1')).rejects.toMatchObject({
+      code: 'NOT_DISMISSED',
+    });
+  });
+
+  it('throws ITEM_NOT_FOUND when native task does not exist', async () => {
+    mockPrismaExtended.nativeTask.findFirst.mockResolvedValue(null);
+
+    await expect(permanentDeleteFeedItem('user-1', 'native:missing')).rejects.toMatchObject({
+      code: 'ITEM_NOT_FOUND',
+    });
+  });
+});
+
+describe('setUserDueAt()', () => {
+  beforeEach(() => {
+    const p = prisma as Record<string, unknown>;
+    const sc = p['syncCacheItem'] as Record<string, unknown>;
+    if (!sc['update']) sc['update'] = vi.fn();
+  });
+
+  it('sets userDueAt on the sync cache item', async () => {
+    mockPrismaExtended.syncCacheItem.findFirst.mockResolvedValue({ id: 'item-1', userId: 'user-1' });
+    const p = prisma as Record<string, Record<string, ReturnType<typeof vi.fn>>>;
+    p['syncCacheItem']['update'] = vi.fn().mockResolvedValue({});
+    const due = new Date('2027-01-15T12:00:00Z');
+
+    await setUserDueAt('user-1', 'item-1', due);
+
+    expect(p['syncCacheItem']['update']).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'item-1' },
+        data: { userDueAt: due },
+      })
+    );
+  });
+
+  it('clears userDueAt when null is passed', async () => {
+    mockPrismaExtended.syncCacheItem.findFirst.mockResolvedValue({ id: 'item-1', userId: 'user-1' });
+    const p = prisma as Record<string, Record<string, ReturnType<typeof vi.fn>>>;
+    p['syncCacheItem']['update'] = vi.fn().mockResolvedValue({});
+
+    await setUserDueAt('user-1', 'item-1', null);
+
+    expect(p['syncCacheItem']['update']).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { userDueAt: null } })
+    );
+  });
+
+  it('throws ITEM_NOT_FOUND when item does not exist', async () => {
+    mockPrismaExtended.syncCacheItem.findFirst.mockResolvedValue(null);
+
+    await expect(setUserDueAt('user-1', 'missing', new Date())).rejects.toMatchObject({
+      code: 'ITEM_NOT_FOUND',
+    });
+  });
+});

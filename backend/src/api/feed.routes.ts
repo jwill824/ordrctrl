@@ -10,6 +10,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import {
   buildFeed,
+  buildDismissedFeed,
   completeSyncItem,
   completeNativeTask,
   uncompleteNativeTask,
@@ -18,6 +19,8 @@ import {
   dismissFeedItem,
   restoreFeedItem,
   getDismissedItems,
+  permanentDeleteFeedItem,
+  setUserDueAt,
 } from '../feed/feed.service.js';
 import { dismissParamSchema, dismissedQuerySchema } from './schemas/feed.schemas.js';
 import { logger } from '../lib/logger.js';
@@ -36,14 +39,19 @@ export async function registerFeedRoutes(app: FastifyInstance): Promise<void> {
   app.get(
     '/api/feed',
     async (
-      request: FastifyRequest<{ Querystring: { includeCompleted?: string } }>,
+      request: FastifyRequest<{ Querystring: { includeCompleted?: string; showDismissed?: string } }>,
       reply
     ) => {
       const userId = requireAuth(request, reply);
       if (!userId) return;
 
-      const includeCompleted = request.query.includeCompleted === 'true';
+      const showDismissed = request.query.showDismissed === 'true';
+      if (showDismissed) {
+        const result = await buildDismissedFeed(userId);
+        return reply.send({ items: result.items, completed: [], syncStatus: {} });
+      }
 
+      const includeCompleted = request.query.includeCompleted === 'true';
       const feed = await buildFeed(userId, includeCompleted);
       return reply.send(feed);
     }
@@ -224,6 +232,66 @@ export async function registerFeedRoutes(app: FastifyInstance): Promise<void> {
       } catch (err) {
         const code = (err as NodeJS.ErrnoException & { code?: string }).code;
         if (code === 'INVALID_CURSOR') return reply.status(400).send({ error: 'Bad Request', code, message: (err as Error).message });
+        throw err;
+      }
+    }
+  );
+
+  // T018 — DELETE /api/feed/items/:itemId/permanent
+  app.delete(
+    '/api/feed/items/:itemId/permanent',
+    async (request: FastifyRequest<{ Params: { itemId: string } }>, reply) => {
+      const userId = requireAuth(request, reply);
+      if (!userId) return;
+
+      const { itemId } = request.params;
+      const [type, rawId] = itemId.split(':');
+      if (!type || !rawId) {
+        return reply.status(400).send({ error: 'Bad Request', code: 'INVALID_ITEM_ID', message: 'Invalid itemId format' });
+      }
+
+      try {
+        await permanentDeleteFeedItem(userId, itemId);
+        return reply.send({});
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException & { code?: string }).code;
+        if (code === 'ITEM_NOT_FOUND') return reply.status(404).send({ error: 'Not Found', code, message: (err as Error).message });
+        if (code === 'NOT_DISMISSED') return reply.status(409).send({ error: 'Conflict', code, message: (err as Error).message });
+        throw err;
+      }
+    }
+  );
+
+  // T028 — PATCH /api/feed/items/:itemId/user-due-date
+  app.patch(
+    '/api/feed/items/:itemId/user-due-date',
+    async (request: FastifyRequest<{ Params: { itemId: string }; Body: { dueAt: string | null } }>, reply) => {
+      const userId = requireAuth(request, reply);
+      if (!userId) return;
+
+      const { itemId } = request.params;
+      const [type, rawId] = itemId.split(':');
+
+      if (!type || !rawId || type !== 'sync') {
+        return reply.status(400).send({ error: 'Bad Request', code: 'INVALID_ITEM_ID', message: 'User due date is only supported for synced items (sync: prefix)' });
+      }
+
+      const { dueAt: dueAtRaw } = request.body ?? {};
+      let dueAt: Date | null = null;
+      if (dueAtRaw !== null && dueAtRaw !== undefined) {
+        const parsed = new Date(dueAtRaw);
+        if (isNaN(parsed.getTime())) {
+          return reply.status(400).send({ error: 'Bad Request', code: 'INVALID_DATE', message: 'dueAt must be a valid ISO date string or null' });
+        }
+        dueAt = parsed;
+      }
+
+      try {
+        await setUserDueAt(userId, rawId, dueAt);
+        return reply.send({});
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException & { code?: string }).code;
+        if (code === 'ITEM_NOT_FOUND') return reply.status(404).send({ error: 'Not Found', code, message: (err as Error).message });
         throw err;
       }
     }
