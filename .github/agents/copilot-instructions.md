@@ -20,6 +20,8 @@ Auto-generated from all feature plans. Last updated: 2026-03-04
 - TypeScript 5 (backend Node.js 20, frontend Next.js 14.1.3) + Fastify 4, Prisma 5, React 18, Tailwind CSS, BullMQ, Redis (011-feed-ux-enhancements)
 - TypeScript 5.x (frontend + backend) + Next.js 14 App Router, React, Express, Prisma, BullMQ, Redis (012-app-polish-bugfix)
 - PostgreSQL (via Prisma), Redis (sync-status cache) (012-app-polish-bugfix)
+- TypeScript 5.x (backend Node 20 LTS + frontend Next.js 15 App Router) + Fastify (backend API), React 19, Prisma 5 ORM, PostgreSQL 16, Redis (013-task-content-enhancements)
+- PostgreSQL via Prisma (primary), Redis (short-lived sync cache metadata) (013-task-content-enhancements)
 
 - TypeScript 5.x (frontend + backend) + Next.js 14 (frontend), Fastify 4 (backend API), Prisma (ORM), (001-mvp-core)
 
@@ -39,9 +41,9 @@ npm test && npm run lint
 TypeScript 5.x (frontend + backend): Follow standard conventions
 
 ## Recent Changes
+- 013-task-content-enhancements: Added TypeScript 5.x (backend Node 20 LTS + frontend Next.js 15 App Router) + Fastify (backend API), React 19, Prisma 5 ORM, PostgreSQL 16, Redis
 - 012-app-polish-bugfix: Added TypeScript 5.x (frontend + backend) + Next.js 14 App Router, React, Express, Prisma, BullMQ, Redis
 - 011-feed-ux-enhancements: Added TypeScript 5 (backend Node.js 20, frontend Next.js 14.1.3) + Fastify 4, Prisma 5, React 18, Tailwind CSS, BullMQ, Redis
-- 010-task-inbox: Added TypeScript 5 (backend Node.js 20, frontend Next.js 14) + Fastify 4, Prisma 5, React 18, Tailwind CSS, BullMQ, Redis
 
 
 <!-- MANUAL ADDITIONS START -->
