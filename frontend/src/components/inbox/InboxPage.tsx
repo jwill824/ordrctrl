@@ -11,7 +11,9 @@ export function InboxPage() {
     groups,
     total,
     loading,
+    refreshing,
     error,
+    refresh,
     reload,
     acceptItem,
     dismissItem,
@@ -45,11 +47,12 @@ export function InboxPage() {
           )}
           <button
             type="button"
-            onClick={() => void reload()}
-            className="ml-auto text-xs text-zinc-400 hover:text-zinc-700"
+            onClick={() => void refresh()}
+            disabled={refreshing}
+            className="ml-auto text-xs text-zinc-400 hover:text-zinc-700 disabled:opacity-50"
             aria-label="Refresh inbox"
           >
-            ↻ Refresh
+            {refreshing ? '↻ Syncing…' : '↻ Refresh'}
           </button>
         </div>
 
