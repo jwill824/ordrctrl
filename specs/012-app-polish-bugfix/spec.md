@@ -17,7 +17,7 @@ A user is working in the feed and expects that clicking the refresh button bring
 
 **Why this priority**: This is a functional regression. The refresh button exists but does not work as advertised, which undermines trust in the feed and forces users into a disruptive full reload to get current data. Fixing it restores a core workflow.
 
-**Independent Test**: Can be fully tested by triggering a new task in a connected integration (e.g., a new email in Gmail or a new reminder in Apple Reminders), clicking the refresh button in the feed, and verifying the new task appears without a browser reload.
+**Independent Test**: Can be fully tested by triggering a new task in a connected integration (e.g., a new task in Microsoft To Do or a new email in Gmail), clicking the refresh button in the **inbox**, and verifying the new task appears in the inbox without a browser reload. Secondarily, clicking refresh in the feed should surface updated tasks without flickering or requiring a full reload.
 
 **Acceptance Scenarios**:
 
@@ -116,7 +116,7 @@ A developer working on the codebase encounters no unused components, unreachable
 
 ## Assumptions
 
-- The `refresh()` action in the `useFeed` hook exists and is wired to the refresh button, but the underlying data-fetching pipeline (re-querying integrations and merging results into the feed state) is not completing correctly. The fix is scoped to making this pipeline work end-to-end, not redesigning the refresh architecture.
+- The `refresh()` action in the `useFeed` hook exists and is wired to the refresh button in the feed, and works correctly end-to-end. The primary broken-refresh report (#45) was traced to the **inbox** refresh button, which was only re-fetching already-cached inbox data and never triggering a sync against external integrations. A secondary issue was also fixed in `useFeed.ts` where the polling loop hardcoded `showDismissed: false` instead of forwarding hook options, causing flickering.
 - The dismissed items workflow introduced in feature 011 (inline via `/feed?showDismissed=true`) is considered the authoritative and final design. No new dismissed workflow design is required here — only the removal of the superseded standalone route.
 - "Triage" as a standalone workflow has been fully replaced by the task inbox (feature 010). Any remaining triage routes, components, or menu entries are candidates for removal.
 - The dead code cleanup scope is limited to code made obsolete by features 010 (task inbox) and 011 (feed UX enhancements). Code that may be unused for other historical reasons is out of scope for this bundle.
