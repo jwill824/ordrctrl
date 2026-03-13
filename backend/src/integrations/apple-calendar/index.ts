@@ -309,7 +309,11 @@ function parseVEventItems(xmlText: string, subSourceId?: string): NormalizedItem
     const summaryMatch = calData.match(/^SUMMARY:(.+)$/m);
     const dtStartMatch = calData.match(/^DTSTART(?:;[^:]*)?:(\d{8}(?:T\d{6}Z?)?)/m);
     const dtEndMatch = calData.match(/^DTEND(?:;[^:]*)?:(\d{8}(?:T\d{6}Z?)?)/m);
+    const descMatch = calData.match(/^DESCRIPTION:(.+)$/m);
+    const urlMatch = calData.match(/^URL:(.+)$/m);
     if (!uidMatch || !summaryMatch) continue;
+    const body = descMatch ? descMatch[1].trim() : null;
+    const url = urlMatch ? urlMatch[1].trim() : null;
     items.push({
       externalId: uidMatch[1].trim(),
       itemType: 'event',
@@ -318,6 +322,8 @@ function parseVEventItems(xmlText: string, subSourceId?: string): NormalizedItem
       startAt: dtStartMatch ? parseICalDate(dtStartMatch[1]) : null,
       endAt: dtEndMatch ? parseICalDate(dtEndMatch[1]) : null,
       subSourceId,
+      body,
+      url,
       rawPayload: { calData: '[redacted]' },
     });
   }

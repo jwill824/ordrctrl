@@ -22,6 +22,13 @@ const SERVICE_NAMES: Record<string, string> = {
   ordrctrl: 'ordrctrl',
 };
 
+const SOURCE_LABEL_MAP: Record<string, string> = {
+  gmail: 'Open in Gmail',
+  microsoft_tasks: 'Open in To Do',
+  apple_calendar: 'Open in Calendar',
+  apple_reminders: 'Open in Reminders',
+};
+
 function formatDate(iso: string | null, now: Date): string {
   if (!iso) return '';
   const d = new Date(iso);
@@ -166,6 +173,22 @@ export function FeedItemRow({ item, onComplete, onUncomplete, onDismiss, onResto
             <span className="text-xs text-zinc-400">
               – {formatTime(item.endAt)}
             </span>
+          )}
+
+          {/* Source link */}
+          {item.sourceUrl && item.serviceId !== 'ordrctrl' && (
+            <>
+              <span className="text-zinc-200 text-xs">·</span>
+              <a
+                href={item.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="text-[0.65rem] text-zinc-400 hover:text-zinc-700 underline"
+              >
+                {SOURCE_LABEL_MAP[item.serviceId] ?? 'Open Source'}
+              </a>
+            </>
           )}
         </div>
       </div>

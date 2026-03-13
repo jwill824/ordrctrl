@@ -25,7 +25,7 @@ function FeedPageContent() {
   const {
     items, completed, syncStatus, loading, refreshing, error,
     refresh, reloadFeed, completeItem, uncompleteItem, dismissItem, restoreItem,
-    permanentDeleteItem, setUserDueAt,
+    permanentDeleteItem, setUserDueAt, setDescriptionOverride,
     undoToast, clearUndoToast,
     clearCompleted, clearedCount, clearClearedToast,
   } = useFeed({ showDismissed });
@@ -234,6 +234,7 @@ function FeedPageContent() {
             setEditingTask(null);
           }}
           onClose={() => setEditingTask(null)}
+          onSetDescriptionOverride={setDescriptionOverride}
         />
       )}
 

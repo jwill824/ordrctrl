@@ -22,6 +22,10 @@ export interface NormalizedItem {
   rawPayload: Record<string, unknown>; // never exposed in API responses
   /** Whether the source system considers this item complete. undefined = adapter does not report completion state. */
   completed?: boolean;
+  /** Optional body/description text from the source */
+  body?: string | null;
+  /** Optional deep-link URL back to the source item */
+  url?: string | null;
 }
 
 export interface SubSource {

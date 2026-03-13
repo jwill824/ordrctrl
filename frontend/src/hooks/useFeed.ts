@@ -28,6 +28,7 @@ interface UseFeedReturn {
   restoreItem: (itemId: string) => Promise<void>;
   permanentDeleteItem: (itemId: string) => Promise<void>;
   setUserDueAt: (itemId: string, dueAt: string | null) => Promise<void>;
+  setDescriptionOverride: (itemId: string, value: string | null) => Promise<void>;
   clearUndoToast: () => void;
   clearCompleted: () => Promise<void>;
   clearedCount: number | null;
@@ -286,6 +287,71 @@ export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
     [reloadFeed]
   );
 
+  const setDescriptionOverride = useCallback(
+    async (itemId: string, value: string | null) => {
+      // Optimistic update: compute new description locally
+      setData((prev) => ({
+        ...prev,
+        items: prev.items.map((i) => {
+          if (i.id !== itemId) return i;
+          const hasDescriptionOverride = value !== null;
+          const descriptionOverride = value;
+          const description = value ?? i.originalBody;
+          return {
+            ...i,
+            hasDescriptionOverride,
+            descriptionOverride,
+            description,
+          };
+        }),
+        completed: prev.completed.map((i) => {
+          if (i.id !== itemId) return i;
+          const hasDescriptionOverride = value !== null;
+          const descriptionOverride = value;
+          const description = value ?? i.originalBody;
+          return {
+            ...i,
+            hasDescriptionOverride,
+            descriptionOverride,
+            description,
+          };
+        }),
+      }));
+      try {
+        const result = await feedService.setDescriptionOverride(itemId, value);
+        // Update with server response
+        setData((prev) => ({
+          ...prev,
+          items: prev.items.map((i) => {
+            if (i.id !== itemId) return i;
+            return {
+              ...i,
+              hasDescriptionOverride: result.hasDescriptionOverride,
+              descriptionOverride: result.descriptionOverride,
+              descriptionUpdatedAt: result.descriptionUpdatedAt,
+              description: result.descriptionOverride ?? i.originalBody,
+            };
+          }),
+          completed: prev.completed.map((i) => {
+            if (i.id !== itemId) return i;
+            return {
+              ...i,
+              hasDescriptionOverride: result.hasDescriptionOverride,
+              descriptionOverride: result.descriptionOverride,
+              descriptionUpdatedAt: result.descriptionUpdatedAt,
+              description: result.descriptionOverride ?? i.originalBody,
+            };
+          }),
+        }));
+      } catch (err) {
+        // Revert on error
+        await reloadFeed();
+        setError((err as Error).message);
+      }
+    },
+    [reloadFeed]
+  );
+
   return {
     items: data.items,
     completed: data.completed,
@@ -302,6 +368,7 @@ export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
     restoreItem,
     permanentDeleteItem,
     setUserDueAt,
+    setDescriptionOverride,
     clearUndoToast,
     clearCompleted,
     clearedCount,

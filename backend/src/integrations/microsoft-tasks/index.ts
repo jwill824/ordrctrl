@@ -203,6 +203,8 @@ export class MicrosoftTasksAdapter implements IntegrationAdapter {
             title: string;
             dueDateTime?: { dateTime: string; timeZone: string };
             status: string;
+            webLink?: string;
+            body?: { content?: string; contentType?: string };
           }>;
         };
 
@@ -211,6 +213,9 @@ export class MicrosoftTasksAdapter implements IntegrationAdapter {
           if (task.dueDateTime?.dateTime) {
             dueAt = new Date(task.dueDateTime.dateTime);
           }
+
+          const url = task.webLink ?? null;
+          const body = task.body?.content ?? null;
 
           items.push({
             externalId: task.id,
@@ -221,6 +226,8 @@ export class MicrosoftTasksAdapter implements IntegrationAdapter {
             endAt: null,
             subSourceId: list.id,
             completed: task.status === 'completed',
+            body,
+            url,
             rawPayload: { listId: list.id, status: task.status },
           });
         }

@@ -20,6 +20,13 @@ export interface FeedItem {
   isDuplicateSuspect: boolean;
   dismissed: boolean;
   hasUserDueAt: boolean;            // true when user-assigned due date is the effective date
+  // Task content enhancement fields (null for native tasks)
+  originalBody: string | null;
+  description: string | null;
+  hasDescriptionOverride: boolean;
+  descriptionOverride: string | null;
+  descriptionUpdatedAt: string | null;
+  sourceUrl: string | null;
 }
 
 export interface SyncStatusEntry {
@@ -51,6 +58,20 @@ export async function buildFeed(
   // Fetch sync cache items excluding dismissed
   const cacheItems = await getCacheItemsForUser(userId, dismissedSyncIds);
 
+  // Fetch all DESCRIPTION_OVERRIDE records for this user's cache items in one query
+  const cacheItemIds = cacheItems.map((i) => i.id);
+  const descOverrides = cacheItemIds.length > 0
+    ? await prisma.syncOverride.findMany({
+        where: {
+          userId,
+          overrideType: 'DESCRIPTION_OVERRIDE',
+          syncCacheItemId: { in: cacheItemIds },
+        },
+        select: { syncCacheItemId: true, value: true, updatedAt: true },
+      })
+    : [];
+  const descOverrideMap = new Map(descOverrides.map((o) => [o.syncCacheItemId, o]));
+
   // Fetch native tasks (excluding dismissed)
   const nativeTasks = await prisma.nativeTask.findMany({
     where: { userId, dismissed: false },
@@ -62,6 +83,15 @@ export async function buildFeed(
     // User-assigned due date: source wins when non-null, else fall back to user override
     const effectiveDueAt = item.dueAt ?? item.userDueAt ?? null;
     const hasUserDueAt = item.dueAt === null && item.userDueAt !== null;
+
+    const descOverride = descOverrideMap.get(item.id) ?? null;
+    const hasDescriptionOverride = descOverride !== null;
+    const descriptionOverride = descOverride?.value ?? null;
+    const originalBody = (item as { body?: string | null }).body ?? null;
+    const description = descriptionOverride ?? originalBody;
+    const descriptionUpdatedAt = descOverride?.updatedAt?.toISOString() ?? null;
+    const sourceUrl = (item as { url?: string | null }).url ?? null;
+
     return {
       id: `sync:${item.id}`,
       source: item.integration.label ?? item.integration.accountIdentifier,
@@ -76,6 +106,12 @@ export async function buildFeed(
       isDuplicateSuspect: false, // populated below
       dismissed: false,
       hasUserDueAt,
+      originalBody,
+      description,
+      hasDescriptionOverride,
+      descriptionOverride,
+      descriptionUpdatedAt,
+      sourceUrl,
     };
   });
 
@@ -94,6 +130,12 @@ export async function buildFeed(
     isDuplicateSuspect: false,
     dismissed: false,
     hasUserDueAt: false,
+    originalBody: null,
+    description: null,
+    hasDescriptionOverride: false,
+    descriptionOverride: null,
+    descriptionUpdatedAt: null,
+    sourceUrl: null,
   }));
 
   const allItems = [...syncFeedItems, ...nativeFeedItems];
@@ -658,6 +700,12 @@ export async function buildDismissedFeed(userId: string): Promise<{ items: FeedI
       isDuplicateSuspect: false,
       dismissed: true,
       hasUserDueAt,
+      originalBody: (item as { body?: string | null }).body ?? null,
+      description: (item as { body?: string | null }).body ?? null,
+      hasDescriptionOverride: false,
+      descriptionOverride: null,
+      descriptionUpdatedAt: null,
+      sourceUrl: (item as { url?: string | null }).url ?? null,
     };
   });
 
@@ -675,6 +723,12 @@ export async function buildDismissedFeed(userId: string): Promise<{ items: FeedI
     isDuplicateSuspect: false,
     dismissed: true,
     hasUserDueAt: false,
+    originalBody: null,
+    description: null,
+    hasDescriptionOverride: false,
+    descriptionOverride: null,
+    descriptionUpdatedAt: null,
+    sourceUrl: null,
   }));
 
   // Merge and sort by dismissedAt desc (sync by override.createdAt, native by updatedAt)
@@ -739,4 +793,67 @@ export async function setUserDueAt(
     where: { id: syncCacheItemId },
     data: { userDueAt: dueAt },
   });
+}
+
+// ─── Description Override ─────────────────────────────────────────────────────
+
+export interface SetDescriptionOverrideResult {
+  hasDescriptionOverride: boolean;
+  descriptionOverride: string | null;
+  descriptionUpdatedAt: string | null;
+}
+
+/**
+ * Sets or clears a DESCRIPTION_OVERRIDE for a synced cache item.
+ * - Non-null value: upserts the SyncOverride record with the trimmed text
+ * - Null value: deletes the SyncOverride record (if any)
+ * Returns the resulting override state.
+ */
+export async function setDescriptionOverride(
+  userId: string,
+  syncCacheItemId: string,
+  value: string | null
+): Promise<SetDescriptionOverrideResult> {
+  // Verify item exists and belongs to user
+  const item = await prisma.syncCacheItem.findFirst({
+    where: { id: syncCacheItemId, userId },
+    select: { id: true },
+  });
+  if (!item) throw Object.assign(new Error('Item not found'), { code: 'ITEM_NOT_FOUND' });
+
+  if (value !== null) {
+    const trimmed = value.trim();
+    const override = await prisma.syncOverride.upsert({
+      where: {
+        syncCacheItemId_overrideType: {
+          syncCacheItemId,
+          overrideType: 'DESCRIPTION_OVERRIDE',
+        },
+      },
+      create: {
+        userId,
+        syncCacheItemId,
+        overrideType: 'DESCRIPTION_OVERRIDE',
+        value: trimmed,
+      },
+      update: {
+        value: trimmed,
+      },
+      select: { value: true, updatedAt: true },
+    });
+    return {
+      hasDescriptionOverride: true,
+      descriptionOverride: override.value ?? null,
+      descriptionUpdatedAt: override.updatedAt.toISOString(),
+    };
+  } else {
+    await prisma.syncOverride.deleteMany({
+      where: { syncCacheItemId, overrideType: 'DESCRIPTION_OVERRIDE' },
+    });
+    return {
+      hasDescriptionOverride: false,
+      descriptionOverride: null,
+      descriptionUpdatedAt: null,
+    };
+  }
 }

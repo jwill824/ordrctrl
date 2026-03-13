@@ -149,3 +149,58 @@ describe('clearAllCompleted', () => {
     expect(result.clearedCount).toBe(0);
   });
 });
+
+// T025 — setDescriptionOverride service function
+describe('setDescriptionOverride', () => {
+  it('sends PATCH to /api/feed/items/:id/description-override with value', async () => {
+    const { setDescriptionOverride } = await import('@/services/feed.service');
+    const responsePayload = {
+      hasDescriptionOverride: true,
+      descriptionOverride: 'My note',
+      descriptionUpdatedAt: '2026-07-18T14:32:00.000Z',
+    };
+    global.fetch = mockOk(responsePayload);
+
+    const result = await setDescriptionOverride('sync:item-abc', 'My note');
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      `${BASE}/api/feed/items/sync:item-abc/description-override`,
+      expect.objectContaining({
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value: 'My note' }),
+      })
+    );
+    expect(result.hasDescriptionOverride).toBe(true);
+    expect(result.descriptionOverride).toBe('My note');
+    expect(result.descriptionUpdatedAt).toBe('2026-07-18T14:32:00.000Z');
+  });
+
+  it('sends null value to clear override', async () => {
+    const { setDescriptionOverride } = await import('@/services/feed.service');
+    const responsePayload = {
+      hasDescriptionOverride: false,
+      descriptionOverride: null,
+      descriptionUpdatedAt: null,
+    };
+    global.fetch = mockOk(responsePayload);
+
+    const result = await setDescriptionOverride('sync:item-abc', null);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      `${BASE}/api/feed/items/sync:item-abc/description-override`,
+      expect.objectContaining({ body: JSON.stringify({ value: null }) })
+    );
+    expect(result.hasDescriptionOverride).toBe(false);
+    expect(result.descriptionOverride).toBeNull();
+  });
+
+  it('throws on non-ok response', async () => {
+    const { setDescriptionOverride } = await import('@/services/feed.service');
+    global.fetch = mockErr(400, 'value must be a non-empty string or null');
+    await expect(setDescriptionOverride('sync:item-abc', '')).rejects.toThrow(
+      'value must be a non-empty string or null'
+    );
+  });
+});

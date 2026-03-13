@@ -45,6 +45,7 @@ enum ItemType {
 enum OverrideType {
   REOPENED
   DISMISSED
+  DESCRIPTION_OVERRIDE
 }
 
 model User {
@@ -114,6 +115,8 @@ model SyncCacheItem {
   completedAtSource    Boolean   @default(false)
   pendingInbox         Boolean   @default(false)
   userDueAt            DateTime?
+  body                 String?
+  url                  String?
   syncedAt             DateTime  @default(now())
   expiresAt            DateTime
   rawPayload           Json
@@ -151,7 +154,9 @@ model SyncOverride {
   userId          String
   syncCacheItemId String
   overrideType    OverrideType
+  value           String?
   createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
   user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   syncCacheItem SyncCacheItem @relation(fields: [syncCacheItemId], references: [id], onDelete: Cascade)

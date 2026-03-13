@@ -21,6 +21,7 @@ import {
   getDismissedItems,
   permanentDeleteFeedItem,
   setUserDueAt,
+  setDescriptionOverride,
 } from '../feed/feed.service.js';
 import { dismissParamSchema, dismissedQuerySchema } from './schemas/feed.schemas.js';
 import { logger } from '../lib/logger.js';
@@ -289,6 +290,57 @@ export async function registerFeedRoutes(app: FastifyInstance): Promise<void> {
       try {
         await setUserDueAt(userId, rawId, dueAt);
         return reply.send({});
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException & { code?: string }).code;
+        if (code === 'ITEM_NOT_FOUND') return reply.status(404).send({ error: 'Not Found', code, message: (err as Error).message });
+        throw err;
+      }
+    }
+  );
+
+  // T014 — PATCH /api/feed/items/:itemId/description-override
+  app.patch(
+    '/api/feed/items/:itemId/description-override',
+    async (
+      request: FastifyRequest<{ Params: { itemId: string }; Body: { value: string | null } }>,
+      reply
+    ) => {
+      const userId = requireAuth(request, reply);
+      if (!userId) return;
+
+      const { itemId } = request.params;
+      const [type, rawId] = itemId.split(':');
+
+      if (!type || !rawId || type !== 'sync') {
+        return reply.status(400).send({
+          error: 'Bad Request',
+          code: 'INVALID_ITEM_ID',
+          message: 'Description override is only supported for synced items (sync: prefix)',
+        });
+      }
+
+      const { value } = request.body ?? {};
+
+      if (value !== null && value !== undefined) {
+        if (typeof value !== 'string' || value.trim().length === 0) {
+          return reply.status(400).send({
+            error: 'Bad Request',
+            code: 'INVALID_VALUE',
+            message: 'value must be a non-empty string or null',
+          });
+        }
+        if (value.length > 50000) {
+          return reply.status(400).send({
+            error: 'Bad Request',
+            code: 'VALUE_TOO_LONG',
+            message: 'value must not exceed 50000 characters',
+          });
+        }
+      }
+
+      try {
+        const result = await setDescriptionOverride(userId, rawId, value ?? null);
+        return reply.send(result);
       } catch (err) {
         const code = (err as NodeJS.ErrnoException & { code?: string }).code;
         if (code === 'ITEM_NOT_FOUND') return reply.status(404).send({ error: 'Not Found', code, message: (err as Error).message });
