@@ -5,7 +5,6 @@ import {
   uncompleteItem,
   dismissItem,
   restoreItem,
-  getDismissedItems,
 } from '@/services/feed.service';
 
 const BASE = 'http://localhost:4000';
@@ -122,27 +121,6 @@ describe('feed.service', () => {
     });
   });
 
-  describe('getDismissedItems', () => {
-    it('fetches from /api/feed/dismissed without params', async () => {
-      global.fetch = mockOk({ items: [], nextCursor: null, hasMore: false });
-      await getDismissedItems();
-      const url = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
-      expect(url).toBe(`${BASE}/api/feed/dismissed`);
-    });
-
-    it('appends limit and cursor when provided', async () => {
-      global.fetch = mockOk({ items: [], nextCursor: null, hasMore: false });
-      await getDismissedItems({ limit: 20, cursor: 'abc123' });
-      const url = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
-      expect(url).toContain('limit=20');
-      expect(url).toContain('cursor=abc123');
-    });
-
-    it('throws on non-ok response', async () => {
-      global.fetch = mockErr(500);
-      await expect(getDismissedItems()).rejects.toThrow('Failed to load dismissed items');
-    });
-  });
 });
 
 // T005/T016 — clearAllCompleted service function

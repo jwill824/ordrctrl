@@ -127,27 +127,31 @@ export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
       const TIMEOUT_MS = 30_000;
       const deadline = Date.now() + TIMEOUT_MS;
 
+      let syncCompleted = false;
       while (Date.now() < deadline) {
         await new Promise<void>((r) => setTimeout(r, POLL_MS));
-        const feed = await feedService.fetchFeed({ showDismissed: false });
+        const feed = await feedService.fetchFeed({ includeCompleted: true, showDismissed });
         setData(feed);
 
         const allDone = Object.entries(preSyncTimes).every(([id, before]) => {
           const after = feed.syncStatus[id]?.lastSyncAt;
           return after && after !== before;
         });
-        if (allDone) break;
+        if (allDone) { syncCompleted = true; break; }
       }
 
       // Final reload with completed items
       await reloadFeed();
-      setError(null);
+
+      if (!syncCompleted) {
+        setError('Sync is taking longer than expected. Showing latest available data.');
+      }
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setRefreshing(false);
     }
-  }, [data.syncStatus, reloadFeed]);
+  }, [data.syncStatus, reloadFeed, showDismissed]);
 
   const completeItem = useCallback(
     async (itemId: string) => {
