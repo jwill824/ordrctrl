@@ -31,21 +31,6 @@ export interface FeedResponse {
   syncStatus: Record<string, SyncStatusEntry>;
 }
 
-// T021 — dismissed item shape
-export interface DismissedItem {
-  id: string;
-  title: string;
-  source: string;
-  itemType: 'sync' | 'native';
-  dismissedAt: string;
-}
-
-export interface DismissedItemsResponse {
-  items: DismissedItem[];
-  nextCursor: string | null;
-  hasMore: boolean;
-}
-
 export async function fetchFeed(options: { includeCompleted?: boolean; showDismissed?: boolean } = {}): Promise<FeedResponse> {
   const params = new URLSearchParams();
   if (options.includeCompleted) params.set('includeCompleted', 'true');
@@ -103,20 +88,6 @@ export async function restoreItem(itemId: string): Promise<void> {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.message || 'Failed to restore item');
   }
-}
-
-// T021 — get paginated list of dismissed items
-export async function getDismissedItems(params?: {
-  limit?: number;
-  cursor?: string;
-}): Promise<DismissedItemsResponse> {
-  const url = new URL(`${API_URL}/api/feed/dismissed`);
-  if (params?.limit) url.searchParams.set('limit', String(params.limit));
-  if (params?.cursor) url.searchParams.set('cursor', params.cursor);
-
-  const res = await fetch(url.toString(), { credentials: 'include' });
-  if (!res.ok) throw new Error('Failed to load dismissed items');
-  return res.json();
 }
 
 export async function triggerSync(): Promise<void> {

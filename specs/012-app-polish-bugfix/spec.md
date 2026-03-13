@@ -2,7 +2,7 @@
 
 **Feature Branch**: `012-app-polish-bugfix`  
 **Created**: 2025-07-24  
-**Status**: Draft  
+**Status**: Implemented  
 **GitHub Issues**: #45, #41, #40
 
 ## Overview
