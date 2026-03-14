@@ -15,7 +15,7 @@ Two complementary enhancements that deepen a user's relationship with tasks pull
 - The user-supplied description override replaces the displayed description; the original is always preserved and remains accessible within the same view.
 - There is no requirement to sync the edited description back to the source integration; the override lives only inside ordrctrl.
 - A single text area (no rich-text formatting) is sufficient for the description editor.
-- "Open in native app" means using the platform's default URL handler; the app does not need to know the specific handler ahead of time.
+- "Open in native app" is integration-specific: Microsoft To Do uses `ms-to-do://` with a `webLink` web URL fallback (via `window.blur` detection); Gmail opens the web URL directly; Apple Calendar has no supported browser-accessible scheme and shows no link in the web app (deferred to native mobile/desktop).
 
 ---
 
@@ -84,10 +84,11 @@ A user sees a task imported from Gmail. They want to reply to the email, so they
 **Source Link / Open in App (Issue #38)**
 
 - **FR-009**: For any integration-sourced task that carries a source URL, the system MUST present an action to open that URL.
-- **FR-010**: The action label MUST identify the source integration by name (e.g., "Open in Gmail", "Open in To Do", "Open in Calendar") so the user knows where they are navigating.
-- **FR-011**: Activating the "Open in [source]" action MUST hand off the URL to the platform's default URL handler, enabling the native app (if installed) or browser to open it.
+- **FR-010**: The action label MUST identify the source integration by name (e.g., "Open in Gmail", "Open in To Do") so the user knows where they are navigating.
+- **FR-011**: Activating the "Open in [source]" action MUST hand off to the native app if installed, with a web URL fallback if the app is not present. For Microsoft To Do, the `ms-to-do://` URL scheme is tried first; if the OS does not handle it within 500ms, the `webLink` web URL opens in a new tab. For Gmail, the web URL is opened directly (no native scheme needed). Apple Calendar has no supported browser-accessible URL scheme and shows no link.
 - **FR-012**: For tasks without a source URL, the system MUST NOT display any "Open in [source]" action — there must be no non-functional placeholder.
 - **FR-013**: The feature MUST NOT apply to locally created tasks; neither the edit-description control nor the "Open in [source]" action is shown for them.
+- **FR-014** *(future)*: Apple Calendar event links are deferred until a native iOS or desktop app is available that can use `calshow://` directly. The web app silently omits the button for Apple Calendar events.
 
 ### Key Entities
 
@@ -105,5 +106,5 @@ A user sees a task imported from Gmail. They want to reply to the email, so they
 - **SC-002**: 100% of synced tasks that carry a source URL surface the "Open in [source]" action in their detail view; 0% of tasks without a source URL surface that action.
 - **SC-003**: The original integration description is accessible within at most one additional interaction (e.g., one tap/click to expand) after a user override has been applied.
 - **SC-004**: Description overrides survive app restarts; zero data-loss incidents when the app is closed immediately after saving an override.
-- **SC-005**: The "Open in [source]" action successfully hands off to the correct native app or browser for all integrations that provide a valid source URL, with no crashes or unhandled errors in ordrctrl itself.
+- **SC-005**: The "Open in [source]" action successfully hands off to the correct native app (where a URL scheme is available and the app is installed) or opens the web URL in a new tab as fallback — for all integrations that provide a valid source URL, with no crashes or unhandled errors in ordrctrl itself. Apple Calendar has no link (correct; deferred to native app).
 - **SC-006**: Both features are present only on integration-sourced tasks; local tasks show neither control — verified across all entry points where task details are displayed.

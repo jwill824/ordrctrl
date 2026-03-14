@@ -44,28 +44,50 @@ How should the frontend open a task's source URL — `window.open`, a plain `<a>
 OS protocol handlers?
 
 ### Decision
-**`<a href={sourceUrl} target="_blank" rel="noopener noreferrer">` rendered as a button-styled
-link.** No `window.open` call; no custom protocol handler logic.
+**Per-integration strategy with native scheme attempt + web fallback:**
+
+- **Gmail**: `<a href={sourceUrl} target="_blank">` — web URL directly to thread; no native scheme needed since the web URL is the canonical way to open a Gmail thread.
+- **Microsoft To Do**: Click handler attempts `ms-to-do://` (confirmed registered in app plist) via `window.location.href`; detects success via `window.blur` event within 500ms; if no blur fires (app not installed), opens the `webLink` web URL in a new tab as fallback.
+- **Apple Calendar**: No link shown — Apple Calendar has no public URL scheme that opens a specific event from a web browser. `calshow://` and `ical://` are either iOS-only or not standard; `webcal://` subscribes to a feed (not an event). Link deferred to future iOS/native support.
+- **Apple Reminders**: No link shown — Apple Reminders does not populate `url` in CalDAV VTODO data.
 
 ### Rationale
-- `<a target="_blank">` is the simplest approach; the browser delegates to the OS URL handler
-  automatically, enabling Gmail deep-links (`https://mail.google.com/...`), To Do web links, and
-  `webcal://` / `x-apple-reminder://` URIs where the OS has a registered handler.
-- `window.open` adds no benefit over `<a>` for external URLs and triggers popup blockers on
-  mobile browsers more aggressively.
-- Implementing custom protocol detection (e.g., sniffing `mailto:` vs `https://`) is premature
-  per Constitution V — the plain `<a>` approach handles every integration that supplies a valid
-  URL without per-integration branching in the frontend.
-- `rel="noopener noreferrer"` prevents the opened page from accessing `window.opener`, closing
-  a common cross-origin reference leak.
+- `ms-to-do://` is the scheme registered in the Microsoft To Do app's Info.plist (confirmed by inspection). It reliably opens the app on macOS and iOS. While it does not support task-level deep linking (path is ignored by the app), it provides the best UX for users who have the app installed.
+- The `window.blur` fallback pattern is the most reliable cross-browser mechanism for detecting whether a custom URL scheme was handled: if the OS hands off to the native app, the browser window loses focus.
+- The `webLink` field from Microsoft Graph API is preserved as `SyncCacheItem.url`. This is also used as the fallback web URL, and the `tasks/id/<id>` path segment is used to construct the native scheme URL.
+- Apple Calendar's limitation is a platform constraint, not an implementation choice. The spec requirement for a native Calendar link is deferred to when a native iOS or desktop app is built.
+
+### Implementation
+
+```ts
+// frontend/src/hooks/useSourceLink.ts
+export function buildSourceLinkHandler(serviceId, sourceUrl) {
+  if (serviceId !== 'microsoft_tasks') return undefined;
+  return (e) => {
+    e.preventDefault();
+    let fallbackTimer;
+    const onBlur = () => clearTimeout(fallbackTimer);
+    window.addEventListener('blur', onBlur, { once: true });
+    window.location.href = 'ms-to-do://';
+    fallbackTimer = setTimeout(() => {
+      window.removeEventListener('blur', onBlur);
+      window.open(sourceUrl, '_blank', 'noopener,noreferrer');
+    }, 500);
+  };
+}
+```
 
 ### Alternatives Considered
 
 | Alternative | Rejected because |
 |---|---|
 | `window.open(url, '_blank')` | Functionally equivalent to `<a target="_blank">` but bypasses the browser's native link handling and is more likely to be blocked by popup blockers. |
-| Per-integration deep-link construction | Overly complex, brittle (integration URL formats change), and unnecessary — adapters already populate the `url` field with the correct deep-link at sync time. |
-| Navigator Share API | Mobile-only, not universally supported, and opens a share sheet rather than navigating to the source item. |
+| `ms-todo://` scheme | Incorrect — the scheme registered in the app plist is `ms-to-do://` (with hyphens). `ms-todo://` causes "scheme does not have a registered handler" error. |
+| `calshow://` for Apple Calendar | iOS-only scheme; causes "scheme does not have a registered handler" in macOS browsers. |
+| `ical://` for Apple Calendar | Not a standard documented scheme on any platform. |
+| `webcal://` for Apple Calendar | Subscribes to a calendar feed; does not open a specific event. |
+| Per-integration deep-link construction (task-level) | Microsoft To Do ignores the path in `ms-to-do://tasks/id/<id>` — the app does not implement task-level routing via URL scheme. |
+| Always use web URL for MS To Do | Requires browser sign-in every session; `ms-to-do://` native open is strictly better UX for users with the app installed. |
 
 ---
 

@@ -116,9 +116,9 @@ curl -X PATCH http://localhost:3001/api/feed/items/sync:<SYNC_ITEM_ID>/descripti
 
 | Integration | Expected button label | Test approach |
 |---|---|---|
-| Gmail | **Open in Gmail** | Sync a Gmail message; open task detail; verify button appears and opens `mail.google.com/...` |
-| Microsoft To Do | **Open in To Do** | Sync a To Do task; verify button opens `to-do.microsoft.com/...` |
-| Apple Calendar | **Open in Calendar** | Sync an Apple Calendar event that has a `URL:` property; verify button opens Calendar |
+| Gmail | **Open in Gmail** | Sync a Gmail message; open task detail; verify button appears and opens `mail.google.com/...` in new tab |
+| Microsoft To Do | **Open in To Do** | Sync a To Do task; verify button first attempts `ms-to-do://` (opens the app if installed), or falls back to `webLink` web URL in new tab |
+| Apple Calendar | _(not shown)_ | Apple Calendar has no supported browser URL scheme for events; confirm no button is visible |
 | Apple Reminders | _(not shown)_ | Apple Reminders does not populate `url`; confirm no button is visible |
 | Native task | _(not shown)_ | Create a native task; confirm no "Open in" button in modal |
 
@@ -222,5 +222,13 @@ session configuration.
 is returned. If the feed still shows the old value, the frontend state update in `useFeed` may
 not be applying the patch correctly.
 
-**Prisma Studio shows no `body` or `url` column on `SyncCacheItem`**  
-→ Run `pnpm prisma generate` after the migration to rebuild the Prisma client.
+**"Open in To Do" opens the app but navigates to a default screen, not the specific task**  
+→ This is a Microsoft To Do limitation — the `ms-to-do://` URL scheme does not support task-level routing via the path. The app will open to its last-viewed state. Use the web fallback (click the link without the MS To Do app installed) to go directly to the task on `to-do.microsoft.com`.
+
+**"Open in To Do" shows "scheme does not have a registered handler"**  
+→ `ms-to-do://` requires Microsoft To Do to be installed on macOS or iOS. Without the app, the `window.blur` fallback should open the web URL in a new tab within 500ms. If you see this error, the fallback timer may not have fired — check the browser console for errors in `useSourceLink.ts`.
+
+**"Open in Calendar" button is not visible for Apple Calendar events**  
+→ This is correct. Apple Calendar events cannot be opened by URL from a web browser (`calshow://` is not supported outside of native iOS/macOS apps). The button is intentionally omitted. Native deep link support is deferred to a future mobile/desktop app release.
+
+
