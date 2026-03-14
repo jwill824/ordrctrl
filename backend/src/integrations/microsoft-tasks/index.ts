@@ -214,9 +214,9 @@ export class MicrosoftTasksAdapter implements IntegrationAdapter {
             dueAt = new Date(task.dueDateTime.dateTime);
           }
 
-          // Use the web URL — ms-todo:// scheme requires the native app registered as an OS handler,
-          // which isn't guaranteed. Web URL works cross-platform; browser auth is a one-time session.
-          const url = task.webLink ?? `https://to-do.microsoft.com/tasks/id/${encodeURIComponent(task.id)}`;
+          // ms-to-do:// is the scheme registered in the app's plist (confirmed).
+          // Attempts task-level deep link; opens app if format isn't supported.
+          const url = `ms-to-do://tasks/id/${encodeURIComponent(task.id)}`;
           const body = task.body?.content ?? null;
 
           items.push({
