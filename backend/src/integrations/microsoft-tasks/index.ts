@@ -192,7 +192,7 @@ export class MicrosoftTasksAdapter implements IntegrationAdapter {
 
       for (const list of listsData.value) {
         const tasksRes = await fetch(
-          `${MS_GRAPH_BASE}/me/todo/lists/${list.id}/tasks?$top=50`,
+          `${MS_GRAPH_BASE}/me/todo/lists/${list.id}/tasks?$top=50&$select=id,title,status,dueDateTime,body,webLink`,
           { headers: { Authorization: `Bearer ${accessToken}` } }
         );
         if (!tasksRes.ok) continue;
@@ -214,7 +214,7 @@ export class MicrosoftTasksAdapter implements IntegrationAdapter {
             dueAt = new Date(task.dueDateTime.dateTime);
           }
 
-          const url = task.webLink ?? null;
+          const url = task.webLink ?? `https://to-do.microsoft.com/tasks/id/${encodeURIComponent(task.id)}`;
           const body = task.body?.content ?? null;
 
           items.push({
