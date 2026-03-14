@@ -198,11 +198,11 @@ export function EditTaskModal({ task, onSave, onDelete, onClose, onSetDescriptio
             />
           </div>
 
-          {/* Source link — Apple Calendar falls back to calshow:// when no event URL exists.
-              TODO: add calshow://<timestamp> event deep links when iOS support lands. */}
-          {isSyncItem && sourceLabel && (task.sourceUrl || task.serviceId === 'apple_calendar') && (
+          {/* Source link — only shown when a URL is available.
+              TODO: add calshow://<timestamp> Apple Calendar deep links when iOS/native support lands. */}
+          {isSyncItem && sourceLabel && task.sourceUrl && (
             <a
-              href={task.sourceUrl ?? 'calshow://'}
+              href={task.sourceUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-[0.75rem] text-zinc-500 hover:text-zinc-800 underline"
