@@ -1,9 +1,7 @@
-'use client';
-
 import { useState } from 'react';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -34,7 +32,7 @@ export default function ForgotPasswordPage() {
             <p className="text-sm text-zinc-600 leading-relaxed">
               If <strong className="text-black">{email}</strong> has an account, we sent a reset link.
             </p>
-            <Link href="/login" className="mt-6 inline-block text-xs text-zinc-400 underline">
+            <Link to="/login" className="mt-6 inline-block text-xs text-zinc-400 underline">
               Back to sign in
             </Link>
           </div>
@@ -70,7 +68,7 @@ export default function ForgotPasswordPage() {
         </form>
 
         <p className="text-center text-xs text-zinc-400 mt-6">
-          <Link href="/login" className="text-black font-semibold no-underline">
+          <Link to="/login" className="text-black font-semibold no-underline">
             ← Back to sign in
           </Link>
         </p>

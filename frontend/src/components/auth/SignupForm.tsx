@@ -1,9 +1,7 @@
-'use client';
-
 import { useState } from 'react';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
 const GoogleIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" className="shrink-0">
@@ -70,7 +68,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
           We sent a verification link to <strong className="text-black">{email}</strong>.
           Click it to activate your account.
         </p>
-        <Link href="/login" className="mt-6 inline-block text-xs text-zinc-400 underline">
+        <Link to="/login" className="mt-6 inline-block text-xs text-zinc-400 underline">
           Back to sign in
         </Link>
       </div>
@@ -136,7 +134,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
 
       <p className="text-center text-xs text-zinc-400 mt-6">
         Already have an account?{' '}
-        <Link href="/login" className="text-black font-semibold no-underline">
+        <Link to="/login" className="text-black font-semibold no-underline">
           Sign in
         </Link>
       </p>

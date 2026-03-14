@@ -14,6 +14,7 @@ export function buildSourceLinkHandler(
   return (e) => {
     e.preventDefault();
 
+    // eslint-disable-next-line prefer-const
     let fallbackTimer: ReturnType<typeof setTimeout>;
 
     const onBlur = () => clearTimeout(fallbackTimer);

@@ -1,11 +1,8 @@
-'use client';
-
 // T044 — Integration settings page
 // All 4 cards with live status, disconnect and reconnect actions, Gmail sync mode toggle
 
 import { useEffect, useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
+import { useSearchParams, Link } from 'react-router-dom';
 import { IntegrationCard } from '@/components/integrations/IntegrationCard';
 import { SubSourceSelector } from '@/components/integrations/SubSourceSelector';
 import { useIntegrations } from '@/hooks/useIntegrations';
@@ -20,15 +17,15 @@ const SERVICE_IDS: ServiceId[] = [
 
 function IntegrationSettingsContent() {
   const { grouped, loading, error, disconnect, updateLabel, pauseAccount, refresh } = useIntegrations();
-  const searchParams = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [autoOpenServiceId, setAutoOpenServiceId] = useState<ServiceId | null>(null);
   const [oauthError, setOauthError] = useState<string | null>(null);
 
   useEffect(() => {
-    const connected = searchParams?.get('connected') as ServiceId | null;
-    const step = searchParams?.get('step');
-    const errParam = searchParams?.get('error');
-    const serviceId = searchParams?.get('serviceId') as ServiceId | null;
+    const connected = searchParams.get('connected') as ServiceId | null;
+    const step = searchParams.get('step');
+    const errParam = searchParams.get('error');
+    const serviceId = searchParams.get('serviceId') as ServiceId | null;
 
     if (connected && step === 'import-filter' && SERVICE_IDS.includes(connected)) {
       setAutoOpenServiceId(connected);
@@ -114,7 +111,7 @@ export default function IntegrationSettingsPage() {
     <main className="min-h-screen bg-white py-8 px-5 max-w-[36rem] mx-auto">
       {/* Nav */}
       <nav className="flex items-center gap-4 mb-10">
-        <Link href="/feed" className="text-[0.7rem] text-zinc-400 no-underline tracking-[0.08em]">
+        <Link to="/feed" className="text-[0.7rem] text-zinc-400 no-underline tracking-[0.08em]">
           ← Feed
         </Link>
         <span className="text-[0.7rem] font-bold tracking-[0.28em] uppercase text-black">

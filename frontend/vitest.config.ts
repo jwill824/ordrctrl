@@ -9,7 +9,7 @@ export default defineConfig({
     globals: false,
     setupFiles: ['./tests/unit/setup.ts'],
     include: ['tests/unit/**/*.test.{ts,tsx}'],
-    exclude: ['**/node_modules/**', '**/.next/**'],
+    exclude: ['**/node_modules/**'],
   },
   resolve: {
     alias: {

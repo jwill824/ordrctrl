@@ -1,14 +1,11 @@
-'use client';
-
 import { useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
 function ResetPasswordForm() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const token = searchParams.get('token') || '';
 
   const [password, setPassword] = useState('');
@@ -35,7 +32,7 @@ function ResetPasswordForm() {
         return;
       }
 
-      router.push('/feed');
+      navigate('/feed');
     } catch {
       setError('Network error. Please try again.');
     } finally {
@@ -49,7 +46,7 @@ function ResetPasswordForm() {
         <p className="text-sm text-zinc-600 mb-4">
           This reset link is invalid or has expired.
         </p>
-        <Link href="/forgot-password" className="text-xs font-semibold text-black no-underline">
+        <Link to="/forgot-password" className="text-xs font-semibold text-black no-underline">
           Request a new link
         </Link>
       </div>

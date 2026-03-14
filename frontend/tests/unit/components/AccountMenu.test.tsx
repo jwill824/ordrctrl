@@ -1,12 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { AccountMenu } from '@/components/AccountMenu';
 
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({ user: { email: 'test@example.com', id: '1', emailVerified: true } }),
 }));
 global.fetch = vi.fn();
+
+const renderWithRouter = (ui: React.ReactElement) =>
+  render(<MemoryRouter>{ui}</MemoryRouter>);
 
 describe('AccountMenu', () => {
   beforeEach(() => {
@@ -15,19 +18,19 @@ describe('AccountMenu', () => {
   });
 
   it('renders account initial as button', () => {
-    render(<AccountMenu />);
+    renderWithRouter(<AccountMenu />);
     expect(screen.getByLabelText('Account menu')).toHaveTextContent('T');
   });
 
   it('shows email and sign out on open', async () => {
-    render(<AccountMenu />);
+    renderWithRouter(<AccountMenu />);
     fireEvent.click(screen.getByLabelText('Account menu'));
     expect(screen.getByText('test@example.com')).toBeInTheDocument();
     expect(screen.getByText('Sign out')).toBeInTheDocument();
   });
 
   it('shows navigation links', () => {
-    render(<AccountMenu />);
+    renderWithRouter(<AccountMenu />);
     fireEvent.click(screen.getByLabelText('Account menu'));
     expect(screen.getByText('Integrations')).toBeInTheDocument();
     expect(screen.getByText('Feed preferences')).toBeInTheDocument();
@@ -35,7 +38,7 @@ describe('AccountMenu', () => {
   });
 
   it('calls logout endpoint on sign out', async () => {
-    render(<AccountMenu />);
+    renderWithRouter(<AccountMenu />);
     fireEvent.click(screen.getByLabelText('Account menu'));
     fireEvent.click(screen.getByText('Sign out'));
     await waitFor(() => {

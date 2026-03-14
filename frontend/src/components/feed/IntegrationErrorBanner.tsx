@@ -1,11 +1,9 @@
-'use client';
-
 // T053 — IntegrationErrorBanner component
 // Non-blocking per-integration inline error with re-auth CTA when token refresh failed
 
 import type { SyncStatusEntry } from '@/services/feed.service';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
 const SERVICE_DISPLAY: Record<string, string> = {
   gmail: 'Gmail',

@@ -1,7 +1,5 @@
-'use client';
-
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router-dom';
 import type { User } from '@/services/auth.service';
 import * as authService from '@/services/auth.service';
 
@@ -19,7 +17,7 @@ interface UseAuthReturn extends AuthState {
 }
 
 export function useAuth(): UseAuthReturn {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [state, setState] = useState<AuthState>({
     user: null,
     loading: true,
@@ -39,7 +37,7 @@ export function useAuth(): UseAuthReturn {
       try {
         const { user, hasIntegrations } = await authService.login(email, password);
         setState({ user, loading: false, error: null });
-        router.push(hasIntegrations ? '/feed' : '/onboarding');
+        navigate(hasIntegrations ? '/feed' : '/onboarding');
         return true;
       } catch (err: unknown) {
         const message =
@@ -48,7 +46,7 @@ export function useAuth(): UseAuthReturn {
         return false;
       }
     },
-    [router]
+    [navigate]
   );
 
   const logout = useCallback(async (): Promise<void> => {
@@ -56,11 +54,11 @@ export function useAuth(): UseAuthReturn {
     try {
       await authService.logout();
       setState({ user: null, loading: false, error: null });
-      router.push('/login');
+      navigate('/login');
     } catch {
       setState((prev) => ({ ...prev, loading: false }));
     }
-  }, [router]);
+  }, [navigate]);
 
   const register = useCallback(
     async (email: string, password: string): Promise<boolean> => {
