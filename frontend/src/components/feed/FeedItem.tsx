@@ -175,12 +175,13 @@ export function FeedItemRow({ item, onComplete, onUncomplete, onDismiss, onResto
             </span>
           )}
 
-          {/* Source link */}
-          {item.sourceUrl && item.serviceId !== 'ordrctrl' && (
+          {/* Source link — Apple Calendar falls back to calshow:// (generic app open).
+              TODO: add calshow://<timestamp> event deep links when iOS support lands. */}
+          {item.serviceId !== 'ordrctrl' && (item.sourceUrl || item.serviceId === 'apple_calendar') && (
             <>
               <span className="text-zinc-200 text-xs">·</span>
               <a
-                href={item.sourceUrl}
+                href={item.sourceUrl ?? 'calshow://'}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
