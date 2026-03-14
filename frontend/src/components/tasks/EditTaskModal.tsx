@@ -6,7 +6,6 @@
 
 import { useState, useEffect } from 'react';
 import type { FeedItem } from '@/services/feed.service';
-import { buildSourceLinkHandler } from '@/hooks/useSourceLink';
 
 const SOURCE_LABEL_MAP: Record<string, string> = {
   gmail: 'Open in Gmail',
@@ -200,14 +199,12 @@ export function EditTaskModal({ task, onSave, onDelete, onClose, onSetDescriptio
           </div>
 
           {/* Source link — only shown when a URL is available.
-              MS To Do: tries ms-to-do:// native scheme first, falls back to web URL.
-              TODO: add calshow://<timestamp> Apple Calendar deep links when iOS/native support lands. */}
+              TODO: add deep links when iOS/native support lands. */}
           {isSyncItem && sourceLabel && task.sourceUrl && (
             <a
               href={task.sourceUrl}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={buildSourceLinkHandler(task.serviceId, task.sourceUrl)}
               className="inline-flex items-center gap-1.5 text-[0.75rem] text-zinc-500 hover:text-zinc-800 underline"
             >
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>

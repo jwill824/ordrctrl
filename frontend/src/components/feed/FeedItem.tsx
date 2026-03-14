@@ -5,7 +5,6 @@
 import { useState } from 'react';
 import type { FeedItem as FeedItemType } from '@/services/feed.service';
 import { useLiveDate } from '@/hooks/useLiveDate';
-import { buildSourceLinkHandler } from '@/hooks/useSourceLink';
 
 const SERVICE_COLORS: Record<string, string> = {
   gmail: '#EA4335',
@@ -177,7 +176,6 @@ export function FeedItemRow({ item, onComplete, onUncomplete, onDismiss, onResto
           )}
 
           {/* Source link — only shown when a URL is available.
-              MS To Do: tries ms-to-do:// native scheme first, falls back to web URL.
               TODO: add calshow://<timestamp> Apple Calendar deep links when iOS/native support lands. */}
           {item.sourceUrl && item.serviceId !== 'ordrctrl' && (
             <>
@@ -186,11 +184,7 @@ export function FeedItemRow({ item, onComplete, onUncomplete, onDismiss, onResto
                 href={item.sourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const nativeHandler = buildSourceLinkHandler(item.serviceId, item.sourceUrl!);
-                  nativeHandler?.(e);
-                }}
+                onClick={(e) => e.stopPropagation()}
                 className="text-[0.65rem] text-zinc-400 hover:text-zinc-700 underline"
               >
                 {SOURCE_LABEL_MAP[item.serviceId] ?? 'Open Source'}
