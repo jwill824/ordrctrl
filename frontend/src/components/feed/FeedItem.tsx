@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import type { FeedItem as FeedItemType } from '@/services/feed.service';
 import { useLiveDate } from '@/hooks/useLiveDate';
+import { buildSourceLinkHandler } from '@/hooks/useSourceLink';
 
 const SERVICE_COLORS: Record<string, string> = {
   gmail: '#EA4335',
@@ -184,7 +185,10 @@ export function FeedItemRow({ item, onComplete, onUncomplete, onDismiss, onResto
                 href={item.sourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  buildSourceLinkHandler(item.serviceId, item.sourceUrl!)?.(e);
+                }}
                 className="text-[0.65rem] text-zinc-400 hover:text-zinc-700 underline"
               >
                 {SOURCE_LABEL_MAP[item.serviceId] ?? 'Open Source'}
