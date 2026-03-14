@@ -214,9 +214,10 @@ export class MicrosoftTasksAdapter implements IntegrationAdapter {
             dueAt = new Date(task.dueDateTime.dateTime);
           }
 
-          // ms-to-do:// is the scheme registered in the app's plist (confirmed).
-          // Attempts task-level deep link; opens app if format isn't supported.
-          const url = `ms-to-do://tasks/id/${encodeURIComponent(task.id)}`;
+          // Store webLink (web URL) as url — it contains the correctly-encoded task ID
+          // that the native app also uses for routing. Frontend will attempt ms-to-do://
+          // deep link first and fall back to this web URL.
+          const url = task.webLink ?? `https://to-do.microsoft.com/tasks/id/${encodeURIComponent(task.id)}`;
           const body = task.body?.content ?? null;
 
           items.push({
