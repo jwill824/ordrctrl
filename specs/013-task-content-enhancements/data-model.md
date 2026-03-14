@@ -74,7 +74,7 @@ description, task note). Populated by each adapter at sync time. Inherits the 24
 
 | Integration | Source field | Example value |
 |---|---|---|
-| Gmail | Constructed from `messageId` | `https://mail.google.com/mail/u/0/#inbox/<threadId>` |
+| Gmail | Constructed from `threadId` | `https://mail.google.com/mail/u/0/#inbox/<threadId>` |
 | Microsoft Tasks | `webLink` | `https://to-do.microsoft.com/tasks/id/<taskId>` |
 | Apple Calendar | `VEVENT URL:` property | `https://...` or `webcal://...` |
 | Apple Reminders | Not available | `null` |

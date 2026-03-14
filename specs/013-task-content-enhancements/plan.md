@@ -1,6 +1,6 @@
 # Implementation Plan: Task Content Enhancements
 
-**Branch**: `013-task-content-enhancements` | **Date**: 2025-07-17 | **Spec**: [spec.md](./spec.md)  
+**Branch**: `013-task-content-enhancements` | **Date**: 2025-07-17 | **Status**: Implemented | **Spec**: [spec.md](./spec.md)  
 **Input**: Feature specification from `/specs/013-task-content-enhancements/spec.md`  
 **Issues**: #44 (Edit task description), #38 (Open task source link)
 
