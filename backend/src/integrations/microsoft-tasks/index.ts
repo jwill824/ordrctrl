@@ -192,7 +192,7 @@ export class MicrosoftTasksAdapter implements IntegrationAdapter {
 
       for (const list of listsData.value) {
         const tasksRes = await fetch(
-          `${MS_GRAPH_BASE}/me/todo/lists/${list.id}/tasks?$top=50&$select=id,title,status,dueDateTime,body,webLink`,
+          `${MS_GRAPH_BASE}/me/todo/lists/${list.id}/tasks?$top=50`,
           { headers: { Authorization: `Bearer ${accessToken}` } }
         );
         if (!tasksRes.ok) continue;
