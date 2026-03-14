@@ -22,6 +22,8 @@ Auto-generated from all feature plans. Last updated: 2026-03-04
 - PostgreSQL (via Prisma), Redis (sync-status cache) (012-app-polish-bugfix)
 - TypeScript 5.x (backend Node 20 LTS + frontend Next.js 15 App Router) + Fastify (backend API), React 19, Prisma 5 ORM, PostgreSQL 16, Redis (013-task-content-enhancements)
 - PostgreSQL via Prisma (primary), Redis (short-lived sync cache metadata) (013-task-content-enhancements)
+- TypeScript 5.4.2 / React 18.2.0 / Node.js 18+ + Vite 5.1.4 (already installed), react-router-dom v6 (to add), Tailwind CSS 3.4.1 (014-vite-migration)
+- N/A — frontend only; all persistence is in the backend (014-vite-migration)
 
 - TypeScript 5.x (frontend + backend) + Next.js 14 (frontend), Fastify 4 (backend API), Prisma (ORM), (001-mvp-core)
 
@@ -41,9 +43,9 @@ npm test && npm run lint
 TypeScript 5.x (frontend + backend): Follow standard conventions
 
 ## Recent Changes
+- 014-vite-migration: Added TypeScript 5.4.2 / React 18.2.0 / Node.js 18+ + Vite 5.1.4 (already installed), react-router-dom v6 (to add), Tailwind CSS 3.4.1
 - 013-task-content-enhancements: Added TypeScript 5.x (backend Node 20 LTS + frontend Next.js 15 App Router) + Fastify (backend API), React 19, Prisma 5 ORM, PostgreSQL 16, Redis
 - 012-app-polish-bugfix: Added TypeScript 5.x (frontend + backend) + Next.js 14 App Router, React, Express, Prisma, BullMQ, Redis
-- 011-feed-ux-enhancements: Added TypeScript 5 (backend Node.js 20, frontend Next.js 14.1.3) + Fastify 4, Prisma 5, React 18, Tailwind CSS, BullMQ, Redis
 
 
 <!-- MANUAL ADDITIONS START -->
