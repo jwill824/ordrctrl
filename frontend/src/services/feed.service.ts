@@ -17,6 +17,13 @@ export interface FeedItem {
   isJustReopened?: boolean;
   dismissed: boolean;
   hasUserDueAt: boolean;
+  // Task content enhancement fields
+  originalBody: string | null;
+  description: string | null;
+  hasDescriptionOverride: boolean;
+  descriptionOverride: string | null;
+  descriptionUpdatedAt: string | null;
+  sourceUrl: string | null;
 }
 
 export interface SyncStatusEntry {
@@ -132,4 +139,27 @@ export async function setUserDueAt(itemId: string, dueAt: string | null): Promis
     const data = await res.json().catch(() => ({}));
     throw new Error(data.message || 'Failed to set due date');
   }
+}
+
+export interface SetDescriptionOverrideResult {
+  hasDescriptionOverride: boolean;
+  descriptionOverride: string | null;
+  descriptionUpdatedAt: string | null;
+}
+
+export async function setDescriptionOverride(
+  itemId: string,
+  value: string | null
+): Promise<SetDescriptionOverrideResult> {
+  const res = await fetch(`${API_URL}/api/feed/items/${itemId}/description-override`, {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ value }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to set description override');
+  }
+  return res.json();
 }

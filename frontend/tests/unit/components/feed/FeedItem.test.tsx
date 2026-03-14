@@ -18,6 +18,12 @@ const baseItem: FeedItem = {
   isDuplicateSuspect: false,
   dismissed: false,
   hasUserDueAt: false,
+  originalBody: null,
+  description: null,
+  hasDescriptionOverride: false,
+  descriptionOverride: null,
+  descriptionUpdatedAt: null,
+  sourceUrl: null,
 };
 
 describe('FeedItemRow', () => {
@@ -136,5 +142,54 @@ describe('FeedItemRow', () => {
   it('does not render Delete permanently button when onPermanentDelete is not provided', () => {
     render(<FeedItemRow item={baseItem} onComplete={vi.fn()} />);
     expect(screen.queryByRole('button', { name: 'Delete permanently' })).toBeNull();
+  });
+
+  // T029 — Source link tests
+  describe('source link (US2)', () => {
+    const syncItem: FeedItem = {
+      ...baseItem,
+      id: 'sync:item-1',
+      source: 'you@gmail.com',
+      serviceId: 'gmail',
+      sourceUrl: 'https://mail.google.com/mail/u/0/#inbox/abc123',
+    };
+
+    it('renders "Open in Gmail" link when sourceUrl is present', () => {
+      render(<FeedItemRow item={syncItem} onComplete={vi.fn()} />);
+      expect(screen.getByText('Open in Gmail')).toBeInTheDocument();
+    });
+
+    it('link has correct href and opens in new tab', () => {
+      render(<FeedItemRow item={syncItem} onComplete={vi.fn()} />);
+      const link = screen.getByText('Open in Gmail').closest('a');
+      expect(link).toHaveAttribute('href', 'https://mail.google.com/mail/u/0/#inbox/abc123');
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    });
+
+    it('renders "Open in To Do" for microsoft_tasks', () => {
+      const msItem: FeedItem = { ...syncItem, serviceId: 'microsoft_tasks', sourceUrl: 'https://todo.microsoft.com/task/123' };
+      render(<FeedItemRow item={msItem} onComplete={vi.fn()} />);
+      expect(screen.getByText('Open in To Do')).toBeInTheDocument();
+    });
+
+    it('renders "Open in Calendar" for apple_calendar', () => {
+      const calItem: FeedItem = { ...syncItem, serviceId: 'apple_calendar', sourceUrl: 'webcal://p01-caldav.icloud.com/event' };
+      render(<FeedItemRow item={calItem} onComplete={vi.fn()} />);
+      expect(screen.getByText('Open in Calendar')).toBeInTheDocument();
+    });
+
+    it('does not render source link when sourceUrl is null', () => {
+      const noUrlItem: FeedItem = { ...syncItem, sourceUrl: null };
+      render(<FeedItemRow item={noUrlItem} onComplete={vi.fn()} />);
+      expect(screen.queryByText('Open in Gmail')).toBeNull();
+    });
+
+    it('does not render source link for native ordrctrl tasks', () => {
+      const nativeItem: FeedItem = { ...baseItem, sourceUrl: 'https://example.com' };
+      render(<FeedItemRow item={nativeItem} onComplete={vi.fn()} />);
+      // serviceId is ordrctrl, so no source link even with sourceUrl
+      expect(screen.queryByText(/Open in/)).toBeNull();
+    });
   });
 });

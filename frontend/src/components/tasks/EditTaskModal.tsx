@@ -2,24 +2,35 @@
 
 // T060 — EditTaskModal component
 // For native tasks: edit title + due date, delete.
-// For sync items: edit user due date override only; show "(override)" when applied.
+// For sync items: edit user due date override + description override; show "(override)" when applied.
 
 import { useState, useEffect } from 'react';
 import type { FeedItem } from '@/services/feed.service';
+import { buildSourceLinkHandler } from '@/hooks/useSourceLink';
+
+const SOURCE_LABEL_MAP: Record<string, string> = {
+  gmail: 'Open in Gmail',
+  microsoft_tasks: 'Open in To Do',
+  apple_calendar: 'Open in Calendar',
+  apple_reminders: 'Open in Reminders',
+};
 
 interface EditTaskModalProps {
   task: FeedItem;
   onSave: (id: string, fields: { title?: string; dueAt?: string | null }) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onClose: () => void;
+  onSetDescriptionOverride?: (id: string, value: string | null) => Promise<void>;
 }
 
-export function EditTaskModal({ task, onSave, onDelete, onClose }: EditTaskModalProps) {
-  const isSyncItem = task.id.startsWith('sync:');
+export function EditTaskModal({ task, onSave, onDelete, onClose, onSetDescriptionOverride }: EditTaskModalProps) {
+  const isSyncItem = task.id.startsWith('sync:') && task.serviceId !== 'ordrctrl';
   const [title, setTitle] = useState(task.title);
   const [dueAt, setDueAt] = useState(
     task.dueAt ? new Date(task.dueAt).toISOString().slice(0, 16) : ''
   );
+  const [description, setDescription] = useState(task.description ?? '');
+  const [showOriginal, setShowOriginal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +38,7 @@ export function EditTaskModal({ task, onSave, onDelete, onClose }: EditTaskModal
   useEffect(() => {
     setTitle(task.title);
     setDueAt(task.dueAt ? new Date(task.dueAt).toISOString().slice(0, 16) : '');
+    setDescription(task.description ?? '');
   }, [task]);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -36,6 +48,11 @@ export function EditTaskModal({ task, onSave, onDelete, onClose }: EditTaskModal
     setSaving(true);
     try {
       const isoDate = dueAt ? new Date(dueAt).toISOString() : null;
+      if (isSyncItem && onSetDescriptionOverride) {
+        // Save description override: if textarea is empty, clear override; otherwise set it
+        const descValue = description.trim() || null;
+        await onSetDescriptionOverride(task.id, descValue);
+      }
       await onSave(task.id, { title: title.trim(), dueAt: isoDate });
       onClose();
     } catch (err) {
@@ -71,6 +88,8 @@ export function EditTaskModal({ task, onSave, onDelete, onClose }: EditTaskModal
     }
   };
 
+  const sourceLabel = task.serviceId ? (SOURCE_LABEL_MAP[task.serviceId] ?? 'Open Source') : null;
+
   return (
     <div
       onClick={onClose}
@@ -82,7 +101,7 @@ export function EditTaskModal({ task, onSave, onDelete, onClose }: EditTaskModal
       >
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-[0.7rem] font-bold uppercase tracking-[0.1em] text-zinc-400">
-            {isSyncItem ? 'Set due date' : 'Edit task'}
+            {isSyncItem ? 'Edit task' : 'Edit task'}
           </h2>
           <button
             type="button"
@@ -126,6 +145,46 @@ export function EditTaskModal({ task, onSave, onDelete, onClose }: EditTaskModal
             </p>
           )}
 
+          {isSyncItem && (
+            <div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <label htmlFor="edit-description" className="block text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+                  Description
+                </label>
+                {task.hasDescriptionOverride && (
+                  <span className="inline-flex items-center px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.08em] bg-zinc-100 text-zinc-500 rounded">
+                    Edited
+                  </span>
+                )}
+              </div>
+              <textarea
+                id="edit-description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={4}
+                maxLength={50000}
+                placeholder={task.originalBody ?? 'Add a personal note…'}
+                className="w-full border border-zinc-300 bg-white py-2.5 px-3 text-[0.9rem] text-black outline-none transition-colors focus:border-black placeholder:text-zinc-400 resize-y"
+              />
+              {task.hasDescriptionOverride && task.originalBody && (
+                <div className="mt-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowOriginal((v) => !v)}
+                    className="text-[0.7rem] text-zinc-400 hover:text-zinc-600 underline cursor-pointer bg-transparent border-0 p-0"
+                  >
+                    {showOriginal ? 'Hide original' : 'Show original'}
+                  </button>
+                  {showOriginal && (
+                    <p className="mt-1 text-[0.8rem] text-zinc-500 whitespace-pre-wrap border-l-2 border-zinc-200 pl-2">
+                      {task.originalBody}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           <div>
             <label htmlFor="edit-due" className="block text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-zinc-400 mb-1.5">
               Due date {isSyncItem ? '' : '(optional)'}
@@ -135,10 +194,28 @@ export function EditTaskModal({ task, onSave, onDelete, onClose }: EditTaskModal
               type="datetime-local"
               value={dueAt}
               onChange={(e) => setDueAt(e.target.value)}
-              autoFocus={isSyncItem}
+              autoFocus={isSyncItem && !task.description}
               className="w-full border border-zinc-300 bg-white py-2.5 px-3 text-[0.9rem] text-black outline-none transition-colors focus:border-black placeholder:text-zinc-400"
             />
           </div>
+
+          {/* Source link — only shown when a URL is available.
+              TODO: add deep links when iOS/native support lands. */}
+          {isSyncItem && sourceLabel && task.sourceUrl && (
+            <a
+              href={task.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={buildSourceLinkHandler(task.serviceId, task.sourceUrl) ?? undefined}
+              className="inline-flex items-center gap-1.5 text-[0.75rem] text-zinc-500 hover:text-zinc-800 underline"
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M5 2H2a1 1 0 00-1 1v7a1 1 0 001 1h7a1 1 0 001-1V7"/>
+                <path d="M8 1h3m0 0v3m0-3L5 7"/>
+              </svg>
+              {sourceLabel}
+            </a>
+          )}
 
           {error && <p className="border-l-2 border-red-500 py-1 pl-3 text-[0.8rem] text-red-600">{error}</p>}
 

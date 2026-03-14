@@ -697,3 +697,82 @@ describe('setUserDueAt()', () => {
     });
   });
 });
+
+// T015 — setDescriptionOverride() unit tests
+import { setDescriptionOverride } from '../../src/feed/feed.service.js';
+
+describe('setDescriptionOverride()', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('upserts DESCRIPTION_OVERRIDE with trimmed value', async () => {
+    const updatedAt = new Date('2026-07-18T14:32:00.000Z');
+    mockPrismaExtended.syncCacheItem.findFirst.mockResolvedValue({ id: 'item-1', userId: 'user-1' });
+    mockPrismaExtended.syncOverride.upsert.mockResolvedValue({
+      value: 'My override',
+      updatedAt,
+    });
+
+    const result = await setDescriptionOverride('user-1', 'item-1', '  My override  ');
+
+    expect(mockPrismaExtended.syncOverride.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          syncCacheItemId_overrideType: {
+            syncCacheItemId: 'item-1',
+            overrideType: 'DESCRIPTION_OVERRIDE',
+          },
+        },
+        create: expect.objectContaining({ value: 'My override', overrideType: 'DESCRIPTION_OVERRIDE' }),
+        update: { value: 'My override' },
+      })
+    );
+    expect(result.hasDescriptionOverride).toBe(true);
+    expect(result.descriptionOverride).toBe('My override');
+    expect(result.descriptionUpdatedAt).toBe('2026-07-18T14:32:00.000Z');
+  });
+
+  it('updates existing override when called twice', async () => {
+    const updatedAt = new Date('2026-07-18T15:00:00.000Z');
+    mockPrismaExtended.syncCacheItem.findFirst.mockResolvedValue({ id: 'item-1', userId: 'user-1' });
+    mockPrismaExtended.syncOverride.upsert.mockResolvedValue({
+      value: 'Updated override',
+      updatedAt,
+    });
+
+    const result = await setDescriptionOverride('user-1', 'item-1', 'Updated override');
+
+    expect(result.hasDescriptionOverride).toBe(true);
+    expect(result.descriptionOverride).toBe('Updated override');
+  });
+
+  it('clears override when value is null', async () => {
+    mockPrismaExtended.syncCacheItem.findFirst.mockResolvedValue({ id: 'item-1', userId: 'user-1' });
+    mockPrismaExtended.syncOverride.deleteMany.mockResolvedValue({ count: 1 });
+
+    const result = await setDescriptionOverride('user-1', 'item-1', null);
+
+    expect(mockPrismaExtended.syncOverride.deleteMany).toHaveBeenCalledWith({
+      where: { syncCacheItemId: 'item-1', overrideType: 'DESCRIPTION_OVERRIDE' },
+    });
+    expect(result.hasDescriptionOverride).toBe(false);
+    expect(result.descriptionOverride).toBeNull();
+    expect(result.descriptionUpdatedAt).toBeNull();
+  });
+
+  it('throws ITEM_NOT_FOUND when item does not exist', async () => {
+    mockPrismaExtended.syncCacheItem.findFirst.mockResolvedValue(null);
+
+    await expect(setDescriptionOverride('user-1', 'missing', 'value')).rejects.toMatchObject({
+      code: 'ITEM_NOT_FOUND',
+    });
+  });
+
+  it('throws ITEM_NOT_FOUND when item belongs to different user', async () => {
+    // findFirst with userId filter returns null for wrong user
+    mockPrismaExtended.syncCacheItem.findFirst.mockResolvedValue(null);
+
+    await expect(setDescriptionOverride('other-user', 'item-1', 'value')).rejects.toMatchObject({
+      code: 'ITEM_NOT_FOUND',
+    });
+  });
+});

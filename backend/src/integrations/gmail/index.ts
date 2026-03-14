@@ -200,6 +200,8 @@ export class GmailAdapter implements IntegrationAdapter {
         if (!msgRes.ok) continue;
         const msgData = (await msgRes.json()) as {
           id: string;
+          threadId?: string;
+          snippet?: string;
           labelIds?: string[];
           payload?: { headers?: Array<{ name: string; value: string }> };
           internalDate?: string;
@@ -218,6 +220,10 @@ export class GmailAdapter implements IntegrationAdapter {
           ? !labelIds.includes('UNREAD')
           : false;
 
+        const threadId = msgData.threadId ?? msgData.id;
+        const url = `https://mail.google.com/mail/u/0/#inbox/${threadId}`;
+        const body = msgData.snippet ?? null;
+
         items.push({
           externalId: msgData.id,
           itemType: 'message',
@@ -227,6 +233,8 @@ export class GmailAdapter implements IntegrationAdapter {
           endAt: null,
           subSourceId,
           completed,
+          body,
+          url,
           rawPayload: { id: msgData.id, internalDate: msgData.internalDate },
         });
       } catch (err) {

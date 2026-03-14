@@ -285,6 +285,7 @@ export function IntegrationCard({
     gmailCompletionModeFallback ?? 'inbox_removal'
   );
   const [showGmailSelector, setShowGmailSelector] = useState(false);
+  const [showAddAppleForm, setShowAddAppleForm] = useState(false);
   const [eventWindow, setEventWindow] = useState<number>(calendarEventWindowDays ?? 30);
   const meta = SERVICE_META[serviceId];
   const isApple = serviceId === 'apple_calendar';
@@ -419,15 +420,38 @@ export function IntegrationCard({
         {/* Multi-account mode: Add account button */}
         {hasAccounts && (
           <>
-            <a
-              href={connectHref}
-              title={accounts.length >= 5 ? 'Maximum of 5 accounts reached' : undefined}
-              aria-disabled={accounts.length >= 5}
-              onClick={accounts.length >= 5 ? (e) => e.preventDefault() : undefined}
-              className={`${btnSmall} ${accounts.length >= 5 ? 'opacity-40 cursor-not-allowed' : ''}`}
-            >
-              + Add account
-            </a>
+            {isApple ? (
+              <>
+                <button
+                  type="button"
+                  disabled={accounts.length >= 5}
+                  title={accounts.length >= 5 ? 'Maximum of 5 accounts reached' : undefined}
+                  onClick={() => setShowAddAppleForm((v) => !v)}
+                  className={`${btnSmall} ${accounts.length >= 5 ? 'opacity-40 cursor-not-allowed' : ''}`}
+                >
+                  + Add account
+                </button>
+                {showAddAppleForm && accounts.length < 5 && (
+                  <div className="w-full mt-2">
+                    <AppleCredentialForm
+                      serviceId="apple_calendar"
+                      onSuccess={() => { setShowAddAppleForm(false); onRefresh?.(); }}
+                      onError={() => {}}
+                    />
+                  </div>
+                )}
+              </>
+            ) : (
+              <a
+                href={connectHref}
+                title={accounts.length >= 5 ? 'Maximum of 5 accounts reached' : undefined}
+                aria-disabled={accounts.length >= 5}
+                onClick={accounts.length >= 5 ? (e) => e.preventDefault() : undefined}
+                className={`${btnSmall} ${accounts.length >= 5 ? 'opacity-40 cursor-not-allowed' : ''}`}
+              >
+                + Add account
+              </a>
+            )}
           </>
         )}
 

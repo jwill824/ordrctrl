@@ -203,6 +203,8 @@ export class MicrosoftTasksAdapter implements IntegrationAdapter {
             title: string;
             dueDateTime?: { dateTime: string; timeZone: string };
             status: string;
+            webLink?: string;
+            body?: { content?: string; contentType?: string };
           }>;
         };
 
@@ -211,6 +213,12 @@ export class MicrosoftTasksAdapter implements IntegrationAdapter {
           if (task.dueDateTime?.dateTime) {
             dueAt = new Date(task.dueDateTime.dateTime);
           }
+
+          // Store webLink (web URL) as url — it contains the correctly-encoded task ID
+          // that the native app also uses for routing. Frontend will attempt ms-to-do://
+          // deep link first and fall back to this web URL.
+          const url = task.webLink ?? `https://to-do.microsoft.com/tasks/id/${encodeURIComponent(task.id)}`;
+          const body = task.body?.content ?? null;
 
           items.push({
             externalId: task.id,
@@ -221,6 +229,8 @@ export class MicrosoftTasksAdapter implements IntegrationAdapter {
             endAt: null,
             subSourceId: list.id,
             completed: task.status === 'completed',
+            body,
+            url,
             rawPayload: { listId: list.id, status: task.status },
           });
         }

@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import type { FeedItem as FeedItemType } from '@/services/feed.service';
 import { useLiveDate } from '@/hooks/useLiveDate';
+import { buildSourceLinkHandler } from '@/hooks/useSourceLink';
 
 const SERVICE_COLORS: Record<string, string> = {
   gmail: '#EA4335',
@@ -20,6 +21,13 @@ const SERVICE_NAMES: Record<string, string> = {
   microsoft_tasks: 'To Do',
   apple_calendar: 'Calendar',
   ordrctrl: 'ordrctrl',
+};
+
+const SOURCE_LABEL_MAP: Record<string, string> = {
+  gmail: 'Open in Gmail',
+  microsoft_tasks: 'Open in To Do',
+  apple_calendar: 'Open in Calendar',
+  apple_reminders: 'Open in Reminders',
 };
 
 function formatDate(iso: string | null, now: Date): string {
@@ -166,6 +174,26 @@ export function FeedItemRow({ item, onComplete, onUncomplete, onDismiss, onResto
             <span className="text-xs text-zinc-400">
               – {formatTime(item.endAt)}
             </span>
+          )}
+
+          {/* Source link — only shown when a URL is available.
+              TODO: add calshow://<timestamp> Apple Calendar deep links when iOS/native support lands. */}
+          {item.sourceUrl && item.serviceId !== 'ordrctrl' && (
+            <>
+              <span className="text-zinc-200 text-xs">·</span>
+              <a
+                href={item.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  buildSourceLinkHandler(item.serviceId, item.sourceUrl!)?.(e);
+                }}
+                className="text-[0.65rem] text-zinc-400 hover:text-zinc-700 underline"
+              >
+                {SOURCE_LABEL_MAP[item.serviceId] ?? 'Open Source'}
+              </a>
+            </>
           )}
         </div>
       </div>
