@@ -214,7 +214,9 @@ export class MicrosoftTasksAdapter implements IntegrationAdapter {
             dueAt = new Date(task.dueDateTime.dateTime);
           }
 
-          const url = task.webLink ?? `https://to-do.microsoft.com/tasks/id/${encodeURIComponent(task.id)}`;
+          // Use ms-todo:// scheme to open the native app directly (no browser login required).
+          // Works on macOS, Windows, and iOS where To Do is installed.
+          const url = `ms-todo://tasks/id/${encodeURIComponent(task.id)}`;
           const body = task.body?.content ?? null;
 
           items.push({
