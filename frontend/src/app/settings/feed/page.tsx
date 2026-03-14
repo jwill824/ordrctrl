@@ -1,9 +1,7 @@
-'use client';
-
 // T026 — Feed settings page
 // Houses AutoClearSettings and future feed preferences
 
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import { AutoClearSettings } from '@/components/settings/AutoClearSettings';
 
 export default function FeedSettingsPage() {
@@ -11,7 +9,7 @@ export default function FeedSettingsPage() {
     <main className="min-h-screen bg-white py-8 px-5 max-w-[36rem] mx-auto">
       {/* Nav */}
       <nav className="flex items-center gap-4 mb-10">
-        <Link href="/feed" className="text-[0.7rem] text-zinc-400 no-underline tracking-[0.08em]">
+        <Link to="/feed" className="text-[0.7rem] text-zinc-400 no-underline tracking-[0.08em]">
           ← Feed
         </Link>
         <span className="text-[0.7rem] font-bold tracking-[0.28em] uppercase text-black">

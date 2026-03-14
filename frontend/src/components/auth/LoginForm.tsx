@@ -1,10 +1,8 @@
-'use client';
-
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
 const GoogleIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" className="shrink-0">
@@ -22,7 +20,7 @@ const AppleIcon = () => (
 );
 
 export function LoginForm() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +46,7 @@ export function LoginForm() {
         return;
       }
 
-      router.push(data.hasIntegrations ? '/feed' : '/onboarding');
+      navigate(data.hasIntegrations ? '/feed' : '/onboarding');
     } catch {
       setError('Network error. Please try again.');
     } finally {
@@ -94,7 +92,7 @@ export function LoginForm() {
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label htmlFor="password" className="block text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-zinc-400">Password</label>
-            <Link href="/forgot-password" className="text-xs text-zinc-400 no-underline hover:text-black transition-colors">
+            <Link to="/forgot-password" className="text-xs text-zinc-400 no-underline hover:text-black transition-colors">
               Forgot password?
             </Link>
           </div>
@@ -118,7 +116,7 @@ export function LoginForm() {
 
       <p className="text-center text-xs text-zinc-400 mt-6">
         No account?{' '}
-        <Link href="/signup" className="text-black font-semibold no-underline">
+        <Link to="/signup" className="text-black font-semibold no-underline">
           Sign up
         </Link>
       </p>

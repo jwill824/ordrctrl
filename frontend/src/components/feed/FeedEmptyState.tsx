@@ -1,9 +1,7 @@
-'use client';
-
 // T054 — FeedEmptyState component
 // Shown when no integrations + no native tasks
 
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 
 interface FeedEmptyStateProps {
   hasIntegrations: boolean;
@@ -37,7 +35,7 @@ export function FeedEmptyState({ hasIntegrations }: FeedEmptyStateProps) {
             Connect a service to sync tasks automatically, or add your first task manually.
           </p>
           <div className="flex gap-3 justify-center flex-wrap">
-            <Link href="/onboarding" className="bg-black text-white py-[0.625rem] px-4 text-[0.7rem] font-bold uppercase tracking-[0.12em] cursor-pointer transition-colors hover:bg-zinc-900 no-underline">
+            <Link to="/onboarding" className="bg-black text-white py-[0.625rem] px-4 text-[0.7rem] font-bold uppercase tracking-[0.12em] cursor-pointer transition-colors hover:bg-zinc-900 no-underline">
               Connect a service
             </Link>
           </div>

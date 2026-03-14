@@ -1,11 +1,8 @@
-'use client';
-
 // T055 + T061 — Feed page
 
 import { useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, Link } from 'react-router-dom';
 import { Suspense } from 'react';
-import Link from 'next/link';
 import { useFeed } from '@/hooks/useFeed';
 import { useNativeTasks } from '@/hooks/useNativeTasks';
 import { useInboxCount } from '@/hooks/useInboxCount';
@@ -19,7 +16,7 @@ import { AccountMenu } from '@/components/AccountMenu';
 import type { FeedItem } from '@/services/feed.service';
 
 function FeedPageContent() {
-  const searchParams = useSearchParams();
+  const [searchParams] = useSearchParams();
   const showDismissed = searchParams.get('showDismissed') === 'true';
 
   const {
@@ -59,8 +56,7 @@ function FeedPageContent() {
 
         <div className="flex items-center gap-3">
           {inboxCount > 0 ? (
-            <Link
-              href="/inbox"
+            <Link to="/inbox"
               aria-label={`Inbox — ${inboxCount} item${inboxCount !== 1 ? 's' : ''}`}
               className="relative bg-transparent border-0 p-1 flex items-center cursor-pointer text-zinc-500 no-underline"
             >
@@ -137,7 +133,7 @@ function FeedPageContent() {
 
         {showDismissed && (
           <div className="flex items-center gap-2 mb-4">
-            <Link href="/feed" className="text-[0.7rem] text-zinc-400 hover:text-black no-underline">
+            <Link to="/feed" className="text-[0.7rem] text-zinc-400 hover:text-black no-underline">
               ← Back to feed
             </Link>
             <span className="text-zinc-200">|</span>
@@ -243,7 +239,7 @@ function FeedPageContent() {
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-zinc-900 text-white text-sm px-4 py-2.5 shadow-lg z-30">
           <span>
             Cleared {clearedCount} completed task{clearedCount !== 1 ? 's' : ''} — find them in{' '}
-            <Link href="/feed?showDismissed=true" className="text-zinc-300 underline underline-offset-2 hover:text-white">
+            <Link to="/feed?showDismissed=true" className="text-zinc-300 underline underline-offset-2 hover:text-white">
               Dismissed Items
             </Link>
           </span>

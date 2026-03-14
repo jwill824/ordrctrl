@@ -1,4 +1,3 @@
-'use client';
 import { useState } from 'react';
 import { connectWithCredentials } from '@/services/integrations.service';
 
@@ -8,8 +7,8 @@ interface AppleCredentialFormProps {
   onError: (message: string) => void;
 }
 
-const DEV_EMAIL = process.env.NEXT_PUBLIC_DEV_APPLE_USERNAME ?? '';
-const DEV_PASSWORD = process.env.NEXT_PUBLIC_DEV_APPLE_APP_SPECIFIC_PASSWORD ?? '';
+const DEV_EMAIL = import.meta.env.VITE_DEV_APPLE_USERNAME ?? '';
+const DEV_PASSWORD = import.meta.env.VITE_DEV_APPLE_APP_SPECIFIC_PASSWORD ?? '';
 
 export function AppleCredentialForm({ serviceId, onSuccess, onError }: AppleCredentialFormProps) {
   const [email, setEmail] = useState(DEV_EMAIL);
