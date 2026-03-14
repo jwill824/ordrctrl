@@ -88,6 +88,9 @@ export async function registerIntegrationRoutes(app: FastifyInstance): Promise<v
       if (!isValidServiceId(serviceId)) {
         return reply.status(400).send({ error: 'Bad Request', message: 'Unknown serviceId' });
       }
+      if (APPLE_SERVICE_IDS.includes(serviceId)) {
+        return reply.status(405).send({ error: 'Method Not Allowed', message: 'Apple integrations use credential-based connect (POST)' });
+      }
 
       const query = connectQuerySchema.safeParse(request.query);
       const syncMode = query.success ? query.data.syncMode : undefined;
