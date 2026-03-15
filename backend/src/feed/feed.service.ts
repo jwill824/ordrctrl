@@ -11,7 +11,9 @@ export interface FeedItem {
   source: string;                   // account label or email, e.g. "you@gmail.com"
   serviceId: string;                // "gmail" | "microsoft_tasks" | "apple_calendar" | "ordrctrl"
   itemType: 'task' | 'event' | 'message';
-  title: string;
+  title: string;                    // display title — custom title wins if TITLE_OVERRIDE is set
+  originalTitle: string | null;     // always the raw SyncCacheItem.title; null for native tasks
+  hasTitleOverride: boolean;        // true when user has set a custom title via TITLE_OVERRIDE
   dueAt: string | null;             // ISO string — effective due date (userDueAt ?? sourceDueAt)
   startAt: string | null;
   endAt: string | null;
@@ -58,19 +60,28 @@ export async function buildFeed(
   // Fetch sync cache items excluding dismissed
   const cacheItems = await getCacheItemsForUser(userId, dismissedSyncIds);
 
-  // Fetch all DESCRIPTION_OVERRIDE records for this user's cache items in one query
+  // Fetch all DESCRIPTION_OVERRIDE and TITLE_OVERRIDE records for this user's cache items in one query
   const cacheItemIds = cacheItems.map((i) => i.id);
-  const descOverrides = cacheItemIds.length > 0
+  const allOverrides = cacheItemIds.length > 0
     ? await prisma.syncOverride.findMany({
         where: {
           userId,
-          overrideType: 'DESCRIPTION_OVERRIDE',
+          overrideType: { in: ['DESCRIPTION_OVERRIDE', 'TITLE_OVERRIDE'] },
           syncCacheItemId: { in: cacheItemIds },
         },
-        select: { syncCacheItemId: true, value: true, updatedAt: true },
+        select: { syncCacheItemId: true, overrideType: true, value: true, updatedAt: true },
       })
     : [];
-  const descOverrideMap = new Map(descOverrides.map((o) => [o.syncCacheItemId, o]));
+  const descOverrideMap = new Map(
+    allOverrides
+      .filter((o) => o.overrideType === 'DESCRIPTION_OVERRIDE')
+      .map((o) => [o.syncCacheItemId, o])
+  );
+  const titleOverrideMap = new Map(
+    allOverrides
+      .filter((o) => o.overrideType === 'TITLE_OVERRIDE')
+      .map((o) => [o.syncCacheItemId, o])
+  );
 
   // Fetch native tasks (excluding dismissed)
   const nativeTasks = await prisma.nativeTask.findMany({
@@ -85,6 +96,7 @@ export async function buildFeed(
     const hasUserDueAt = item.dueAt === null && item.userDueAt !== null;
 
     const descOverride = descOverrideMap.get(item.id) ?? null;
+    const titleOverride = titleOverrideMap.get(item.id) ?? null;
     const hasDescriptionOverride = descOverride !== null;
     const descriptionOverride = descOverride?.value ?? null;
     const originalBody = (item as { body?: string | null }).body ?? null;
@@ -97,7 +109,9 @@ export async function buildFeed(
       source: item.integration.label ?? item.integration.accountIdentifier,
       serviceId: item.integration.serviceId,
       itemType: item.itemType as 'task' | 'event' | 'message',
-      title: item.title,
+      title: titleOverride?.value ?? item.title,
+      originalTitle: item.title,
+      hasTitleOverride: !!titleOverride,
       dueAt: effectiveDueAt?.toISOString() ?? null,
       startAt: item.startAt?.toISOString() ?? null,
       endAt: item.endAt?.toISOString() ?? null,
@@ -122,6 +136,8 @@ export async function buildFeed(
     serviceId: 'ordrctrl',
     itemType: 'task' as const,
     title: task.title,
+    originalTitle: null,
+    hasTitleOverride: false,
     dueAt: task.dueAt?.toISOString() ?? null,
     startAt: null,
     endAt: null,
@@ -692,6 +708,8 @@ export async function buildDismissedFeed(userId: string): Promise<{ items: FeedI
       serviceId: item.integration.serviceId,
       itemType: item.itemType as 'task' | 'event' | 'message',
       title: item.title,
+      originalTitle: item.title,
+      hasTitleOverride: false,
       dueAt: effectiveDueAt?.toISOString() ?? null,
       startAt: item.startAt?.toISOString() ?? null,
       endAt: item.endAt?.toISOString() ?? null,
@@ -715,6 +733,8 @@ export async function buildDismissedFeed(userId: string): Promise<{ items: FeedI
     serviceId: 'ordrctrl',
     itemType: 'task' as const,
     title: task.title,
+    originalTitle: null,
+    hasTitleOverride: false,
     dueAt: task.dueAt?.toISOString() ?? null,
     startAt: null,
     endAt: null,
@@ -856,4 +876,114 @@ export async function setDescriptionOverride(
       descriptionUpdatedAt: null,
     };
   }
+}
+
+// ─── Title Override ───────────────────────────────────────────────────────────
+
+/**
+ * Builds a complete FeedItem for a single sync cache item.
+ * Used to return the updated item after a title override mutation.
+ */
+async function buildSingleSyncFeedItem(syncCacheItemId: string, userId: string): Promise<FeedItem> {
+  const item = await prisma.syncCacheItem.findFirst({
+    where: { id: syncCacheItemId, userId },
+    include: { integration: { select: { serviceId: true, label: true, accountIdentifier: true } } },
+  });
+  if (!item) throw Object.assign(new Error('Item not found'), { code: 'ITEM_NOT_FOUND' });
+
+  const overrides = await prisma.syncOverride.findMany({
+    where: {
+      userId,
+      syncCacheItemId,
+      overrideType: { in: ['DESCRIPTION_OVERRIDE', 'TITLE_OVERRIDE'] },
+    },
+    select: { overrideType: true, value: true, updatedAt: true },
+  });
+
+  const titleOverride = overrides.find((o) => o.overrideType === 'TITLE_OVERRIDE') ?? null;
+  const descOverride = overrides.find((o) => o.overrideType === 'DESCRIPTION_OVERRIDE') ?? null;
+
+  const effectiveDueAt = item.dueAt ?? item.userDueAt ?? null;
+  const hasUserDueAt = item.dueAt === null && item.userDueAt !== null;
+  const originalBody = (item as { body?: string | null }).body ?? null;
+  const descriptionOverride = descOverride?.value ?? null;
+
+  return {
+    id: `sync:${item.id}`,
+    source: item.integration.label ?? item.integration.accountIdentifier,
+    serviceId: item.integration.serviceId,
+    itemType: item.itemType as 'task' | 'event' | 'message',
+    title: titleOverride?.value ?? item.title,
+    originalTitle: item.title,
+    hasTitleOverride: !!titleOverride,
+    dueAt: effectiveDueAt?.toISOString() ?? null,
+    startAt: item.startAt?.toISOString() ?? null,
+    endAt: item.endAt?.toISOString() ?? null,
+    completed: item.completedInOrdrctrl,
+    completedAt: item.completedAt?.toISOString() ?? null,
+    isDuplicateSuspect: false,
+    dismissed: false,
+    hasUserDueAt,
+    originalBody,
+    description: descriptionOverride ?? originalBody,
+    hasDescriptionOverride: !!descOverride,
+    descriptionOverride,
+    descriptionUpdatedAt: descOverride?.updatedAt?.toISOString() ?? null,
+    sourceUrl: (item as { url?: string | null }).url ?? null,
+  };
+}
+
+/**
+ * Sets or clears a TITLE_OVERRIDE for a synced cache item.
+ * - Non-null value: upserts TITLE_OVERRIDE; idempotently prepends "Original: {title}"
+ *   to DESCRIPTION_OVERRIDE so the original is always accessible.
+ * - Null value: deletes TITLE_OVERRIDE (DESCRIPTION_OVERRIDE is intentionally left untouched).
+ * Returns the full updated FeedItem.
+ */
+export async function setTitleOverride(
+  userId: string,
+  syncCacheItemId: string,
+  value: string | null
+): Promise<FeedItem> {
+  const item = await prisma.syncCacheItem.findFirst({
+    where: { id: syncCacheItemId, userId },
+    select: { id: true, title: true },
+  });
+  if (!item) throw Object.assign(new Error('Item not found'), { code: 'ITEM_NOT_FOUND' });
+
+  if (value !== null) {
+    const trimmed = value.trim();
+
+    await prisma.syncOverride.upsert({
+      where: { syncCacheItemId_overrideType: { syncCacheItemId, overrideType: 'TITLE_OVERRIDE' } },
+      create: { userId, syncCacheItemId, overrideType: 'TITLE_OVERRIDE', value: trimmed },
+      update: { value: trimmed },
+    });
+
+    // Idempotently prepend "Original: {original title}" to the description override.
+    const prefix = `Original: ${item.title}`;
+    const existing = await prisma.syncOverride.findUnique({
+      where: { syncCacheItemId_overrideType: { syncCacheItemId, overrideType: 'DESCRIPTION_OVERRIDE' } },
+      select: { value: true },
+    });
+    if (!existing) {
+      await prisma.syncOverride.create({
+        data: { userId, syncCacheItemId, overrideType: 'DESCRIPTION_OVERRIDE', value: prefix },
+      });
+    } else if (!existing.value?.startsWith(prefix)) {
+      const newValue = existing.value ? `${prefix}\n${existing.value}` : prefix;
+      await prisma.syncOverride.update({
+        where: { syncCacheItemId_overrideType: { syncCacheItemId, overrideType: 'DESCRIPTION_OVERRIDE' } },
+        data: { value: newValue },
+      });
+    }
+  } else {
+    await prisma.syncOverride.deleteMany({
+      where: { syncCacheItemId, overrideType: 'TITLE_OVERRIDE' },
+    });
+    // Intentionally leave DESCRIPTION_OVERRIDE untouched — the "Original:" prefix is
+    // a permanent historical reference, not dependent on the override being active.
+  }
+
+  return buildSingleSyncFeedItem(syncCacheItemId, userId);
 }

@@ -103,22 +103,7 @@ ordrctrl/
 
 ## Development workflow (speckit)
 
-Features go through a structured pipeline before any code is written:
-
-```
-specify → clarify → plan → tasks → implement → analyze
-```
-
-| Command | What it does |
-|---------|-------------|
-| `/speckit.specify` | Create or update the feature spec |
-| `/speckit.clarify` | Resolve ambiguity before design begins |
-| `/speckit.plan` | Generate the technical design |
-| `/speckit.tasks` | Break the plan into an ordered task list |
-| `/speckit.implement` | Execute the task list — writes all code |
-| `/speckit.analyze` | Cross-artifact consistency check |
-
-**Rule**: No code may be written for a new feature until `tasks.md` exists and `/speckit.analyze` passes.
+For the full speckit pipeline, command reference, and contribution workflow, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 

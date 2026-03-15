@@ -22,6 +22,7 @@ import {
   permanentDeleteFeedItem,
   setUserDueAt,
   setDescriptionOverride,
+  setTitleOverride,
 } from '../feed/feed.service.js';
 import { dismissParamSchema, dismissedQuerySchema } from './schemas/feed.schemas.js';
 
@@ -299,8 +300,7 @@ export async function registerFeedRoutes(app: FastifyInstance): Promise<void> {
 
   // T014 — PATCH /api/feed/items/:itemId/description-override
   app.patch(
-    '/api/feed/items/:itemId/description-override',
-    async (
+    '/api/feed/items/:itemId/description-override',    async (
       request: FastifyRequest<{ Params: { itemId: string }; Body: { value: string | null } }>,
       reply
     ) => {
@@ -343,6 +343,42 @@ export async function registerFeedRoutes(app: FastifyInstance): Promise<void> {
       } catch (err) {
         const code = (err as NodeJS.ErrnoException & { code?: string }).code;
         if (code === 'ITEM_NOT_FOUND') return reply.status(404).send({ error: 'Not Found', code, message: (err as Error).message });
+        throw err;
+      }
+    }
+  );
+
+  // PATCH /api/feed/sync/:id/title-override
+  app.patch(
+    '/api/feed/sync/:id/title-override',
+    async (
+      request: FastifyRequest<{ Params: { id: string }; Body: { value: string | null } }>,
+      reply
+    ) => {
+      const userId = requireAuth(request, reply);
+      if (!userId) return;
+
+      const { id } = request.params;
+      const { value } = request.body ?? {};
+
+      if (value !== null && value !== undefined) {
+        if (typeof value !== 'string' || value.trim().length === 0) {
+          return reply.status(400).send({
+            error: 'Bad Request',
+            code: 'INVALID_VALUE',
+            message: 'value must be a non-empty string or null (use null to clear the override)',
+          });
+        }
+      }
+
+      try {
+        const result = await setTitleOverride(userId, id, value ?? null);
+        return reply.send(result);
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException & { code?: string }).code;
+        if (code === 'ITEM_NOT_FOUND') {
+          return reply.status(404).send({ error: 'Not Found', code, message: (err as Error).message });
+        }
         throw err;
       }
     }

@@ -12,7 +12,7 @@ Follow the setup steps in [docs/development.md](docs/development.md) to get the 
 
 ## Development workflow (speckit)
 
-See the [Development workflow (speckit)](README.md#development-workflow-speckit) section in the README for the full command reference and pipeline explanation.
+See the **Development workflow (speckit)** section in [README.md](README.md) for the full command reference and pipeline explanation.
 
 **Rule**: No code may be written for a new feature until `tasks.md` exists and `/speckit.analyze` passes. This is a constitution-level requirement.
 
@@ -34,20 +34,25 @@ Quick summary:
 
 ## Branching
 
-We use a feature-branch workflow:
+All feature branches follow the **spec-number format**: `NNN-short-name`, where `NNN` is the zero-padded spec number and `short-name` is a brief kebab-case description.
 
 ```bash
 # Create a branch from main
 git checkout main && git pull
-git checkout -b <type>/<short-description>
-
-# Examples
-git checkout -b feat/todoist-integration
-git checkout -b fix/feed-ordering-bug
-git checkout -b chore/update-prisma
+git checkout -b 017-task-rename-polish
 ```
 
-Branch types: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`
+**Examples**
+
+| ✅ Valid | ❌ Invalid |
+|---------|----------|
+| `017-task-rename-polish` | `feat/task-rename` |
+| `023-todoist-integration` | `fix/feed-bug` |
+| `031-recurring-tasks` | `my-feature` |
+
+The spec number ties the branch directly to its design documents in `specs/NNN-*/`. This makes it easy to find the spec, plan, and tasks for any branch at a glance.
+
+Branch from `main`. Delete your branch after it merges.
 
 ---
 
