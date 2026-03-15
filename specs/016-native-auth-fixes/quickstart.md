@@ -83,7 +83,7 @@ cd frontend && pnpm dev
 # Terminal 1 — infrastructure
 docker-compose up -d
 
-# Terminal 2 — backend with device overrides (.env + .env.device)
+# Terminal 2 — backend with device overrides (.env + .env.device.local)
 cd backend && pnpm dev:device
 
 # Terminal 3 — ngrok tunnel
@@ -93,7 +93,7 @@ cd backend && pnpm dev:ngrok
 cd frontend && pnpm dev:device
 ```
 
-> **Env file structure**: base `.env` holds all consistent vars (DB, Redis, credentials). Device overrides live in `backend/.env.device` and `frontend/.env.device.local` — never committed. Copy from `*.example` files to set up.
+> **Env file structure**: base `.env` holds all consistent vars (DB, Redis, credentials). Device overrides live in `backend/.env.device.local` and `frontend/.env.device.local` — never committed. Copy from `*.example` files to set up.
 
 ---
 
