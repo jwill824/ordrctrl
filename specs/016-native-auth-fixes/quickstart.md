@@ -7,123 +7,94 @@
 
 ## Prerequisites
 
-- Completed setup from spec 015 quickstart (Capacitor iOS simulator running)
-- A free [ngrok account](https://ngrok.com/) (required for Apple Sign In testing — Apple requires HTTPS)
-- Apple Developer account with Sign In with Apple configured (see Step 2 below)
-- Redis running locally (already required by the main dev setup)
+- Completed setup from spec 015 quickstart (Capacitor iOS project initialized)
+- A paid [ngrok account](https://ngrok.com/) with a **static domain** (required — Apple Sign In needs a permanent HTTPS redirect URI)
+- Apple Developer account with Sign In with Apple configured
+- Redis running locally (`docker-compose up -d redis`)
 
 ---
 
-## Step 1 — Install ngrok
+## One-Time Setup (do this once, never again)
 
-```bash
-# From the repo root
-cd backend
-pnpm install   # installs @ngrok/ngrok devDependency
+### Step 1 — Configure ngrok credentials
 
-# Verify
-pnpm exec ngrok --version
-```
-
----
-
-## Step 2 — Configure ngrok Auth Token
-
-1. Log in at [https://dashboard.ngrok.com/](https://dashboard.ngrok.com/)
-2. Go to **Your Authtoken** and copy the token
-3. Add it to `backend/.env`:
+Add to `backend/.env`:
 
 ```env
-NGROK_AUTHTOKEN=your_token_here
+NGROK_AUTHTOKEN=your_token_here   # from https://dashboard.ngrok.com/
+NGROK_DOMAIN=your-name.ngrok-free.app  # from https://dashboard.ngrok.com/domains
 ```
 
----
+### Step 2 — Register your static domain with Apple Developer Portal
 
-## Step 3 — Start the ngrok Tunnel
-
-```bash
-# Terminal 1 — start the backend with ngrok tunnel
-cd backend
-pnpm dev:ngrok
-```
-
-The terminal will print something like:
-
-```
-[ngrok] Tunnel started: https://abc123.ngrok-free.app
-[ngrok] Set API_URL=https://abc123.ngrok-free.app in your .env when testing Apple Sign In
-```
-
-Copy the `https://…ngrok-free.app` URL — you'll need it for the next steps.
-
----
-
-## Step 4 — Register the ngrok URL with Apple Developer Portal
-
-> **One-time setup per ngrok URL.** Free ngrok accounts get a new random URL each session; paid accounts with a static domain only need this once.
+> **One-time only** — because your domain never changes, you never need to redo this.
 
 1. Go to [https://developer.apple.com/account/resources/identifiers/list/serviceId](https://developer.apple.com/account/resources/identifiers/list/serviceId)
 2. Select your Service ID (e.g., `com.ordrctrl.signin`)
-3. Under **Sign In with Apple**, click **Configure**
-4. Add a **Return URL**: `https://{your-ngrok-url}/api/auth/apple/callback`
-5. Click **Save** and **Continue** → **Register**
+3. Under **Sign In with Apple** → **Configure**
+4. Add **Return URL**: `https://{your-ngrok-domain}/api/auth/apple/callback`
+5. Save → Continue → Register
 
----
+### Step 3 — Set API URL permanently
 
-## Step 5 — Set Environment Variables for Native Testing
-
-Update `backend/.env` (or create `backend/.env.local`):
+Since your ngrok domain is static, set it once in `backend/.env` and `frontend/.env` and never touch it again:
 
 ```env
-# Replace with your actual ngrok URL
-API_URL=https://abc123.ngrok-free.app
-```
+# backend/.env
+API_URL=https://your-name.ngrok-free.app
 
-Update `frontend/.env` (or create `frontend/.env.local`):
-
-```env
-# Must match the API_URL above
-VITE_API_URL=https://abc123.ngrok-free.app
+# frontend/.env
+VITE_API_URL=https://your-name.ngrok-free.app
 ```
 
 ---
 
-## Step 6 — Build and Run the iOS Simulator
+## Daily Dev Workflow
+
+Open 3 terminals:
 
 ```bash
-# Terminal 2 — start the frontend dev server
+# Terminal 1 — infrastructure
+docker-compose up -d
+
+# Terminal 2 — backend + ngrok tunnel
+cd backend
+pnpm dev         # start backend on :4000
+# In a new tab:
+pnpm dev:ngrok   # exposes :4000 at your static ngrok domain
+
+# Terminal 3 — frontend
 cd frontend
 pnpm dev
+```
 
-# Terminal 3 — sync and open the iOS simulator
+---
+
+## Testing on iOS Simulator (US1 — #53, #54)
+
+```bash
 cd frontend
 pnpm cap sync ios
 pnpm cap open ios
-# In Xcode: select any iPhone simulator → Run (▶)
+# In Xcode: select an iPhone simulator → Run (▶)
 ```
 
----
-
-## Step 7 — Test Apple Sign In on Simulator
-
-1. The app opens in the iOS simulator
-2. Tap **Sign in with Apple**
-3. `@capacitor/browser` opens SFSafariViewController pointing to `/api/auth/apple?platform=capacitor`
-4. Complete the Apple Sign In prompt (use an Apple ID configured in the simulator's Settings)
-5. After authenticating, Apple redirects (GET) to `/api/auth/apple/callback`
-6. Backend exchanges the code, stores the session, redirects to `ordrctrl://auth/callback?status=success`
-7. SFSafariViewController intercepts the `ordrctrl://` scheme → closes → `appUrlOpen` fires
-8. App navigates to `/feed` ✅
+1. Tap **Sign in with Apple**
+2. Complete the Apple ID prompt (use an Apple ID configured in the simulator's Settings)
+3. Apple redirects (GET) to `/api/auth/apple/callback` on your ngrok URL
+4. Backend exchanges code → stores session → redirects to `ordrctrl://auth/callback?status=success`
+5. SFSafariViewController closes → `appUrlOpen` fires → app navigates to `/feed` ✅
 
 ---
 
-## Step 8 — Test on a Physical Device (optional)
+## Testing on a Physical Device (US2 — #55)
 
-1. Connect your iPhone via USB (or use AirDrop build)
+1. Connect iPhone via USB
 2. In Xcode, select your physical device as the build target
-3. Ensure the device and your Mac are on the same network
-4. The backend is reachable via the ngrok URL (not localhost)
-5. Proceed with Sign In as in Step 7
+3. Ensure your device is registered in your Apple Developer account
+4. Hit **Run** — Xcode installs directly to the phone
+5. Sign In with Apple → same flow as simulator above
+6. Backend is reachable via your static ngrok URL (not localhost) ✅
 
 ---
 
@@ -131,21 +102,22 @@ pnpm cap open ios
 
 | Symptom | Likely Cause | Fix |
 |---------|-------------|-----|
-| "invalid_state" error on sign in | Old session-based state still in Redis from before the fix, or `API_URL` not set to ngrok URL | Clear Redis: `redis-cli flushdb`; confirm `API_URL` matches ngrok URL |
-| SFSafariViewController shows blank page after Apple auth | `response_mode: 'form_post'` not removed from `apple.ts` | Confirm the fix is applied: `grep response_mode backend/src/auth/providers/apple.ts` should return nothing |
-| Deep link never fires, app stays on blank screen | `ordrctrl://` URL scheme not registered in iOS | Confirm `Info.plist` has `CFBundleURLSchemes = [ordrctrl]`; re-run `cap sync ios` |
-| Apple returns "invalid_client" | `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, or `APPLE_PRIVATE_KEY` incorrect in `.env` | Verify all four values in Apple Developer Portal |
-| Apple returns "invalid_redirect_uri" | ngrok URL not registered in Apple Developer Portal Service ID | Repeat Step 4 with the current ngrok URL |
-| ngrok tunnel disconnects | Free plan idle timeout | Restart `pnpm dev:ngrok`; update `API_URL` and `VITE_API_URL` with new URL |
+| "invalid_state" error | Stale Redis state or `API_URL` mismatch | Run `redis-cli keys "oauth:state:*" \| xargs redis-cli del`; confirm `API_URL` matches your ngrok domain |
+| Blank page after Apple auth | `response_mode: 'form_post'` not removed | `grep response_mode backend/src/auth/providers/apple.ts` — should return nothing |
+| Deep link never fires | `ordrctrl://` scheme not registered | Confirm `Info.plist` has `CFBundleURLSchemes = [ordrctrl]`; re-run `cap sync ios` |
+| "invalid_client" from Apple | Wrong Apple credentials in `.env` | Check `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` |
+| "invalid_redirect_uri" from Apple | ngrok URL not registered in Apple Portal | Confirm Step 2 was completed with your exact static domain |
+| `$NGROK_DOMAIN: unbound variable` | `NGROK_DOMAIN` not set in `.env` | Add `NGROK_DOMAIN=your-name.ngrok-free.app` to `backend/.env` |
 
 ---
 
-## Resetting State for Fresh Testing
+## Resetting State
 
 ```bash
-# Clear all OAuth state entries in Redis (safe to do any time)
+# Clear OAuth state entries only
 redis-cli keys "oauth:state:*" | xargs redis-cli del
 
-# Or clear the entire local dev Redis
+# Or wipe all local dev Redis data
 redis-cli flushdb
 ```
+
