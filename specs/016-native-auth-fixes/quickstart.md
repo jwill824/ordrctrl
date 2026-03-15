@@ -35,7 +35,20 @@ NGROK_DOMAIN=your-name.ngrok-free.app  # from https://dashboard.ngrok.com/domain
 4. Add **Return URL**: `https://{your-ngrok-domain}/api/auth/apple/callback`
 5. Save → Continue → Register
 
-### Step 3 — Set API URL permanently
+### Step 3 — Register your static domain with Google Cloud Console
+
+> **One-time only** — keep `localhost` as well so backend-only testing still works without ngrok.
+
+1. Go to [https://console.cloud.google.com](https://console.cloud.google.com) → **APIs & Services → Credentials**
+2. Select your OAuth 2.0 Client ID
+3. Under **Authorized redirect URIs**, click **Add URI** and add:
+   - `https://{your-ngrok-domain}/api/auth/google/callback`
+4. Keep the existing `http://localhost:4000/api/auth/google/callback` entry — do **not** remove it
+5. Click **Save**
+
+> **Why both URIs?** Both Google and Apple read `API_URL` from the same env var. When `API_URL` is set to your ngrok domain, Google callbacks go there too. `localhost` stays registered so you can test the backend in isolation (e.g., `pnpm dev` without ngrok) when you don't need native device auth.
+
+### Step 4 — Set API URL permanently
 
 Since your ngrok domain is static, set it once in `backend/.env` and `frontend/.env` and never touch it again:
 
