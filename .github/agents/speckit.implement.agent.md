@@ -132,4 +132,40 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Confirm the implementation follows the technical plan
    - Report final status with summary of completed work
 
+10. **Update central documentation** after all tasks are complete:
+
+    Identify which central docs need updating based on what changed in this spec, then update them. Reference the spec number in each affected section.
+
+    **Trigger conditions → affected docs**:
+    - New or changed env vars → `docs/development.md` (env var tables)
+    - Auth flow changes, session/cookie config, CORS config, Redis usage → `docs/architecture.md` (Auth, Sync, or Key design decisions sections)
+    - Data model changes (new entities, new fields, new relationships) → `docs/architecture.md` (Data model section)
+    - New platform targets, native wrappers, or build changes → `docs/architecture.md` (Native platform layer + Tech stack sections)
+    - Integration adapter interface changes → `docs/integrations.md`
+    - New integration adapter added → `docs/integrations.md` (Existing adapters table)
+    - Setup steps added or changed (new scripts, new tooling, new one-time config) → `docs/development.md`
+
+    **For each doc that needs updating**:
+    1. Read the current content of the file
+    2. Make targeted edits — do not rewrite sections that are unchanged
+    3. Add a spec annotation comment on the affected section heading:
+       ```markdown
+       <!-- spec:NNN -->
+       ```
+       Where `NNN` is the spec number (e.g. `<!-- spec:017 -->`). Place it on the line immediately after the `##` heading.
+    4. Add a visible callout below the heading (if the change is architecturally significant):
+       ```markdown
+       > *Changed in [spec NNN](../specs/NNN-<name>/).*
+       ```
+    5. Append a row to the **Document history** table at the bottom of each updated doc:
+       ```markdown
+       | [NNN-<feature-name>](../specs/NNN-<feature-name>/) | Summary of what changed |
+       ```
+
+    **Rules**:
+    - Only update sections that are actually affected by this spec's changes
+    - Do not add spec annotations to sections that were not touched
+    - If a central doc does not exist yet and is needed, create it
+    - If no central docs need updating (e.g. the spec was a pure refactor with no public-facing changes), skip this step and note that in the completion summary
+
 Note: This command assumes a complete task breakdown exists in tasks.md. If tasks are incomplete or missing, suggest running `/speckit.tasks` first to regenerate the task list.

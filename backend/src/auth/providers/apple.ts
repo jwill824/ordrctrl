@@ -1,6 +1,5 @@
 import { Issuer, generators, type Client } from 'openid-client';
 import crypto from 'crypto';
-import { logger } from '../../lib/logger.js';
 
 let appleClient: Client | null = null;
 

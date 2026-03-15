@@ -1,6 +1,5 @@
 import crypto from 'crypto';
 import { prisma } from '../lib/db.js';
-import { logger } from '../lib/logger.js';
 
 /**
  * Issue a new email verification token for the given user.

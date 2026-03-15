@@ -1,5 +1,4 @@
 import { Issuer, generators, type Client } from 'openid-client';
-import { logger } from '../../lib/logger.js';
 
 let googleClient: Client | null = null;
 

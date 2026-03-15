@@ -6,13 +6,13 @@ Thanks for your interest in contributing. This document covers how to get set up
 
 ## Getting started
 
-Follow the setup steps in [README.md](README.md) to get the project running locally. Make sure `pnpm dev` starts both servers cleanly before making any changes.
+Follow the setup steps in [docs/development.md](docs/development.md) to get the project running locally. Make sure `pnpm dev` starts both servers cleanly before making any changes.
 
 ---
 
 ## Development workflow (speckit)
 
-See the [Development workflow (speckit)](#development-workflow-speckit) section in the README for the full command reference and pipeline explanation.
+See the [Development workflow (speckit)](README.md#development-workflow-speckit) section in the README for the full command reference and pipeline explanation.
 
 **Rule**: No code may be written for a new feature until `tasks.md` exists and `/speckit.analyze` passes. This is a constitution-level requirement.
 
@@ -20,7 +20,7 @@ See the [Development workflow (speckit)](#development-workflow-speckit) section 
 
 ## Testing integrations locally
 
-Before working on integration code, you need valid OAuth credentials for the service. See [`specs/001-mvp-core/quickstart.md`](specs/001-mvp-core/quickstart.md) — **Section 8: Testing Integrations Locally** — for step-by-step instructions per integration.
+Before working on integration code, you need valid OAuth credentials for the service. See [`specs/001-mvp-core/quickstart.md`](../specs/001-mvp-core/quickstart.md) — **Section 8: Testing Integrations Locally** — for step-by-step instructions per integration.
 
 Quick summary:
 
@@ -78,7 +78,7 @@ The only permitted exception is a runtime-dynamic value that Tailwind cannot exp
 
 ### Adding a new integration
 
-Each integration is a self-contained plugin. See the [integration adapter contract](specs/001-mvp-core/contracts/integration-adapter.md) and follow the pattern of an existing adapter (e.g. `backend/src/integrations/gmail/`). Core application code must not be modified.
+Each integration is a self-contained plugin. See the [integration adapter contract](integrations.md) and follow the pattern of an existing adapter (e.g. `backend/src/integrations/gmail/`). Core application code must not be modified.
 
 ### Database changes
 
@@ -95,7 +95,7 @@ pnpm prisma generate
 New env vars must be:
 1. Added to `backend/.env.example` (with a placeholder value, never a real secret)
 2. If device-testing-only (e.g. ngrok credentials), added to `backend/.env.device.example` and `frontend/.env.device.example` instead — developers copy these to `.env.device.local` (gitignored)
-3. Documented in `specs/001-mvp-core/quickstart.md` under the relevant section
+3. Documented in `docs/development.md` under the relevant section
 4. Validated at startup in `backend/src/server.ts`
 
 Never commit `.env` or `.env.device.local` files.
@@ -152,7 +152,7 @@ Types: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `perf`
 
 1. **Keep PRs focused** — one feature or fix per PR. Large PRs are hard to review.
 2. **Fill out the PR description** — what changed, why, and how to test it.
-3. **Constitution check** — before submitting, verify your change doesn't violate the [project constitution](specs/001-mvp-core/../../../.specify/memory/constitution.md):
+3. **Constitution check** — before submitting, verify your change doesn't violate the [project constitution](../.specify/memory/constitution.md):
    - New integrations must use the `IntegrationAdapter` interface (Principle I)
    - No speculative features (Principle II)
    - No plaintext tokens in DB, logs, or API responses (Principle III)
