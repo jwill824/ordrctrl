@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { openOAuthUrl } from '@/plugins/oauth';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
@@ -79,12 +80,20 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
     <div>
       {/* SSO buttons */}
       <div className="flex flex-col gap-2.5">
-        <a href={`${API_URL}/api/auth/google`} className="w-full border border-zinc-300 bg-white py-[0.65rem] px-4 text-sm font-medium text-black cursor-pointer transition-colors hover:border-black hover:bg-zinc-50 flex items-center justify-center gap-2.5 no-underline">
+        <button
+          type="button"
+          onClick={() => openOAuthUrl(API_URL, 'google')}
+          className="w-full border border-zinc-300 bg-white py-[0.65rem] px-4 text-sm font-medium text-black cursor-pointer transition-colors hover:border-black hover:bg-zinc-50 flex items-center justify-center gap-2.5 no-underline"
+        >
           <GoogleIcon /> Continue with Google
-        </a>
-        <a href={`${API_URL}/api/auth/apple`} className="w-full border border-zinc-300 bg-white py-[0.65rem] px-4 text-sm font-medium text-black cursor-pointer transition-colors hover:border-black hover:bg-zinc-50 flex items-center justify-center gap-2.5 no-underline">
+        </button>
+        <button
+          type="button"
+          onClick={() => openOAuthUrl(API_URL, 'apple')}
+          className="w-full border border-zinc-300 bg-white py-[0.65rem] px-4 text-sm font-medium text-black cursor-pointer transition-colors hover:border-black hover:bg-zinc-50 flex items-center justify-center gap-2.5 no-underline"
+        >
           <AppleIcon /> Continue with Apple
-        </a>
+        </button>
       </div>
 
       {/* Divider */}

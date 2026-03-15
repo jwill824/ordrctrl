@@ -20,6 +20,7 @@
 ### Desktop (Tauri)
 - Rust toolchain: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
 - macOS: Xcode Command Line Tools (`xcode-select --install`)
+- macOS DMG packaging: `brew install create-dmg`
 - Windows: Microsoft C++ Build Tools (Visual Studio installer)
 
 ---
@@ -61,6 +62,7 @@ pnpm exec cap sync
 ### Run on iOS Simulator
 
 ```bash
+cd frontend
 pnpm exec cap run ios
 # OR open Xcode directly:
 pnpm exec cap open ios
@@ -70,6 +72,7 @@ pnpm exec cap open ios
 ### Run on Android Emulator
 
 ```bash
+cd frontend
 pnpm exec cap run android
 # OR open Android Studio:
 pnpm exec cap open android
@@ -80,10 +83,10 @@ pnpm exec cap open android
 
 ```bash
 # Terminal 1: start Vite dev server
-pnpm dev
+cd frontend && pnpm dev
 
 # Terminal 2: run with live reload (points native app at local Vite server)
-VITE_API_URL=http://localhost:3001 pnpm exec cap run ios --livereload --external
+cd frontend && VITE_API_URL=http://localhost:3001 pnpm exec cap run ios --livereload --external
 ```
 
 > **Note**: For live reload on a physical device, both the device and Mac must be on the same network. Use the machine's LAN IP instead of `localhost` in `VITE_API_URL`.
@@ -97,7 +100,7 @@ VITE_API_URL=http://localhost:3001 pnpm exec cap run ios --livereload --external
 ```bash
 cd frontend
 
-# Initialize Tauri project (generates src-tauri/)
+# Initialize Tauri project (generates desktop/)
 pnpm exec tauri init \
   --app-name ordrctrl \
   --window-title ordrctrl \
@@ -109,23 +112,30 @@ pnpm exec tauri init \
 
 ### Development (hot-reload)
 
+> **Start the backend first**: Tauri loads the app immediately on launch, so the API must be reachable before the window opens.
+
 ```bash
-cd frontend
-pnpm exec tauri dev
+# Terminal 1
+cd backend && pnpm dev
+
+# Terminal 2
+cd frontend && pnpm exec tauri dev --config desktop/tauri.conf.json
 # Starts Vite dev server + desktop window simultaneously
 # Changes to src/ reload the window automatically
 ```
+
+> **If `tauri dev` exits immediately with no output**: The installed `.app` (from a DMG) is likely still running in the system tray. Quit it via the tray menu, or run `kill $(pgrep -f "ordrctrl.app")`, then retry.
 
 ### Production Build
 
 ```bash
 cd frontend
-pnpm exec tauri build
+pnpm exec tauri build --config desktop/tauri.conf.json
 
 # Output:
-# macOS: src-tauri/target/release/bundle/macos/ordrctrl.app
-# macOS DMG: src-tauri/target/release/bundle/dmg/ordrctrl_*.dmg
-# Windows: src-tauri/target/release/bundle/msi/ordrctrl_*.msi
+# macOS: desktop/target/release/bundle/macos/ordrctrl.app
+# macOS DMG: desktop/target/release/bundle/dmg/ordrctrl_*.dmg
+# Windows: desktop/target/release/bundle/msi/ordrctrl_*.msi
 ```
 
 ---
@@ -175,7 +185,7 @@ NATIVE_APP_ORIGINS=capacitor://localhost,tauri://localhost,http://tauri.localhos
 
 ### Desktop (Tauri)
 
-1. Run `pnpm exec tauri dev`
+1. Run `pnpm exec tauri dev --config desktop/tauri.conf.json`
 2. Wait for feed poll or trigger manually
 3. Notification appears as a system notification in the macOS Notification Center or Windows Action Center
 

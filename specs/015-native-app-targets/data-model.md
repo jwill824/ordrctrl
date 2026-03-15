@@ -71,8 +71,6 @@ Lightweight per-device persistent flags stored in `@capacitor/preferences` (mobi
 
 ```typescript
 interface NativePreferences {
-  lastSeenFeedTimestamp: string | null;    // ISO 8601; used to detect new items for notifications
-  lastSeenInboxTimestamp: string | null;   // ISO 8601; used to detect new inbox items
   notificationsPermissionAsked: boolean;   // Prevents re-prompting after user denies once
 }
 ```
@@ -80,9 +78,9 @@ interface NativePreferences {
 **Storage key prefix**: `ordrctrl.native.`
 
 **Example keys**:
-- `ordrctrl.native.lastSeenFeedTimestamp`
-- `ordrctrl.native.lastSeenInboxTimestamp`
 - `ordrctrl.native.notificationsPermissionAsked`
+
+> **Notification trigger**: Feed new-item detection does **not** use timestamps. `FeedItem` has no `updatedAt` or `createdAt` fields. Instead, `useFeed.ts` maintains an in-memory `prevItemIdsRef: Set<string>` across polls. The first poll establishes a baseline; subsequent polls schedule a notification for any IDs not present in the baseline set. This state is transient (in-memory only) and is not persisted to `NativePreferences`.
 
 ---
 
@@ -135,7 +133,7 @@ interface CapacitorConfig {
 ## 6. Tauri Config Shape
 
 ```json
-// frontend/src-tauri/tauri.conf.json (relevant fields)
+// frontend/desktop/tauri.conf.json (relevant fields)
 {
   "identifier": "com.ordrctrl.app",
   "productName": "ordrctrl",
@@ -164,7 +162,7 @@ interface CapacitorConfig {
   },
   "plugins": {
     "deep-link": {
-      "desktop": [{ "scheme": "ordrctrl" }]
+      "desktop": [{ "schemes": ["ordrctrl"] }]
     }
   }
 }
@@ -207,7 +205,8 @@ PlatformContext
 
 NotificationService
   └─ consumes ──► NotificationPayload
-  └─ reads/writes ──► NativePreferences (lastSeenTimestamp)
+  └─ reads/writes ──► NativePreferences (notificationsPermissionAsked)
+  └─ uses in-memory ──► prevItemIdsRef Set<string> (feed new-item detection)
 
 DeepLinkHandler
   └─ produces ──► ParsedDeepLink

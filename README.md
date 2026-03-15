@@ -81,6 +81,133 @@ See [`specs/001-mvp-core/quickstart.md`](specs/001-mvp-core/quickstart.md) for t
 
 ---
 
+## Native apps
+
+### Mobile (Capacitor — iOS & Android)
+
+**Prerequisites:**
+- macOS required for iOS builds
+- Xcode 15+
+- Android Studio + Java 17 (`brew install openjdk@17`)
+- CocoaPods: `sudo gem install cocoapods`
+
+**First-time setup (run once after cloning):**
+```bash
+cd frontend
+pnpm exec cap add ios
+pnpm exec cap add android
+```
+
+**Build and sync web assets:**
+```bash
+cd frontend
+pnpm build
+pnpm exec cap sync
+```
+
+**Run on iOS Simulator:**
+```bash
+cd frontend
+pnpm exec cap run ios
+# or open Xcode for device selection:
+pnpm exec cap open ios
+```
+
+**Run on Android Emulator:**
+```bash
+cd frontend
+pnpm exec cap run android
+# or open Android Studio:
+pnpm exec cap open android
+```
+
+**Live reload during development:**
+```bash
+# Terminal 1
+cd frontend && pnpm dev
+
+# Terminal 2
+cd frontend && pnpm exec cap run ios --livereload --external
+```
+
+**Test deep links (OAuth callbacks):**
+```bash
+# iOS Simulator
+xcrun simctl openurl booted "ordrctrl://auth/callback?status=success"
+
+# Android Emulator
+adb shell am start -W -a android.intent.action.VIEW \
+  -d "ordrctrl://auth/callback?status=success" com.ordrctrl.app
+```
+
+**Sign in with Google / Apple (iOS):**
+1. Start the backend (`cd backend && pnpm dev`)
+2. Run on simulator (`cd frontend && pnpm exec cap run ios`)
+3. Tap **Continue with Google** — SFSafariViewController opens Google's sign-in page
+4. After Google completes, the backend redirects to `ordrctrl://auth/callback?status=success`
+5. iOS routes the URL back to the app, SFSafariViewController closes, app navigates to `/feed`
+
+---
+
+### Desktop (Tauri — macOS & Windows)
+
+**Prerequisites:**
+- Rust toolchain: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+- macOS: Xcode Command Line Tools (`xcode-select --install`)
+- macOS DMG packaging: `brew install create-dmg`
+- Windows: Microsoft C++ Build Tools
+
+**Development (hot-reload):**
+```bash
+# Terminal 1 — backend must be running first
+cd backend && pnpm dev
+
+# Terminal 2 — Tauri desktop app
+cd frontend
+pnpm exec tauri dev --config desktop/tauri.conf.json
+```
+
+> **Tip:** If `tauri dev` exits immediately with no error, the installed `.app` from a previous build is running in the system tray. Quit it via the tray menu or `kill $(pgrep -f "ordrctrl.app")`.
+
+**Production build:**
+```bash
+cd frontend
+pnpm exec tauri build --config desktop/tauri.conf.json
+
+# Output:
+#   macOS app:  desktop/target/release/bundle/macos/ordrctrl.app
+#   macOS DMG:  desktop/target/release/bundle/dmg/ordrctrl_0.1.0_aarch64.dmg
+#   Windows MSI: desktop/target/release/bundle/msi/ordrctrl_*.msi
+```
+
+**Sign in with Google / Apple (Tauri dev mode):**
+1. Start the backend (`cd backend && pnpm dev`)
+2. Run `pnpm exec tauri dev --config desktop/tauri.conf.json` from `frontend/`
+3. Click **Continue with Google** — your system browser opens Google's sign-in page
+4. After Google redirects to the backend callback, the backend redirects to `ordrctrl://auth/callback?status=success`
+5. macOS routes the `ordrctrl://` URL back to the running Tauri app, which navigates to `/feed`
+
+> **Note:** Google must have `http://localhost:4000/api/auth/google/callback` registered as an authorised redirect URI in your Google Cloud Console.
+
+**Test notifications:**
+After launching the app, wait for the feed poll interval or trigger manually via the browser console in the webview:
+```js
+window.__testNotification?.()
+```
+
+---
+
+### Backend: enabling native app origins
+
+Add to `backend/.env`:
+```env
+NATIVE_APP_ORIGINS=capacitor://localhost,tauri://localhost,http://tauri.localhost
+```
+
+See [`specs/015-native-app-targets/quickstart.md`](specs/015-native-app-targets/quickstart.md) for the full native setup guide.
+
+---
+
 ## Project structure
 
 ```
@@ -186,7 +313,7 @@ No changes to core feed, sync, or API code required. See [`specs/001-mvp-core/co
 ## Roadmap
 
 - [ ] Two-way sync (mark complete propagates back to source)
-- [ ] Native mobile app (React Native + Expo)
+- [x] Native mobile app (Capacitor — iOS & Android) and desktop app (Tauri — macOS & Windows)
 - [ ] Additional integrations (Todoist, Notion, Linear, etc.)
 - [ ] Recurring task support
 - [ ] Apple Reminders re-integration (deferred; iCloud credential flow needs rework)

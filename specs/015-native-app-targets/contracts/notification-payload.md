@@ -116,14 +116,15 @@ await LocalNotifications.schedule({
 
 ```typescript
 await sendNotification({
+  id: payload.id,
   title: payload.title,
   body: payload.body,
-  // Tauri desktop: tag used to identify on-click in event listener
-  // actionUrl stored in app state, keyed by tag
 });
 ```
 
-> **Tauri limitation**: `tauri-plugin-notification` v2 does not support embedding arbitrary data in notification payloads. The `actionUrl` is stored in a local Map keyed by notification title+body hash; when the `notification-action-performed` event fires, the Map is consulted.
+> **Tauri limitation**: `tauri-plugin-notification` v2 does not support embedding arbitrary data in notification payloads. The `actionUrl` is stored in a local `Map<number, string>` keyed by `payload.id`. When `onAction` fires, it receives the notification `Options` object directly (not a `{notification}` wrapper), so the Map is consulted as `actionUrlMap.get(notification.id)`.
+>
+> **Capacitor event name**: use `"localNotificationActionPerformed"` (not `"notificationActionPerformed"`) when calling `LocalNotifications.addListener()`.
 
 ---
 

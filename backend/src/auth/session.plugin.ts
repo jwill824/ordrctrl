@@ -62,9 +62,12 @@ export async function registerSessionPlugin(app: FastifyInstance): Promise<void>
   await app.register(FastifySession, {
     secret: process.env.SESSION_SECRET || 'fallback-dev-secret-change-in-production',
     cookie: {
+      // In production, native webview origins are cross-site relative to the API domain.
+      // SameSite=none (with Secure=true) is required to deliver cookies to those origins.
+      // In development, all origins are localhost and lax works fine.
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
-      sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
     },
     store: new RedisSessionStore() as any,

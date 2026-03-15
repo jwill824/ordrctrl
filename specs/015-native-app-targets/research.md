@@ -51,11 +51,11 @@ Tauri 2 has a stable plugin ecosystem for system tray, notifications, and deep l
 
 ### Alternatives Considered
 - **Electron**: Larger bundle size, higher memory overhead, requires Chromium. Rejected in favour of Tauri's smaller footprint.
-- **Tauri 1**: Older API, missing `tauri-plugin-tray` v2, weaker TypeScript bindings. Rejected.
+- **Tauri 1**: Older API, weaker TypeScript bindings, missing stable plugin ecosystem. Rejected.
 
 ### Key Configuration
 ```json
-// frontend/src-tauri/tauri.conf.json
+// frontend/desktop/tauri.conf.json
 {
   "identifier": "com.ordrctrl.app",
   "app": { "withGlobalTauri": true },
@@ -67,12 +67,16 @@ Tauri 2 has a stable plugin ecosystem for system tray, notifications, and deep l
 ```
 
 ### Required Packages (Cargo + npm)
-- `tauri` crate + `tauri-build` build dep
+- `tauri` crate (with `features = ["tray-icon"]`) + `tauri-build` build dep — tray support is built into the `tauri` crate; there is no separate `tauri-plugin-tray` crate
+- `tauri-plugin-notification` Rust crate — local desktop notifications
+- `tauri-plugin-deep-link` Rust crate — custom URL scheme for OAuth callbacks
+- `tauri-plugin-single-instance` Rust crate — prevents multiple windows on second launch
+- `tauri-plugin-opener` Rust crate — opens URLs in the system browser (used for OAuth flow)
 - `@tauri-apps/api` npm package
-- `tauri-plugin-tray` — system tray icon and menu
-- `tauri-plugin-notification` — local desktop notifications
-- `tauri-plugin-deep-link` — custom URL scheme for OAuth callbacks
-- `tauri-plugin-single-instance` — prevents multiple windows on second launch
+- `@tauri-apps/plugin-notification` npm package
+- `@tauri-apps/plugin-deep-link` npm package
+- `@tauri-apps/plugin-os` npm package — OS detection for `PlatformContext`
+- `@tauri-apps/plugin-opener` npm package — companion JS bindings for `tauri-plugin-opener`
 
 ### WebView Origin
 - macOS: `tauri://localhost`
@@ -114,7 +118,17 @@ OAuth flows (Apple Sign In, Google) redirect to `APP_URL/api/auth/callback/...`.
 ### Decision
 Register a custom deep link URL scheme `ordrctrl://` and configure the OAuth callback to redirect to `ordrctrl://auth/callback` after completing the OAuth handshake on the backend. The native app intercepts the `ordrctrl://` URL, extracts the session state, and navigates the user appropriately.
 
-**For Capacitor**: Use `@capacitor/app` `addListener('appUrlOpen', ...)` to intercept the deep link.  
+**Platform dispatch** is handled by `openOAuthUrl()` in `frontend/src/plugins/oauth.ts`, which detects the platform and uses the appropriate browser API:
+
+- **Capacitor (iOS/Android)**: Opens `?platform=capacitor` URL in an in-app browser via `@capacitor/browser` (SFSafariViewController on iOS). The backend detects the `platform=capacitor` query param, completes the OAuth handshake, and redirects to `ordrctrl://auth/callback`. The system closes the in-app browser, fires an `appUrlOpen` event, and the app navigates to the callback route.
+- **Tauri (macOS/Windows)**: Uses `tauri-plugin-opener` to open `?platform=tauri` URL in the system browser. The backend detects `platform=tauri` and redirects to `ordrctrl://auth/callback`. The `onOpenUrl` event fires, and the app navigates to the callback route.
+- **Web**: `window.location.href` redirect as before.
+
+The backend stores the `platform` query param in the OAuth session and redirects to `ordrctrl://` for both `'tauri'` and `'capacitor'` values.
+
+**`@capacitor/browser` version**: `8.0.2` (installed as a direct dependency).
+
+**For Capacitor**: Use `@capacitor/app` `addListener('appUrlOpen', ...)` to intercept the deep link after the in-app browser closes.  
 **For Tauri**: Use `tauri-plugin-deep-link` with `onOpenUrl` event.
 
 ### Capacitor Config
@@ -131,8 +145,10 @@ tauri-plugin-deep-link = "2"
 ```
 ```json
 // tauri.conf.json
-{ "plugins": { "deep-link": { "mobile": [], "desktop": [{ "scheme": "ordrctrl" }] } } }
+{ "plugins": { "deep-link": { "mobile": [], "desktop": [{ "schemes": ["ordrctrl"] }] } } }
 ```
+
+> **Config key**: `tauri.conf.json` uses `"schemes"` (plural, array), not `"scheme"`. The `DesktopProtocol` type requires the plural form.
 
 ---
 
@@ -142,10 +158,16 @@ tauri-plugin-deep-link = "2"
 Use `@capacitor/local-notifications` on mobile and `tauri-plugin-notification` on desktop. Both are triggered from the frontend TypeScript layer via a shared `NotificationService` abstraction.
 
 ### Scheduling Logic
-Notifications for feed items and task reminders are triggered by the existing sync/refresh cycle already present in the app. When a new item arrives (detected in the feed polling interval), a local notification is scheduled. A wrapper in `src/plugins/notifications.ts` calls the appropriate native API based on the platform.
+Notifications for feed items are triggered by the existing feed-polling cycle. New items are detected using an in-memory `Set<string>` of item IDs (`prevItemIdsRef`) maintained in `useFeed.ts`. The first poll establishes a baseline; subsequent polls compare the new ID set against the baseline and schedule a notification for any genuinely new IDs.
+
+> **Why not timestamps**: `FeedItem` has no `updatedAt` or `createdAt` fields, so timestamp-based detection is not possible. The `prevItemIdsRef` Set approach is used instead.
+
+A wrapper in `src/plugins/notifications.ts` calls the appropriate native API based on the platform.
 
 ### Deep-Link on Tap
-Each notification includes an `actionTypeId` (Capacitor) or `data` payload (Tauri) containing the route to navigate to (`/feed`, `/inbox`, etc.). On tap, the `notificationActionPerformed` listener navigates React Router to the target route.
+Each notification includes an `actionTypeId` (Capacitor) or `data` payload (Tauri) containing the route to navigate to (`/feed`, `/inbox`, etc.). On tap:
+- **Capacitor**: the `"localNotificationActionPerformed"` listener (not `"notificationActionPerformed"`) navigates React Router to the target route.
+- **Tauri**: `onAction` from `@tauri-apps/plugin-notification` passes the notification `Options` object directly to the callback (not a `{notification}` wrapper). The `actionUrl` is therefore looked up using `notification.id`, not `action.notification.id`.
 
 ---
 

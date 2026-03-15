@@ -140,11 +140,13 @@ Registered via `tauri-plugin-deep-link` in `tauri.conf.json`:
 {
   "plugins": {
     "deep-link": {
-      "desktop": [{ "scheme": "ordrctrl" }]
+      "desktop": [{ "schemes": ["ordrctrl"] }]
     }
   }
 }
 ```
+
+> **Key name**: use `"schemes"` (plural, array value), not `"scheme"`. The `DesktopProtocol` type requires the plural form.
 
 Handled in `frontend/src/plugins/deep-link.ts` via `@tauri-apps/plugin-deep-link` `onOpenUrl` event.
 

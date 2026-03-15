@@ -171,8 +171,10 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
 
   // GET /api/auth/google — initiate Google OAuth
   app.get('/api/auth/google', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { platform } = request.query as { platform?: string };
     const state = generateOAuthState();
     (request.session as any).oauthState = state;
+    (request.session as any).oauthPlatform = platform ?? 'web';
     const authUrl = await getGoogleAuthorizationUrl(state);
     return reply.redirect(authUrl);
   });
@@ -181,11 +183,13 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/auth/google/callback', async (request: FastifyRequest, reply: FastifyReply) => {
     const { code, state } = request.query as { code?: string; state?: string };
     const expectedState = (request.session as any).oauthState;
+    const isNative = ['tauri', 'capacitor'].includes((request.session as any).oauthPlatform);
 
     if (!code || !state || state !== expectedState) {
-      return reply.redirect(
-        `${process.env.APP_URL}/login?error=oauth&reason=invalid_state`
-      );
+      const dest = isNative
+        ? 'ordrctrl://auth/callback?status=error&error=invalid_state'
+        : `${process.env.APP_URL}/login?error=oauth&reason=invalid_state`;
+      return reply.redirect(dest);
     }
 
     try {
@@ -201,6 +205,15 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
 
       (request.session as any).userId = user.id;
       (request.session as any).oauthState = undefined;
+      (request.session as any).oauthPlatform = undefined;
+
+      if (isNative) {
+        return reply.redirect(
+          user.isNewUser
+            ? 'ordrctrl://auth/callback?status=success&next=onboarding'
+            : 'ordrctrl://auth/callback?status=success'
+        );
+      }
 
       return reply.redirect(
         user.isNewUser
@@ -209,16 +222,19 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
       );
     } catch (err) {
       logger.error('Google OAuth callback error', { error: (err as Error).message });
-      return reply.redirect(
-        `${process.env.APP_URL}/login?error=oauth&reason=server_error`
-      );
+      const dest = isNative
+        ? 'ordrctrl://auth/callback?status=error&error=server_error'
+        : `${process.env.APP_URL}/login?error=oauth&reason=server_error`;
+      return reply.redirect(dest);
     }
   });
 
   // GET /api/auth/apple — initiate Apple OAuth
   app.get('/api/auth/apple', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { platform } = request.query as { platform?: string };
     const state = generateOAuthState();
     (request.session as any).oauthState = state;
+    (request.session as any).oauthPlatform = platform ?? 'web';
     const authUrl = await getAppleAuthorizationUrl(state);
     return reply.redirect(authUrl);
   });
@@ -234,11 +250,13 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
     const code = body.code;
     const state = body.state;
     const expectedState = (request.session as any).oauthState;
+    const isNative = ['tauri', 'capacitor'].includes((request.session as any).oauthPlatform);
 
     if (!code || !state || state !== expectedState) {
-      return reply.redirect(
-        `${process.env.APP_URL}/login?error=oauth&reason=invalid_state`
-      );
+      const dest = isNative
+        ? 'ordrctrl://auth/callback?status=error&error=invalid_state'
+        : `${process.env.APP_URL}/login?error=oauth&reason=invalid_state`;
+      return reply.redirect(dest);
     }
 
     let userPayload: { name?: { firstName?: string; lastName?: string }; email?: string } | undefined;
@@ -263,6 +281,15 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
 
       (request.session as any).userId = user.id;
       (request.session as any).oauthState = undefined;
+      (request.session as any).oauthPlatform = undefined;
+
+      if (isNative) {
+        return reply.redirect(
+          user.isNewUser
+            ? 'ordrctrl://auth/callback?status=success&next=onboarding'
+            : 'ordrctrl://auth/callback?status=success'
+        );
+      }
 
       return reply.redirect(
         user.isNewUser
@@ -271,9 +298,10 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
       );
     } catch (err) {
       logger.error('Apple OAuth callback error', { error: (err as Error).message });
-      return reply.redirect(
-        `${process.env.APP_URL}/login?error=oauth&reason=server_error`
-      );
+      const dest = isNative
+        ? 'ordrctrl://auth/callback?status=error&error=server_error'
+        : `${process.env.APP_URL}/login?error=oauth&reason=server_error`;
+      return reply.redirect(dest);
     }
   });
 }

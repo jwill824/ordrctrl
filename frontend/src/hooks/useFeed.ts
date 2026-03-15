@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import * as feedService from '@/services/feed.service';
 import type { FeedItem, FeedResponse } from '@/services/feed.service';
+import { NotificationService } from '@/plugins/notifications';
 
 export interface UndoToast {
   itemId: string;
@@ -56,6 +57,9 @@ export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
   const [clearedCount, setClearedCount] = useState<number | null>(null);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Track item IDs seen in the previous background poll to detect genuinely new items.
+  // Null means no baseline yet (first poll will set it without notifying).
+  const prevItemIdsRef = useRef<Set<string> | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -90,6 +94,27 @@ export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
     try {
       const feed = await feedService.fetchFeed({ includeCompleted: true, showDismissed });
       setData(feed);
+
+      // ── Native notification trigger (T024) ──────────────────────────────────
+      // Detect new items by comparing against the ID set from the previous poll.
+      // FeedItem has no updatedAt/createdAt, so we track identity via IDs.
+      const currentIds = new Set(feed.items.map((i) => i.id));
+      if (prevItemIdsRef.current === null) {
+        // First background poll — establish baseline without notifying.
+        prevItemIdsRef.current = currentIds;
+      } else {
+        const newItems = feed.items.filter((i) => !prevItemIdsRef.current!.has(i.id));
+        if (newItems.length > 0) {
+          await NotificationService.schedule({
+            id: 1001, // stable ID for feed notifications; collisions replace previous
+            title: 'New items in your feed',
+            body: `${newItems.length} new item${newItems.length > 1 ? 's' : ''} since your last visit`,
+            actionUrl: 'ordrctrl://feed',
+            group: 'feed',
+          });
+        }
+        prevItemIdsRef.current = currentIds;
+      }
     } catch {
       // Silent — don't surface background poll errors
     }
