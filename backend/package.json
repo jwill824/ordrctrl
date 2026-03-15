@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "dev:device": "DOTENV_OVERLAY=.env.device tsx watch src/server.ts",
     "dev:ngrok": "ngrok http --domain=$NGROK_DOMAIN 4000",
     "build": "tsc",
     "start": "node dist/server.js",

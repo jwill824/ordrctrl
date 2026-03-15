@@ -64,22 +64,36 @@ VITE_API_URL=https://your-name.ngrok-free.app
 
 ## Daily Dev Workflow
 
-Open 3 terminals:
+### Simulator (localhost — no ngrok needed)
 
 ```bash
 # Terminal 1 — infrastructure
 docker-compose up -d
 
-# Terminal 2 — backend + ngrok tunnel
-cd backend
-pnpm dev         # start backend on :4000
-# In a new tab:
-pnpm dev:ngrok   # exposes :4000 at your static ngrok domain
+# Terminal 2 — backend (uses .env, API_URL=localhost)
+cd backend && pnpm dev
 
-# Terminal 3 — frontend
-cd frontend
-pnpm dev
+# Terminal 3 — frontend (uses .env, VITE_API_URL=localhost)
+cd frontend && pnpm dev
 ```
+
+### Physical Device (ngrok required)
+
+```bash
+# Terminal 1 — infrastructure
+docker-compose up -d
+
+# Terminal 2 — backend with device overrides (.env + .env.device)
+cd backend && pnpm dev:device
+
+# Terminal 3 — ngrok tunnel
+cd backend && pnpm dev:ngrok
+
+# Terminal 4 — frontend with device overrides (.env + .env.device.local)
+cd frontend && pnpm dev:device
+```
+
+> **Env file structure**: base `.env` holds all consistent vars (DB, Redis, credentials). Device overrides live in `backend/.env.device` and `frontend/.env.device.local` — never committed. Copy from `*.example` files to set up.
 
 ---
 

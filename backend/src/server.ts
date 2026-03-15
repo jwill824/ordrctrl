@@ -1,4 +1,9 @@
 import 'dotenv/config';
+import dotenv from 'dotenv';
+// Optional overlay: DOTENV_OVERLAY=.env.device pnpm dev:device
+if (process.env.DOTENV_OVERLAY) {
+  dotenv.config({ path: process.env.DOTENV_OVERLAY, override: true });
+}
 import { createApp } from './app.js';
 import { connectRedis, disconnectRedis } from './lib/redis.js';
 import { prisma } from './lib/db.js';
