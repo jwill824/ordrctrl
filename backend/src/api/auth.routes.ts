@@ -11,6 +11,7 @@ import {
   getAppleAuthorizationUrl,
   exchangeAppleCode,
 } from '../auth/providers/apple.js';
+import { setOAuthState, getAndDeleteOAuthState, type OAuthStateEntry } from '../auth/oauth-state.js';
 import { logger } from '../lib/logger.js';
 import { prisma } from '../lib/db.js';
 
@@ -173,8 +174,7 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/auth/google', async (request: FastifyRequest, reply: FastifyReply) => {
     const { platform } = request.query as { platform?: string };
     const state = generateOAuthState();
-    (request.session as any).oauthState = state;
-    (request.session as any).oauthPlatform = platform ?? 'web';
+    await setOAuthState(state, { platform: (platform ?? 'web') as OAuthStateEntry['platform'] });
     const authUrl = await getGoogleAuthorizationUrl(state);
     return reply.redirect(authUrl);
   });
@@ -182,10 +182,10 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
   // GET /api/auth/google/callback
   app.get('/api/auth/google/callback', async (request: FastifyRequest, reply: FastifyReply) => {
     const { code, state } = request.query as { code?: string; state?: string };
-    const expectedState = (request.session as any).oauthState;
-    const isNative = ['tauri', 'capacitor'].includes((request.session as any).oauthPlatform);
+    const entry = await getAndDeleteOAuthState(state ?? '');
+    const isNative = entry ? ['tauri', 'capacitor'].includes(entry.platform) : false;
 
-    if (!code || !state || state !== expectedState) {
+    if (!code || !state || !entry) {
       const dest = isNative
         ? 'ordrctrl://auth/callback?status=error&error=invalid_state'
         : `${process.env.APP_URL}/login?error=oauth&reason=invalid_state`;
@@ -193,7 +193,7 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
     }
 
     try {
-      const profile = await exchangeGoogleCode(code, state, expectedState);
+      const profile = await exchangeGoogleCode(code, state, state);
       const user = await authService.socialLogin({
         email: profile.email,
         providerAccountId: profile.sub,
@@ -204,8 +204,6 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
       });
 
       (request.session as any).userId = user.id;
-      (request.session as any).oauthState = undefined;
-      (request.session as any).oauthPlatform = undefined;
 
       if (isNative) {
         return reply.redirect(
@@ -233,8 +231,7 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/auth/apple', async (request: FastifyRequest, reply: FastifyReply) => {
     const { platform } = request.query as { platform?: string };
     const state = generateOAuthState();
-    (request.session as any).oauthState = state;
-    (request.session as any).oauthPlatform = platform ?? 'web';
+    await setOAuthState(state, { platform: (platform ?? 'web') as OAuthStateEntry['platform'] });
     const authUrl = await getAppleAuthorizationUrl(state);
     return reply.redirect(authUrl);
   });
@@ -249,10 +246,10 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
 
     const code = body.code;
     const state = body.state;
-    const expectedState = (request.session as any).oauthState;
-    const isNative = ['tauri', 'capacitor'].includes((request.session as any).oauthPlatform);
+    const entry = await getAndDeleteOAuthState(state ?? '');
+    const isNative = entry ? ['tauri', 'capacitor'].includes(entry.platform) : false;
 
-    if (!code || !state || state !== expectedState) {
+    if (!code || !state || !entry) {
       const dest = isNative
         ? 'ordrctrl://auth/callback?status=error&error=invalid_state'
         : `${process.env.APP_URL}/login?error=oauth&reason=invalid_state`;
@@ -269,7 +266,7 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
     }
 
     try {
-      const profile = await exchangeAppleCode(code, state, expectedState, userPayload);
+      const profile = await exchangeAppleCode(code, state, state, userPayload);
       const user = await authService.socialLogin({
         email: profile.email,
         providerAccountId: profile.sub,
@@ -280,8 +277,6 @@ export async function registerAuthRoutes(app: FastifyInstance): Promise<void> {
       });
 
       (request.session as any).userId = user.id;
-      (request.session as any).oauthState = undefined;
-      (request.session as any).oauthPlatform = undefined;
 
       if (isNative) {
         return reply.redirect(

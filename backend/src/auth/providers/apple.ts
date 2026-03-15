@@ -28,7 +28,6 @@ export async function getAppleAuthorizationUrl(state: string): Promise<string> {
   return client.authorizationUrl({
     scope: 'openid email name',
     state,
-    response_mode: 'form_post',
   });
 }
 

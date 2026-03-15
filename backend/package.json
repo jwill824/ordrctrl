@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "dev:ngrok": "ngrok http 4000",
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "vitest run",
@@ -32,6 +33,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@ngrok/ngrok": "latest",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.11.24",
     "prisma": "^5.10.2",
