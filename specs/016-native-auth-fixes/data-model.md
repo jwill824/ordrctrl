@@ -70,5 +70,5 @@ A transient, developer-local tunnel instance that exposes the backend on a publi
 | Bound port | `4000` (backend dev port) |
 | Protocol | HTTPS |
 | Lifetime | Process lifetime (killed when dev:ngrok stops) |
-| URL format | `https://{random}.ngrok-free.app` or static domain if configured |
+| URL format | `https://{static-domain}.ngrok-free.app` (static domain, paid plan — registered once in Apple Developer Portal and Google Cloud Console) |
 | Auth | `NGROK_AUTHTOKEN` env var |

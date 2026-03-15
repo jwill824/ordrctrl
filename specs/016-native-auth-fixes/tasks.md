@@ -43,12 +43,12 @@
 
 **Goal**: Enable physical iOS/Android device testing by providing a public HTTPS tunnel to the local backend (#55). Apple's OAuth requires HTTPS redirect URIs, so ngrok also unblocks Apple Sign In on any real device.
 
-**Independent Test**: Connect a physical iPhone, start `pnpm dev:ngrok`, set `API_URL` and `VITE_API_URL` to the ngrok URL, register the URL in Apple Developer Portal, and complete a full Apple Sign In flow on the device. See `quickstart.md` Steps 1–8.
+**Independent Test**: Connect a physical iPhone, run `pnpm dev:ngrok` in backend/, run `pnpm dev:device` in both backend/ and frontend/, and complete a full Apple Sign In flow on the device. See `quickstart.md` daily device workflow.
 
-- [X] T007 [US2] Add `@ngrok/ngrok` to `devDependencies` in `backend/package.json` and add script `"dev:ngrok": "ngrok http 4000"` to the `scripts` block; then run `pnpm install` from `backend/` to install the new package.
-- [X] T008 [P] [US2] Add `NGROK_AUTHTOKEN=` (with empty value and comment `# Required for physical device testing — get your token at https://dashboard.ngrok.com/`) to `backend/.env.example` after the existing `PORT` entry.
+- [X] T007 [US2] Add `@ngrok/ngrok` to `devDependencies` in `backend/package.json`; add script `"dev:ngrok": "ngrok http --domain=$NGROK_DOMAIN 4000"`; add `"dev:device": "DOTENV_OVERLAY=.env.device.local tsx watch src/server.ts"` to backend scripts; add `"dev:device": "vite --mode device"` to frontend scripts; run `pnpm install` from `backend/` to install the new package.
+- [X] T008 [P] [US2] Create `backend/.env.device.example` and `frontend/.env.device.example` as committed templates showing the ngrok override vars (`API_URL`, `NGROK_AUTHTOKEN`, `NGROK_DOMAIN` in backend; `VITE_API_URL` in frontend). Add `DOTENV_OVERLAY` support in `backend/src/server.ts`. Ensure `.env.device.local` files are gitignored by the existing `.env.*.local` pattern. Developers copy the example files to `.env.device.local` and fill in their static ngrok domain.
 
-**Checkpoint**: `pnpm dev:ngrok` starts successfully in `backend/` and prints a public HTTPS URL. Follow `quickstart.md` Steps 2–8 to verify physical device auth.
+**Checkpoint**: `pnpm dev:ngrok` starts in `backend/`; `pnpm dev:device` starts both backend and frontend using ngrok URL. Follow `quickstart.md` device workflow to verify physical device auth.
 
 ---
 

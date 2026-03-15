@@ -70,7 +70,7 @@ Fixing the root cause (state mismatch) means the callback will redirect to `ordr
 ## Finding 3 — ngrok for Physical Device Testing (#55)
 
 ### Decision
-Use `@ngrok/ngrok` npm package as a backend devDependency, launched via a dedicated `dev:ngrok` script. The ngrok tunnel URL overrides `API_URL` in `.env.local` for physical device testing sessions.
+Use `@ngrok/ngrok` npm package as a backend devDependency, launched via a dedicated `dev:ngrok` script, with a **static domain** (paid plan) so the Apple Developer Portal registration and `API_URL` config are permanent. Device-testing env overrides live in `.env.device.local` files — never committed.
 
 ### Rationale
 Physical iOS/Android devices cannot reach `http://localhost:4000` because localhost refers to the device itself. A public HTTPS tunnel is required.
@@ -81,15 +81,17 @@ Physical iOS/Android devices cannot reach `http://localhost:4000` because localh
 1. A public HTTPS URL that routes to `localhost:4000` — physical devices can reach it
 2. An HTTPS URL that Apple will accept as a valid redirect_uri (Apple does accept localhost without HTTPS in dev, but ngrok's HTTPS URL is more robust)
 
-**ngrok URL in `VITE_API_URL`**: When switching to physical device testing, the developer sets `VITE_API_URL` to the ngrok URL. The `@ngrok/ngrok` package can be configured with a static domain (paid plan) or used with the auto-assigned URL.
+**ngrok URL in `VITE_API_URL`**: With a paid static domain, the ngrok URL never changes. It is set once in `backend/.env.device.local` (as `API_URL`) and `frontend/.env.device.local` (as `VITE_API_URL`), then never touched again. The `@ngrok/ngrok` package uses the static domain via the `--domain=$NGROK_DOMAIN` flag.
 
-**Apple Developer Portal**: The ngrok URL must be added to the Service ID's callback URLs in Apple Developer Portal when testing on physical devices. This is a one-time configuration step that must be documented.
+**Apple Developer Portal**: The static ngrok URL must be added to the Service ID's callback URLs in Apple Developer Portal — this is a **one-time** registration. **Google Cloud Console** must also register the same URL as an authorized redirect URI. Both registrations are permanent with a static domain.
 
 ### Integration Approach
 - Add `@ngrok/ngrok` as a devDependency in `backend/package.json`
-- Add a `dev:ngrok` script in `backend/package.json`: starts a tunnel to port 4000 and outputs the URL
-- Add `NGROK_AUTHTOKEN` to `backend/.env.example` (value from ngrok account)
-- Developer workflow: run `dev:ngrok`, copy the URL, set in `backend/.env.local` as `API_URL` and in `frontend/.env.local` as `VITE_API_URL`
+- Add a `dev:ngrok` script: `ngrok http --domain=$NGROK_DOMAIN 4000` (static domain)
+- Add a `dev:device` script to both `backend/package.json` (loads `.env.device.local` overlay via `DOTENV_OVERLAY`) and `frontend/package.json` (`vite --mode device`, loads `.env.device.local`)
+- Add `NGROK_AUTHTOKEN`, `NGROK_DOMAIN`, and `API_URL` to `backend/.env.device.local` (gitignored via `.env.*.local`)
+- Add `VITE_API_URL` to `frontend/.env.device.local` (gitignored via `.env.*.local`)
+- Provide `backend/.env.device.example` and `frontend/.env.device.example` as committed templates
 - Document the full physical device testing workflow in `quickstart.md`
 
 ### Alternatives Considered
@@ -128,14 +130,14 @@ With `response_mode: 'query'` (the default for OAuth 2.0):
 ## Finding 5 — Apple Requires HTTPS for Redirect URIs (ngrok satisfies this)
 
 ### Decision
-Use ngrok URL as `API_URL` for all Apple Sign In testing (both simulator and physical device).
+Use ngrok URL as `API_URL` for physical device testing. The iOS **simulator** can reach `http://localhost:4000` directly; ngrok is only required for physical devices.
 
 ### Rationale
 Apple's OAuth service requires registered redirect URIs to use HTTPS, even in development. `http://localhost:4000/api/auth/apple/callback` is NOT accepted as a valid redirect URI in the Apple Developer Portal. This means:
-- Apple Sign In cannot be tested with a plain `http://localhost` backend
-- The ngrok tunnel (`https://…ngrok-free.app`) satisfies Apple's HTTPS requirement
-- Both simulator and physical device testing should use the ngrok URL as `API_URL`
-- The ngrok URL must also be registered in the Apple Developer Portal as an allowed callback
+- Apple Sign In cannot be tested with a plain `http://localhost` backend via a physical device
+- The static ngrok tunnel (`https://…ngrok-free.app`) satisfies Apple's HTTPS requirement
+- Physical device testing uses the ngrok URL as `API_URL` (via `.env.device.local`)
+- The ngrok URL must be registered in Apple Developer Portal and Google Cloud Console as allowed callbacks (one-time with a static domain)
 
 ---
 
@@ -160,4 +162,4 @@ The `ordrctrl://` URL scheme, CORS configuration, `@capacitor/browser` usage, an
 | #54 Apple Sign In error (state mismatch) | `SameSite=Lax` blocks session cookie on Apple's `form_post` POST → state mismatch | Redis-based OAuth state store | `backend/src/auth/oauth-state.ts` (new), `backend/src/api/auth.routes.ts` |
 | #54 Apple Sign In error (POST→redirect stuck) | `response_mode: 'form_post'` + SFSafariViewController doesn't follow POST 302 redirects | Remove `response_mode: 'form_post'` from Apple authorization URL | `backend/src/auth/providers/apple.ts` |
 | #53 iOS callback not returning | Both #54 root causes above; deep link never fires | Fixed by #54 fixes | No additional change |
-| #55 Physical device testing | `localhost:4000` unreachable from physical devices; Apple requires HTTPS redirect URI | ngrok tunnel + dev script + docs | `backend/package.json`, `backend/.env.example`, `quickstart.md` |
+| #55 Physical device testing | `localhost:4000` unreachable from physical devices; Apple requires HTTPS redirect URI | ngrok tunnel + dev:device scripts + `.env.device.local` split + docs | `backend/package.json`, `frontend/package.json`, `backend/src/server.ts`, `.env.device.example` files, `quickstart.md` |

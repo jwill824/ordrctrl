@@ -12,7 +12,7 @@ Two independent bugs in the Apple Sign In flow prevent the iOS native app from a
 
 **Bug 2 (deep link never fires)**: Even if state were valid, `SFSafariViewController` does not follow `302` redirects issued in response to a POST. The `ordrctrl://auth/callback` deep link is the backend's redirect target — if `SFSafariViewController` won't follow it, the app is never notified. **Fix**: Remove `response_mode: 'form_post'` from the Apple authorization URL. Apple then issues a standard GET redirect with `?code=&state=` query params, which `SFSafariViewController` follows correctly.
 
-**Feature (#55)**: Physical devices cannot reach `http://localhost:4000`. Apple also requires HTTPS for registered redirect URIs. **Fix**: Add `@ngrok/ngrok` as a backend devDependency with a `dev:ngrok` script; document the full physical device testing workflow including Apple Developer Portal registration.
+**Feature (#55)**: Physical devices cannot reach `http://localhost:4000`. Apple also requires HTTPS for registered redirect URIs. **Fix**: Add `@ngrok/ngrok` as a backend devDependency with a `dev:ngrok` script (static domain via `--domain=$NGROK_DOMAIN`); add `dev:device` scripts to both frontend and backend; split `.env` into base (localhost) + `.env.device.local` (ngrok overrides, gitignored); document the full physical device testing workflow in `quickstart.md`.
 
 ## Technical Context
 
@@ -65,9 +65,11 @@ specs/016-native-auth-fixes/
 
 ```text
 backend/
-├── package.json                     # UPDATED — add @ngrok/ngrok devDependency + dev:ngrok script
-├── .env.example                     # UPDATED — add NGROK_AUTHTOKEN
+├── package.json                     # UPDATED — add @ngrok/ngrok devDependency + dev:ngrok + dev:device scripts
+├── .env.example                     # UPDATED — reference to .env.device.example for ngrok vars
+├── .env.device.example              # NEW — committed template for device testing overrides
 └── src/
+    ├── server.ts                    # UPDATED — DOTENV_OVERLAY support for .env.device.local
     ├── auth/
     │   ├── oauth-state.ts           # NEW — setOAuthState / getAndDeleteOAuthState (Redis)
     │   ├── providers/
@@ -81,7 +83,7 @@ backend/tests/
     └── auth/
         └── oauth-state.test.ts      # NEW — unit tests for setOAuthState / getAndDeleteOAuthState
 
-frontend/                            # NO CHANGES — deep-link.ts and oauth.ts are correct as-is
+frontend/                            # UPDATED — dev:device script added; deep-link.ts and oauth.ts correct as-is
 ```
 
 **Structure Decision**: All changes are confined to `backend/src/auth/` and `backend/src/api/`. The frontend deep link handler (`src/plugins/deep-link.ts`) and OAuth opener (`src/plugins/oauth.ts`) are correct and require no changes. ngrok is a devDependency in the backend package only.
