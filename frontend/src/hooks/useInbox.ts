@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import * as inboxService from '@/services/inbox.service';
 import * as feedService from '@/services/feed.service';
 import type { InboxGroup } from '@/services/inbox.service';
+import { NativePrefs, NotificationService } from '@/plugins/notifications';
 
 interface UseInboxReturn {
   groups: InboxGroup[];
@@ -36,6 +37,35 @@ export function useInbox(): UseInboxReturn {
       const result = await inboxService.fetchInbox();
       setGroups(result.groups);
       setTotal(result.total);
+
+      // ── Native notification trigger (T025) ──────────────────────────────────
+      // Find the newest item across all groups by syncedAt timestamp.
+      const allItems = result.groups.flatMap((g) => g.items);
+      if (allItems.length > 0) {
+        const newestItem = allItems.reduce((a, b) =>
+          new Date(a.syncedAt) > new Date(b.syncedAt) ? a : b
+        );
+        const lastSeen = await NativePrefs.getLastSeenInboxTimestamp();
+        const isNewer = !lastSeen || new Date(newestItem.syncedAt) > new Date(lastSeen);
+        if (isNewer) {
+          const newCount = lastSeen
+            ? allItems.filter((i) => new Date(i.syncedAt) > new Date(lastSeen)).length
+            : allItems.length;
+
+          if (newCount > 0) {
+            await NotificationService.schedule({
+              id: 1002, // stable ID for inbox notifications; collisions replace previous
+              title: 'New message',
+              body: newCount === 1
+                ? (newestItem.title ?? 'You have a new inbox item')
+                : `${newCount} new items in your inbox`,
+              actionUrl: 'ordrctrl://inbox',
+              group: 'inbox',
+            });
+          }
+          await NativePrefs.setLastSeenInboxTimestamp(newestItem.syncedAt);
+        }
+      }
     } catch (err) {
       setError((err as Error).message);
     } finally {

@@ -17,9 +17,13 @@ export async function createApp(): Promise<FastifyInstance> {
     trustProxy: true,
   });
 
-  // CORS
+  // CORS — merge APP_URL with any native webview origins (Capacitor + Tauri)
+  const allowedOrigins: string[] = [
+    process.env.APP_URL || 'http://localhost:3000',
+    ...(process.env.NATIVE_APP_ORIGINS?.split(',').map((o) => o.trim()) ?? []),
+  ];
   await app.register(FastifyCors, {
-    origin: process.env.APP_URL || 'http://localhost:3000',
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
