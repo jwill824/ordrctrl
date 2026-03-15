@@ -79,7 +79,6 @@ export async function registerSessionPlugin(app: FastifyInstance): Promise<void>
 declare module '@fastify/session' {
   interface FastifySessionObject {
     userId?: string;
-    oauthState?: string;
     gmailSyncMode?: string;
   }
 }

@@ -24,7 +24,6 @@ import {
   setDescriptionOverride,
 } from '../feed/feed.service.js';
 import { dismissParamSchema, dismissedQuerySchema } from './schemas/feed.schemas.js';
-import { logger } from '../lib/logger.js';
 
 function requireAuth(request: FastifyRequest, reply: FastifyReply): string | null {
   const userId = request.session.userId;

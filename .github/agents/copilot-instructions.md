@@ -26,6 +26,7 @@ Auto-generated from all feature plans. Last updated: 2026-03-04
 - N/A — frontend only; all persistence is in the backend (014-vite-migration)
 - TypeScript 5.4 (frontend), Rust 1.75+ (Tauri shell), Swift/Kotlin (Capacitor native bridge — generated) (015-native-app-targets)
 - No new storage layer — session cookies persisted by native WebView OS cookie jar; `@capacitor/preferences` for lightweight native-only flags (e.g., last-seen notification timestamp) (015-native-app-targets)
+- Redis (existing) — new `oauth:state:{value}` key namespace with 5-min TTL (016-native-auth-fixes)
 
 - TypeScript 5.x (frontend + backend) + Next.js 14 (frontend), Fastify 4 (backend API), Prisma (ORM), (001-mvp-core)
 
@@ -45,9 +46,9 @@ npm test && npm run lint
 TypeScript 5.x (frontend + backend): Follow standard conventions
 
 ## Recent Changes
+- 016-native-auth-fixes: Added TypeScript 5.4 (backend + frontend)
 - 015-native-app-targets: Added TypeScript 5.4 (frontend), Rust 1.75+ (Tauri shell), Swift/Kotlin (Capacitor native bridge — generated)
 - 014-vite-migration: Added TypeScript 5.4.2 / React 18.2.0 / Node.js 18+ + Vite 5.1.4 (already installed), react-router-dom v6 (to add), Tailwind CSS 3.4.1
-- 013-task-content-enhancements: Added TypeScript 5.x (backend Node 20 LTS + frontend Next.js 15 App Router) + Fastify (backend API), React 19, Prisma 5 ORM, PostgreSQL 16, Redis
 
 
 <!-- MANUAL ADDITIONS START -->

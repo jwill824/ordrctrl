@@ -69,17 +69,17 @@ export type Logger = typeof logger;
  */
 export function createFastifyLogger(): FastifyBaseLogger {
   return {
-    trace: (msg: unknown, ...args: unknown[]) =>
+    trace: (msg: unknown) =>
       log('trace', typeof msg === 'string' ? msg : JSON.stringify(msg)),
-    debug: (msg: unknown, ...args: unknown[]) =>
+    debug: (msg: unknown) =>
       log('debug', typeof msg === 'string' ? msg : JSON.stringify(msg)),
-    info: (msg: unknown, ...args: unknown[]) =>
+    info: (msg: unknown) =>
       log('info', typeof msg === 'string' ? msg : JSON.stringify(msg)),
-    warn: (msg: unknown, ...args: unknown[]) =>
+    warn: (msg: unknown) =>
       log('warn', typeof msg === 'string' ? msg : JSON.stringify(msg)),
-    error: (msg: unknown, ...args: unknown[]) =>
+    error: (msg: unknown) =>
       log('error', typeof msg === 'string' ? msg : JSON.stringify(msg)),
-    fatal: (msg: unknown, ...args: unknown[]) =>
+    fatal: (msg: unknown) =>
       log('fatal', typeof msg === 'string' ? msg : JSON.stringify(msg)),
     child: () => createFastifyLogger(),
     level: process.env.LOG_LEVEL || 'info',

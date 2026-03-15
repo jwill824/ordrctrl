@@ -1,6 +1,5 @@
 import { Issuer, generators, type Client } from 'openid-client';
 import crypto from 'crypto';
-import { logger } from '../../lib/logger.js';
 
 let appleClient: Client | null = null;
 
@@ -28,7 +27,6 @@ export async function getAppleAuthorizationUrl(state: string): Promise<string> {
   return client.authorizationUrl({
     scope: 'openid email name',
     state,
-    response_mode: 'form_post',
   });
 }
 

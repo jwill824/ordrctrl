@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "vite",
+    "dev:device": "vite --mode device",
     "build": "tsc && vite build",
     "start": "vite preview",
     "lint": "eslint src --ext ts,tsx",
