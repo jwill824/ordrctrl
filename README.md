@@ -22,7 +22,7 @@ ordrctrl connects your existing productivity accounts and presents everything in
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS |
+| Frontend | Vite 5, React 18, TypeScript, Tailwind CSS |
 | Backend | Fastify 4, TypeScript |
 | Database | PostgreSQL 16 + Prisma ORM |
 | Queue | BullMQ + Redis 7 (background sync every 15 min) |
@@ -52,7 +52,7 @@ docker compose up -d
 
 # 3. Configure environment
 cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env.local
+cp frontend/.env.example frontend/.env
 # Edit backend/.env — see "Environment variables" below
 
 # 4. Run database migrations
@@ -75,9 +75,16 @@ The minimum set to run locally:
 | `DATABASE_URL` | Pre-filled in `.env.example` — works with Docker Compose |
 | `REDIS_URL` | Pre-filled in `.env.example` — works with Docker Compose |
 | `GOOGLE_CLIENT_ID/SECRET` | [Google Cloud Console](https://console.cloud.google.com) — used for both Sign in with Google **and** Gmail integration. Register two redirect URIs on the same client: `http://localhost:4000/api/auth/google/callback` and `http://localhost:4000/api/integrations/gmail/callback`. Add yourself as a test user on the OAuth consent screen while the app is in Testing mode. |
+| `APPLE_CLIENT_ID` | Apple Developer Portal — Service ID (e.g. `com.ordrctrl.signin`) |
+| `APPLE_TEAM_ID` | Apple Developer Portal — 10-character team ID |
+| `APPLE_KEY_ID` | Apple Developer Portal — key ID for your Sign In with Apple private key |
+| `APPLE_PRIVATE_KEY` | Apple Developer Portal — `.p8` private key contents (paste as-is, newlines replaced with `\n`) |
+| `NATIVE_APP_ORIGINS` | Pre-filled in `.env.example` — `capacitor://localhost,tauri://localhost,http://tauri.localhost` |
 | `RESEND_API_KEY` | Optional in dev — verification links are logged to console instead |
 
-See [`specs/001-mvp-core/quickstart.md`](specs/001-mvp-core/quickstart.md) for the full setup guide including Apple and Microsoft OAuth credentials.
+See [`specs/001-mvp-core/quickstart.md`](specs/001-mvp-core/quickstart.md) for the full setup guide including Microsoft OAuth credentials.
+
+> **Apple Sign In + physical device testing**: Apple requires HTTPS redirect URIs even in development. If you have a paid ngrok account with a static domain, see [`specs/016-native-auth-fixes/quickstart.md`](specs/016-native-auth-fixes/quickstart.md) for one-time Apple Developer Portal and Google Cloud Console registration steps.
 
 ---
 
@@ -140,12 +147,50 @@ adb shell am start -W -a android.intent.action.VIEW \
   -d "ordrctrl://auth/callback?status=success" com.ordrctrl.app
 ```
 
-**Sign in with Google / Apple (iOS):**
-1. Start the backend (`cd backend && pnpm dev`)
-2. Run on simulator (`cd frontend && pnpm exec cap run ios`)
-3. Tap **Continue with Google** — SFSafariViewController opens Google's sign-in page
-4. After Google completes, the backend redirects to `ordrctrl://auth/callback?status=success`
+**Sign in with Apple / Google (iOS Simulator):**
+1. Start the backend: `cd backend && pnpm dev`
+2. Run on simulator: `cd frontend && pnpm exec cap run ios`
+3. Tap **Sign in with Apple** or **Continue with Google** — SFSafariViewController opens the provider's sign-in page
+4. After sign-in, the backend redirects to `ordrctrl://auth/callback?status=success`
 5. iOS routes the URL back to the app, SFSafariViewController closes, app navigates to `/feed`
+
+**Physical device testing (ngrok required):**
+
+Apple requires HTTPS redirect URIs even in development, so `http://localhost:4000` cannot be registered with Apple Developer Portal. A paid [ngrok](https://ngrok.com/) account with a static domain solves this permanently.
+
+**One-time setup** (copy `backend/.env.device.example` → `backend/.env.device.local` and fill in your values):
+
+```env
+# backend/.env.device.local  (gitignored — never commit)
+API_URL=https://your-name.ngrok-free.app
+NGROK_AUTHTOKEN=your_token_here
+NGROK_DOMAIN=your-name.ngrok-free.app
+```
+
+```env
+# frontend/.env.device.local  (gitignored — never commit)
+VITE_API_URL=https://your-name.ngrok-free.app
+```
+
+Register the ngrok URL once in [Apple Developer Portal](https://developer.apple.com/account/resources/identifiers/list/serviceId) (Service ID → Sign In with Apple → Return URL: `https://your-name.ngrok-free.app/api/auth/apple/callback`) and once in [Google Cloud Console](https://console.cloud.google.com) (OAuth Client → Authorized redirect URIs — **keep `localhost` too**). See [`specs/016-native-auth-fixes/quickstart.md`](specs/016-native-auth-fixes/quickstart.md) for the full walkthrough.
+
+**Daily device workflow:**
+
+```bash
+# Terminal 1 — infrastructure
+docker-compose up -d
+
+# Terminal 2 — backend with ngrok overrides
+cd backend && pnpm dev:device
+
+# Terminal 3 — ngrok tunnel
+cd backend && pnpm dev:ngrok
+
+# Terminal 4 — frontend with ngrok overrides
+cd frontend && pnpm dev:device
+```
+
+Then connect your iPhone via USB, select it in Xcode, and run. The app will reach your backend via the static ngrok URL.
 
 ---
 

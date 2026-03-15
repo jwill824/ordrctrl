@@ -12,22 +12,7 @@ Follow the setup steps in [README.md](README.md) to get the project running loca
 
 ## Development workflow (speckit)
 
-This project uses a spec-driven workflow. New features always start with a spec, not code.
-
-```
-specify → clarify → plan → tasks → implement → analyze
-```
-
-Run these as slash commands in GitHub Copilot Chat (VS Code):
-
-| Command | Purpose |
-|---------|---------|
-| `/speckit.specify` | Write or update the feature spec |
-| `/speckit.clarify` | Resolve underspecified areas with targeted questions |
-| `/speckit.plan` | Generate technical design artifacts |
-| `/speckit.tasks` | Produce a dependency-ordered task list |
-| `/speckit.implement` | Execute the task list — writes all code |
-| `/speckit.analyze` | Consistency check across all artifacts |
+See the [Development workflow (speckit)](#development-workflow-speckit) section in the README for the full command reference and pipeline explanation.
 
 **Rule**: No code may be written for a new feature until `tasks.md` exists and `/speckit.analyze` passes. This is a constitution-level requirement.
 
@@ -109,10 +94,11 @@ pnpm prisma generate
 
 New env vars must be:
 1. Added to `backend/.env.example` (with a placeholder value, never a real secret)
-2. Documented in `specs/001-mvp-core/quickstart.md` under the relevant section
-3. Validated at startup in `backend/src/server.ts`
+2. If device-testing-only (e.g. ngrok credentials), added to `backend/.env.device.example` and `frontend/.env.device.example` instead — developers copy these to `.env.device.local` (gitignored)
+3. Documented in `specs/001-mvp-core/quickstart.md` under the relevant section
+4. Validated at startup in `backend/src/server.ts`
 
-Never commit `.env` files.
+Never commit `.env` or `.env.device.local` files.
 
 ---
 
