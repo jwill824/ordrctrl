@@ -50,7 +50,7 @@ description: "Task list for 017-task-rename-polish"
 - [x] T004 [US1] Implement `setTitleOverride()` function in `backend/src/feed/feed.service.ts` — upsert or delete the `TITLE_OVERRIDE` `SyncOverride` row; when setting a title, idempotently prepend `"Original: {syncCacheItem.title}"` to the `DESCRIPTION_OVERRIDE` (skip if already starts with that prefix)
 - [x] T005 [US1] Add `PATCH /api/feed/sync/:id/title-override` endpoint in `backend/src/api/feed.routes.ts` with request body validation (reject empty string; accept `null` to clear), `404` for unknown item, and return updated `FeedItem`
 - [x] T006 [P] [US1] Extend `FeedItem` type with `hasTitleOverride: boolean` and `originalTitle: string | null` fields and add `setTitleOverride(id: string, value: string | null)` API call in `frontend/src/services/feed.service.ts`
-- [x] T007 [US1] Add title input field for synced tasks in `frontend/src/components/tasks/EditTaskModal.tsx` — pre-fill with current title, show `"Original: …"` label when `hasTitleOverride` is true, wire save to `setTitleOverride(id, value)` and clear/revert to `setTitleOverride(id, null)`
+- [x] T007 [US1] Add title input field for synced tasks in `frontend/src/components/tasks/EditTaskModal.tsx` — pre-fill with current title, show `"Original: …"` label when `hasTitleOverride` is true, wire save to `setTitleOverride(id, value)` and clear/revert to `setTitleOverride(id, null)`. Native tasks already support rename via `PUT /api/tasks/:id` (no modal change needed for native).
 
 **Checkpoint**: User Story 1 is fully functional — rename, persist, revert, and re-sync survival all work. Validate using quickstart.md Scenarios 1–4.
 
@@ -94,8 +94,9 @@ description: "Task list for 017-task-rename-polish"
 
 **Purpose**: End-to-end validation and regression confirmation
 
-- [ ] T014 Run full quickstart.md validation (Scenarios 1–6) against local stack (`docker-compose up -d` + `pnpm dev`)
+- [ ] T014 Run full quickstart.md validation (Scenarios 1–6) against local stack (`docker-compose up -d` + `pnpm dev`). Explicitly verify: (a) renaming a native task via the feed (FR-001/FR-006 native coverage), (b) rename completes in under 10 seconds from initiating the action (SC-001)
 - [x] T015 [P] Run existing Vitest and Playwright test suites to confirm no regressions introduced by this feature
+- [x] T016 [P] Write unit/contract tests for `setTitleOverride()` route in `backend/tests/unit/feed.routes.title.test.ts` — covers 200 set, 200 clear, 400 empty, 400 whitespace, 401 unauth, 404 not found (mirrors `feed.routes.description.test.ts` pattern)
 
 ---
 

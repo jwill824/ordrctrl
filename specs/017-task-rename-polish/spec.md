@@ -126,7 +126,7 @@ A new contributor reads the README and CONTRIBUTING guide and comes away with a 
 
 ## Assumptions
 
-- The custom title is stored as a new optional field on the task record, not as a separate override entity — keeping the data model minimal
+- The custom title is stored as a `TITLE_OVERRIDE` value in the existing `SyncOverride` table — the same pattern used for `DESCRIPTION_OVERRIDE`. No new table or field on the task record is needed.
 - "Rename" is exposed as a menu action on the existing task action sheet/context menu, consistent with existing edit and dismiss actions
 - The console error investigation happens first; if confirmed to be a third-party extension issue, SC-004 is satisfied by documenting the finding
 - The documentation changes are surgical edits to existing files — no new content is added beyond what is required to satisfy the requirements above
