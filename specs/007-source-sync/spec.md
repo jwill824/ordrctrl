@@ -2,7 +2,7 @@
 
 **Feature Branch**: `007-source-sync`  
 **Created**: 2026-03-10  
-**Status**: Draft  
+**Status**: Complete  
 **Input**: Update tasks if the source task is completed or updated — when an integrated source (e.g. Gmail, Google Tasks, Microsoft Tasks, Apple Calendar) marks a task as complete or updates it, ordrctrl should reflect those changes in the feed so users always see an accurate view of their tasks.
 
 ## Overview

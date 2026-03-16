@@ -2,7 +2,7 @@
 
 **Feature Branch**: `015-native-app-targets`
 **Created**: 2026-03-14
-**Status**: Draft
+**Status**: Complete
 **Input**: Add mobile integration with Capacitor and desktop integration with Tauri, enabling the existing Vite SPA to be packaged and distributed as native iOS, Android, macOS, and Windows applications
 
 ## User Scenarios & Testing *(mandatory)*

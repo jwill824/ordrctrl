@@ -2,7 +2,7 @@
 
 **Feature Branch**: `016-native-auth-fixes`
 **Created**: 2026-03-15
-**Status**: Draft
+**Status**: Complete
 **Closes**: [#53](https://github.com/jwill824/ordrctrl/issues/53), [#54](https://github.com/jwill824/ordrctrl/issues/54), [#55](https://github.com/jwill824/ordrctrl/issues/55)
 **Input**: Fix native app authentication: resolve iOS simulator auth callback not returning (closes #53), fix Apple Sign In provider returning error (closes #54), and add ngrok tunneling support for physical device testing (closes #55)
 

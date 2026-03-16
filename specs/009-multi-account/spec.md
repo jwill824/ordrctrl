@@ -2,7 +2,7 @@
 
 **Feature Branch**: `009-multi-account`
 **Created**: 2026-03-10
-**Status**: Implemented
+**Status**: Complete
 **Input**: User description: "Add multi-account support so users can connect multiple accounts per integration (e.g. personal and work Google accounts) and have all tasks aggregated in one feed"
 
 > **Terminology note**: This spec uses two distinct account concepts throughout:

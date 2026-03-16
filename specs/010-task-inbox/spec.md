@@ -2,7 +2,7 @@
 
 **Feature Branch**: `010-task-inbox`
 **Created**: 2026-03-11
-**Status**: Implemented & Deployed
+**Status**: Complete
 **GitHub Issue**: [#32](https://github.com/jwill824/ordrctrl/issues/32)
 
 ## Overview
