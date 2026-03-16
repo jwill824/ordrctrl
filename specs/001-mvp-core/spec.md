@@ -2,7 +2,7 @@
 
 **Feature Branch**: `001-mvp-core`
 **Created**: 2026-03-05
-**Status**: Active — All 7 phases complete; full MVP implemented; UI migrated to idiomatic Tailwind CSS utility classes
+**Status**: Complete
 **Input**: Full initial MVP — user authentication (email/password + Sign in with Google +
 Sign in with Apple), integration onboarding for Gmail, Apple Reminders, Microsoft Tasks,
 and Apple Calendar, native task creation, and a consolidated one-way-sync task feed

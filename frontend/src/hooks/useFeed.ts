@@ -30,6 +30,7 @@ interface UseFeedReturn {
   permanentDeleteItem: (itemId: string) => Promise<void>;
   setUserDueAt: (itemId: string, dueAt: string | null) => Promise<void>;
   setDescriptionOverride: (itemId: string, value: string | null) => Promise<void>;
+  setTitleOverride: (itemId: string, value: string | null) => Promise<void>;
   clearUndoToast: () => void;
   clearCompleted: () => Promise<void>;
   clearedCount: number | null;
@@ -377,6 +378,44 @@ export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
     [reloadFeed]
   );
 
+  const setTitleOverride = useCallback(
+    async (itemId: string, value: string | null) => {
+      // Optimistic update: reflect the new title immediately
+      setData((prev) => ({
+        ...prev,
+        items: prev.items.map((i) => {
+          if (i.id !== itemId) return i;
+          return {
+            ...i,
+            title: value ?? i.originalTitle ?? i.title,
+            hasTitleOverride: value !== null,
+          };
+        }),
+        completed: prev.completed.map((i) => {
+          if (i.id !== itemId) return i;
+          return {
+            ...i,
+            title: value ?? i.originalTitle ?? i.title,
+            hasTitleOverride: value !== null,
+          };
+        }),
+      }));
+      try {
+        const updated = await feedService.setTitleOverride(itemId, value);
+        // Reconcile with server response
+        setData((prev) => ({
+          ...prev,
+          items: prev.items.map((i) => (i.id === itemId ? updated : i)),
+          completed: prev.completed.map((i) => (i.id === itemId ? updated : i)),
+        }));
+      } catch (err) {
+        await reloadFeed();
+        setError((err as Error).message);
+      }
+    },
+    [reloadFeed]
+  );
+
   return {
     items: data.items,
     completed: data.completed,
@@ -394,6 +433,7 @@ export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
     permanentDeleteItem,
     setUserDueAt,
     setDescriptionOverride,
+    setTitleOverride,
     clearUndoToast,
     clearCompleted,
     clearedCount,

@@ -17,8 +17,8 @@
 
 **Purpose**: Apply the data model changes that all subsequent phases depend on.
 
-- [ ] T001 Create Prisma migration: add `GmailCompletionMode` enum (`inbox_removal`, `read`), add `gmailCompletionMode GmailCompletionMode?` field to `Integration` model, and add `completedAtSource Boolean @default(false)` field + `@@index([integrationId, completedAtSource])` to `SyncCacheItem` model in `backend/prisma/schema.prisma`
-- [ ] T002 Run and verify migration applies cleanly: `pnpm --filter backend prisma migrate dev --name inbound-source-sync` and confirm zero data loss on existing records
+- [x] T001 Create Prisma migration: add `GmailCompletionMode` enum (`inbox_removal`, `read`), add `gmailCompletionMode GmailCompletionMode?` field to `Integration` model, and add `completedAtSource Boolean @default(false)` field + `@@index([integrationId, completedAtSource])` to `SyncCacheItem` model in `backend/prisma/schema.prisma`
+- [x] T002 Run and verify migration applies cleanly: `pnpm --filter backend prisma migrate dev --name inbound-source-sync` and confirm zero data loss on existing records
 
 **Checkpoint**: Database schema updated — all new fields exist with correct defaults
 
@@ -30,10 +30,10 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T003 Add `completed?: boolean` field to the `NormalizedItem` interface in `backend/src/integrations/_adapter/types.ts` (optional field; `undefined` = adapter does not report completion state)
-- [ ] T004 Add `markMissingItemsAsSourceCompleted(integrationId: string, returnedExternalIds: string[]): Promise<void>` function to `backend/src/sync/cache.service.ts` — queries all non-expired `SyncCacheItem` rows for the integration where `externalId NOT IN returnedExternalIds` and `completedInOrdrctrl = false`, then sets `completedAtSource = true` on those rows (set-difference: items absent from sync results are considered source-complete)
-- [ ] T005 Add `applySourceCompletions(integrationId: string): Promise<void>` function to `backend/src/sync/cache.service.ts` — queries `SyncCacheItem` rows where `completedAtSource = true AND completedInOrdrctrl = false`, loads their `SyncOverride` relations, and for each item with NO `REOPENED` override sets `completedInOrdrctrl = true` and `completedAt = now()` (items with a REOPENED override are skipped — override wins)
-- [ ] T006 Update the sync worker in `backend/src/sync/sync.worker.ts` to call `markMissingItemsAsSourceCompleted(integrationId, returnedExternalIds)` and then `applySourceCompletions(integrationId)` after each successful `persistCacheItems()` call
+- [x] T003 Add `completed?: boolean` field to the `NormalizedItem` interface in `backend/src/integrations/_adapter/types.ts` (optional field; `undefined` = adapter does not report completion state)
+- [x] T004 Add `markMissingItemsAsSourceCompleted(integrationId: string, returnedExternalIds: string[]): Promise<void>` function to `backend/src/sync/cache.service.ts` — queries all non-expired `SyncCacheItem` rows for the integration where `externalId NOT IN returnedExternalIds` and `completedInOrdrctrl = false`, then sets `completedAtSource = true` on those rows (set-difference: items absent from sync results are considered source-complete)
+- [x] T005 Add `applySourceCompletions(integrationId: string): Promise<void>` function to `backend/src/sync/cache.service.ts` — queries `SyncCacheItem` rows where `completedAtSource = true AND completedInOrdrctrl = false`, loads their `SyncOverride` relations, and for each item with NO `REOPENED` override sets `completedInOrdrctrl = true` and `completedAt = now()` (items with a REOPENED override are skipped — override wins)
+- [x] T006 Update the sync worker in `backend/src/sync/sync.worker.ts` to call `markMissingItemsAsSourceCompleted(integrationId, returnedExternalIds)` and then `applySourceCompletions(integrationId)` after each successful `persistCacheItems()` call
 
 **Checkpoint**: Foundation complete — source completion detection and application logic is wired in. All user stories can now begin.
 
@@ -50,15 +50,15 @@
 
 ### Implementation for User Stories 1 & 2
 
-- [ ] T007 [US1] Update `backend/src/integrations/microsoft-tasks/index.ts` — change the task fetch query from `$filter=status ne 'completed'` to fetch ALL tasks (remove the filter), and set `NormalizedItem.completed = task.status === 'completed'` for each returned task
-- [ ] T008 [P] [US1] Update `backend/src/integrations/gmail/index.ts` — add explicit `completed: false` on all returned `NormalizedItem`s (default inbox_removal mode relies on the Phase 2 set-difference logic; the adapter itself needs no query change, but `completed: false` makes intent explicit for items still in inbox)
+- [x] T007 [US1] Update `backend/src/integrations/microsoft-tasks/index.ts` — change the task fetch query from `$filter=status ne 'completed'` to fetch ALL tasks (remove the filter), and set `NormalizedItem.completed = task.status === 'completed'` for each returned task
+- [x] T008 [P] [US1] Update `backend/src/integrations/gmail/index.ts` — add explicit `completed: false` on all returned `NormalizedItem`s (default inbox_removal mode relies on the Phase 2 set-difference logic; the adapter itself needs no query change, but `completed: false` makes intent explicit for items still in inbox)
 
 ### Tests for User Stories 1 & 2
 
-- [ ] T009 [P] [US1] Write unit tests for `markMissingItemsAsSourceCompleted` in `backend/tests/unit/source-sync.cache.test.ts` — test: (a) items absent from returned batch get `completedAtSource=true`; (b) items present in returned batch are unaffected; (c) items with `completedInOrdrctrl=true` already are not re-processed
-- [ ] T010 [P] [US1] Write unit tests for `applySourceCompletions` in `backend/tests/unit/source-sync.cache.test.ts` — test: (a) `completedAtSource=true` with no override → sets `completedInOrdrctrl=true`; (b) `completedAtSource=true` with NO REOPENED override → completes; (c) source completion arrives but item already `completedInOrdrctrl=true` → no change
-- [ ] T011 [P] [US2] Write unit tests for override protection in `backend/tests/unit/source-sync.cache.test.ts` — test: (a) `completedAtSource=true` with REOPENED override present → `completedInOrdrctrl` stays `false`; (b) REOPENED override exists, user then manually completes in ordrctrl (clears override) → item completes normally on next apply call
-- [ ] T012 [P] [US1] Write unit tests for updated Microsoft Tasks adapter sync in `backend/tests/unit/microsoft-tasks.source-completion.test.ts` — test: (a) completed task in source returns `NormalizedItem.completed=true`; (b) active task returns `NormalizedItem.completed=false`; (c) all tasks returned regardless of status (both complete and active)
+- [x] T009 [P] [US1] Write unit tests for `markMissingItemsAsSourceCompleted` in `backend/tests/unit/source-sync.cache.test.ts` — test: (a) items absent from returned batch get `completedAtSource=true`; (b) items present in returned batch are unaffected; (c) items with `completedInOrdrctrl=true` already are not re-processed
+- [x] T010 [P] [US1] Write unit tests for `applySourceCompletions` in `backend/tests/unit/source-sync.cache.test.ts` — test: (a) `completedAtSource=true` with no override → sets `completedInOrdrctrl=true`; (b) `completedAtSource=true` with NO REOPENED override → completes; (c) source completion arrives but item already `completedInOrdrctrl=true` → no change
+- [x] T011 [P] [US2] Write unit tests for override protection in `backend/tests/unit/source-sync.cache.test.ts` — test: (a) `completedAtSource=true` with REOPENED override present → `completedInOrdrctrl` stays `false`; (b) REOPENED override exists, user then manually completes in ordrctrl (clears override) → item completes normally on next apply call
+- [x] T012 [P] [US1] Write unit tests for updated Microsoft Tasks adapter sync in `backend/tests/unit/microsoft-tasks.source-completion.test.ts` — test: (a) completed task in source returns `NormalizedItem.completed=true`; (b) active task returns `NormalizedItem.completed=false`; (c) all tasks returned regardless of status (both complete and active)
 
 **Checkpoint**: US1 + US2 fully functional. Microsoft Tasks source completion flows into ordrctrl. Override protection verified by tests. Can demo MVP.
 
@@ -72,17 +72,17 @@
 
 ### Implementation for User Story 3
 
-- [ ] T013 [US3] Update `backend/src/integrations/gmail/index.ts` — when `gmailCompletionMode === 'read'`, change the Gmail query to `in:inbox` (all inbox messages, not just unread), fetch message metadata including `labelIds`, and set `NormalizedItem.completed = !labelIds.includes('UNREAD')` for each message (read = no UNREAD label = source complete)
-- [ ] T014 [P] [US3] Add `PATCH /api/integrations/gmail/completion-mode` endpoint to `backend/src/api/integrations.routes.ts` — validates `completionMode` is `inbox_removal` or `read`, updates the authenticated user's Gmail integration's `gmailCompletionMode` field, returns `{ serviceId: 'gmail', completionMode }` on success
-- [ ] T015 [P] [US3] Update `GET /api/integrations` response handler in `backend/src/api/integrations.routes.ts` to include `gmailCompletionMode` in the Gmail integration entry so the frontend can show current state
-- [ ] T016 [P] [US3] Add `updateGmailCompletionMode(mode: 'inbox_removal' | 'read'): Promise<void>` function to `frontend/src/services/integrations.service.ts`
-- [ ] T017 [US3] Create `frontend/src/components/integrations/GmailCompletionModeSelector.tsx` — a toggle/radio component with two options: "Inbox removal (zero inbox)" (default) and "Mark as read"; fetches current mode from props, calls `updateGmailCompletionMode` on change, shows loading/error states
-- [ ] T018 [US3] Integrate `GmailCompletionModeSelector` into the Gmail integration settings section in the frontend — render below the existing `GmailSyncModeSelector` in the integrations settings UI
+- [x] T013 [US3] Update `backend/src/integrations/gmail/index.ts` — when `gmailCompletionMode === 'read'`, change the Gmail query to `in:inbox` (all inbox messages, not just unread), fetch message metadata including `labelIds`, and set `NormalizedItem.completed = !labelIds.includes('UNREAD')` for each message (read = no UNREAD label = source complete)
+- [x] T014 [P] [US3] Add `PATCH /api/integrations/gmail/completion-mode` endpoint to `backend/src/api/integrations.routes.ts` — validates `completionMode` is `inbox_removal` or `read`, updates the authenticated user's Gmail integration's `gmailCompletionMode` field, returns `{ serviceId: 'gmail', completionMode }` on success
+- [x] T015 [P] [US3] Update `GET /api/integrations` response handler in `backend/src/api/integrations.routes.ts` to include `gmailCompletionMode` in the Gmail integration entry so the frontend can show current state
+- [x] T016 [P] [US3] Add `updateGmailCompletionMode(mode: 'inbox_removal' | 'read'): Promise<void>` function to `frontend/src/services/integrations.service.ts`
+- [x] T017 [US3] Create `frontend/src/components/integrations/GmailCompletionModeSelector.tsx` — a toggle/radio component with two options: "Inbox removal (zero inbox)" (default) and "Mark as read"; fetches current mode from props, calls `updateGmailCompletionMode` on change, shows loading/error states
+- [x] T018 [US3] Integrate `GmailCompletionModeSelector` into the Gmail integration settings section in the frontend — render below the existing `GmailSyncModeSelector` in the integrations settings UI
 
 ### Tests for User Story 3
 
-- [ ] T019 [P] [US3] Write unit tests for Gmail adapter `read` mode in `backend/tests/unit/gmail.source-completion.test.ts` — test: (a) message with no UNREAD label returns `NormalizedItem.completed=true`; (b) message with UNREAD label returns `NormalizedItem.completed=false`; (c) default `inbox_removal` mode is unaffected (existing tests still pass)
-- [ ] T020 [P] [US3] Write unit tests for `GmailCompletionModeSelector` component in `frontend/tests/unit/components/integrations/GmailCompletionModeSelector.test.tsx` — test: (a) renders both options with correct default selected; (b) calls `updateGmailCompletionMode` on selection change; (c) shows loading state during update; (d) shows error state on failure
+- [x] T019 [P] [US3] Write unit tests for Gmail adapter `read` mode in `backend/tests/unit/gmail.source-completion.test.ts` — test: (a) message with no UNREAD label returns `NormalizedItem.completed=true`; (b) message with UNREAD label returns `NormalizedItem.completed=false`; (c) default `inbox_removal` mode is unaffected (existing tests still pass)
+- [x] T020 [P] [US3] Write unit tests for `GmailCompletionModeSelector` component in `frontend/tests/unit/components/integrations/GmailCompletionModeSelector.test.tsx` — test: (a) renders both options with correct default selected; (b) calls `updateGmailCompletionMode` on selection change; (c) shows loading state during update; (d) shows error state on failure
 
 **Checkpoint**: Gmail read mode fully functional. Settings UI shows current mode and allows switching. All completion modes covered.
 
@@ -92,13 +92,13 @@
 
 **Purpose**: Final touches, documentation, and validation across all user stories.
 
-- [ ] T021 [P] Update `README.md` to document the Gmail completion mode options (inbox removal vs. read) under the Gmail integration section
-- [ ] T022 [P] Update `specs/007-source-sync/spec.md` status from `Draft` to `Complete`
-- [ ] T023 Run all backend unit tests and confirm 0 failures: `pnpm --filter backend test`
-- [ ] T024 Run all frontend unit tests and confirm 0 failures: `pnpm --filter frontend test`
-- [ ] T025 Run frontend lint and confirm 0 errors: `pnpm --filter frontend lint`
-- [ ] T026 Run `pnpm --filter frontend build` and confirm build passes
-- [ ] T027 Validate quickstart.md scenarios manually: run each test scenario in `specs/007-source-sync/quickstart.md` against the running app
+- [x] T021 [P] Update `README.md` to document the Gmail completion mode options (inbox removal vs. read) under the Gmail integration section
+- [x] T022 [P] Update `specs/007-source-sync/spec.md` status from `Draft` to `Complete`
+- [x] T023 Run all backend unit tests and confirm 0 failures: `pnpm --filter backend test`
+- [x] T024 Run all frontend unit tests and confirm 0 failures: `pnpm --filter frontend test`
+- [x] T025 Run frontend lint and confirm 0 errors: `pnpm --filter frontend lint`
+- [x] T026 Run `pnpm --filter frontend build` and confirm build passes
+- [x] T027 Validate quickstart.md scenarios manually: run each test scenario in `specs/007-source-sync/quickstart.md` against the running app
 
 ---
 

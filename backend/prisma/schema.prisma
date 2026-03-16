@@ -46,6 +46,7 @@ enum OverrideType {
   REOPENED
   DISMISSED
   DESCRIPTION_OVERRIDE
+  TITLE_OVERRIDE
 }
 
 model User {

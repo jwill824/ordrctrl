@@ -1,19 +1,5 @@
 # Development Guide
 
-## TL;DR
-
-```bash
-git clone <repo> ordrctrl && cd ordrctrl && pnpm install
-docker compose up -d
-cp backend/.env.example backend/.env && cp frontend/.env.example frontend/.env
-# Edit backend/.env — generate secrets and fill in OAuth credentials (see below)
-cd backend && pnpm prisma migrate dev --name init && pnpm prisma generate && cd ..
-pnpm dev
-# Frontend → http://localhost:3000   Backend → http://localhost:4000
-```
-
----
-
 ## Prerequisites
 
 | Tool | Version | Install |
@@ -344,3 +330,22 @@ pnpm exec tauri build --config desktop/tauri.conf.json
 | `invalid_redirect_uri` from Apple | ngrok URL not registered in Apple Portal | Complete one-time ngrok setup step 6 above |
 | Tauri exits immediately | Previous `.app` build running in system tray | Quit from tray menu; or `kill $(pgrep -f "ordrctrl.app")` |
 | Physical device can't reach backend | Using `localhost` URL on a physical device | Use `pnpm dev:device` + `pnpm dev:ngrok` workflow |
+
+---
+
+## Known browser noise
+<!-- spec:017 -->
+
+### `content.js TypeError` (browser extension)
+
+You may see the following error in the developer console during a normal session:
+
+```
+content.js:264 Uncaught (in promise) TypeError: Cannot read properties of null (reading 'id')
+```
+
+**This is not an ordrctrl bug.** The filename `content.js` is the conventional name for browser extension content scripts — scripts injected into every page the browser visits. Vite's build output never produces a file called `content.js`.
+
+**Verification**: Open an incognito window with all extensions disabled and reload the app. The error will not appear.
+
+**Resolution**: The error originates from one of your installed browser extensions, not from ordrctrl's code. No fix is needed; the issue was investigated and closed in [spec 017](../specs/017-task-rename-polish/).

@@ -27,6 +27,8 @@ Auto-generated from all feature plans. Last updated: 2026-03-04
 - TypeScript 5.4 (frontend), Rust 1.75+ (Tauri shell), Swift/Kotlin (Capacitor native bridge — generated) (015-native-app-targets)
 - No new storage layer — session cookies persisted by native WebView OS cookie jar; `@capacitor/preferences` for lightweight native-only flags (e.g., last-seen notification timestamp) (015-native-app-targets)
 - Redis (existing) — new `oauth:state:{value}` key namespace with 5-min TTL (016-native-auth-fixes)
+- TypeScript 5.4 (frontend + backend), Rust 1.75+ (Tauri shell — unaffected) + Fastify 4, Prisma ORM, React 18, Vite 5, Vitest — all existing; no new dependencies (017-task-rename-polish)
+- PostgreSQL (existing `SyncOverride` table — adding one new enum value); no schema migrations beyond enum update (017-task-rename-polish)
 
 - TypeScript 5.x (frontend + backend) + Next.js 14 (frontend), Fastify 4 (backend API), Prisma (ORM), (001-mvp-core)
 
@@ -46,9 +48,9 @@ npm test && npm run lint
 TypeScript 5.x (frontend + backend): Follow standard conventions
 
 ## Recent Changes
+- 017-task-rename-polish: Added TypeScript 5.4 (frontend + backend), Rust 1.75+ (Tauri shell — unaffected) + Fastify 4, Prisma ORM, React 18, Vite 5, Vitest — all existing; no new dependencies
 - 016-native-auth-fixes: Added TypeScript 5.4 (backend + frontend)
 - 015-native-app-targets: Added TypeScript 5.4 (frontend), Rust 1.75+ (Tauri shell), Swift/Kotlin (Capacitor native bridge — generated)
-- 014-vite-migration: Added TypeScript 5.4.2 / React 18.2.0 / Node.js 18+ + Vite 5.1.4 (already installed), react-router-dom v6 (to add), Tailwind CSS 3.4.1
 
 
 <!-- MANUAL ADDITIONS START -->

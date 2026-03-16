@@ -2,7 +2,7 @@
 
 **Feature Branch**: `014-vite-migration`
 **Created**: 2026-03-14
-**Status**: Draft
+**Status**: Complete
 **Closes**: [GitHub Issue #4 (partial — enables mobile/desktop platform targets)](https://github.com/jwill824/ordrctrl/issues/4)
 
 ## Overview

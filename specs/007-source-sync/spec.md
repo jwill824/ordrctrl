@@ -2,7 +2,7 @@
 
 **Feature Branch**: `007-source-sync`  
 **Created**: 2026-03-10  
-**Status**: Draft  
+**Status**: Complete  
 **Input**: Update tasks if the source task is completed or updated — when an integrated source (e.g. Gmail, Google Tasks, Microsoft Tasks, Apple Calendar) marks a task as complete or updates it, ordrctrl should reflect those changes in the feed so users always see an accurate view of their tasks.
 
 ## Overview
@@ -102,14 +102,14 @@ A user changes the title or due date of a task in the source system (e.g., renam
 - **SC-002**: 100% of tasks with an active Reopened Override remain open after a source completion event — no Reopened Overrides are silently cleared by source sync.
 - **SC-003**: After a task's title or due date changes in a connected source, the updated value appears in the ordrctrl feed within one sync cycle.
 - **SC-004**: Dismissed tasks are never restored to the active feed as a result of source metadata changes or source completion events.
-- **SC-005**: Users report that the ordrctrl feed accurately reflects the state of their tasks across all connected sources after the feature is delivered.
+- **SC-005**: The ordrctrl feed reflects source task state within one sync cycle (≤ 15 minutes) after a source completion event — verified by completing a task in a connected source and confirming the feed updates on the next triggered sync.
 
 ## Assumptions
 
 - The 15-minute recurring sync cadence remains unchanged — source state changes will be visible after the next scheduled sync fires, not in real time.
 - For Gmail integrations, "completion" defaults to the email no longer being in the inbox (archived or deleted), aligning with zero-inbox philosophy. Users may optionally configure "read" emails to also be treated as complete.
 - For sources without an explicit completion boolean (e.g., Apple Calendar events), "completion" is determined by the item naturally falling outside the integration's configured window (e.g., a past event is no longer returned by the adapter).
-- Gmail completion semantics are subject to clarification (see FR-001 acceptance scenario 3 and the open clarification marker above). The assumption is that a Gmail message that no longer matches the sync filter (e.g., it has been read and is no longer unread/starred) is treated as "no longer actionable" and will expire from ordrctrl naturally via the 24-hour TTL.
+- Gmail completion semantics are resolved: a Gmail message that no longer matches the sync filter (e.g., it has been read and is no longer unread/starred) is treated as "no longer actionable" and expires from ordrctrl naturally via the 24-hour TTL. Source un-completion (re-starring/marking unread) is not supported — items that expire remain dismissed.
 - Source un-completion (source marks a previously-complete task as open again) is out of scope for this feature. ordrctrl completion state is not reversed by source changes.
 - This feature is a prerequisite for full two-way sync (issue #10) but does not itself write any data back to source systems.
 

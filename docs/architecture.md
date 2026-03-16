@@ -25,42 +25,40 @@
 
 ## System overview
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Client layer                                               │
-│                                                             │
-│  ┌──────────────┐  ┌──────────────────┐  ┌──────────────┐  │
-│  │  Web browser │  │  iOS / Android   │  │ macOS / Win  │  │
-│  │  (Vite SPA)  │  │  (Capacitor 6)   │  │  (Tauri 2)   │  │
-│  └──────┬───────┘  └────────┬─────────┘  └──────┬───────┘  │
-│         │                   │                    │          │
-│         └───────────────────┴────────────────────┘          │
-│                             │ HTTPS + cookie session        │
-└─────────────────────────────┼───────────────────────────────┘
-                              │
-┌─────────────────────────────▼───────────────────────────────┐
-│  Backend (Fastify 4)                                        │
-│                                                             │
-│  ┌──────────────┐  ┌──────────────┐  ┌────────────────────┐ │
-│  │  Auth routes │  │  Feed routes │  │  Integration routes│ │
-│  └──────┬───────┘  └──────┬───────┘  └─────────┬──────────┘ │
-│         │                 │                     │            │
-│  ┌──────▼───────┐  ┌──────▼───────┐  ┌─────────▼──────────┐ │
-│  │ Auth service │  │ Feed service │  │  Adapter registry  │ │
-│  └──────┬───────┘  └──────┬───────┘  └─────────┬──────────┘ │
-│         │                 │                     │            │
-└─────────┼─────────────────┼─────────────────────┼────────────┘
-          │                 │                     │
-┌─────────┼─────────────────┼─────────────────────┼────────────┐
-│  Infrastructure           │                     │            │
-│                           │                     │            │
-│  ┌────────────┐  ┌────────▼────────┐  ┌─────────▼──────┐    │
-│  │   Redis 7  │  │  PostgreSQL 16  │  │  BullMQ queue  │    │
-│  │ (sessions  │  │  (Prisma ORM)   │  │  (sync every   │    │
-│  │  + OAuth   │  │                 │  │   15 min)      │    │
-│  │   state)   │  └─────────────────┘  └────────────────┘    │
-│  └────────────┘                                              │
-└──────────────────────────────────────────────────────────────┘
+```mermaid
+graph TD
+    Browser["Web browser<br/>(Vite SPA)"]
+    Capacitor["iOS / Android<br/>(Capacitor 6)"]
+    Tauri["macOS / Windows<br/>(Tauri 2)"]
+
+    Browser -- "HTTPS + cookie session" --> Fastify
+    Capacitor -- "HTTPS + cookie session" --> Fastify
+    Tauri -- "HTTPS + cookie session" --> Fastify
+
+    subgraph Fastify["Backend (Fastify 4)"]
+        AuthRoutes["Auth routes"]
+        FeedRoutes["Feed routes"]
+        IntRoutes["Integration routes"]
+        AuthSvc["Auth service"]
+        FeedSvc["Feed service"]
+        AdapterReg["Adapter registry"]
+
+        AuthRoutes --> AuthSvc
+        FeedRoutes --> FeedSvc
+        IntRoutes --> AdapterReg
+    end
+
+    AuthSvc --> Redis
+    AuthSvc --> Postgres
+    FeedSvc --> Postgres
+    AdapterReg --> Postgres
+    AdapterReg --> BullMQ
+    BullMQ --> Redis
+    BullMQ -- "fetch + normalize" --> IntegrationServices["Integration services<br/>(Gmail · Microsoft · Apple)"]
+
+    Redis["Redis 7<br/>(sessions + OAuth state)"]
+    Postgres["PostgreSQL 16<br/>(Prisma ORM)"]
+    BullMQ["BullMQ<br/>(sync every 15 min)"]
 ```
 
 ---

@@ -21,9 +21,10 @@ interface EditTaskModalProps {
   onDelete: (id: string) => Promise<void>;
   onClose: () => void;
   onSetDescriptionOverride?: (id: string, value: string | null) => Promise<void>;
+  onSetTitleOverride?: (id: string, value: string | null) => Promise<void>;
 }
 
-export function EditTaskModal({ task, onSave, onDelete, onClose, onSetDescriptionOverride }: EditTaskModalProps) {
+export function EditTaskModal({ task, onSave, onDelete, onClose, onSetDescriptionOverride, onSetTitleOverride }: EditTaskModalProps) {
   const isSyncItem = task.id.startsWith('sync:') && task.serviceId !== 'ordrctrl';
   const [title, setTitle] = useState(task.title);
   const [dueAt, setDueAt] = useState(
@@ -48,8 +49,11 @@ export function EditTaskModal({ task, onSave, onDelete, onClose, onSetDescriptio
     setSaving(true);
     try {
       const isoDate = dueAt ? new Date(dueAt).toISOString() : null;
+      if (isSyncItem && onSetTitleOverride) {
+        // Empty title means "revert to original synced title" (pass null to clear override)
+        await onSetTitleOverride(task.id, title.trim() || null);
+      }
       if (isSyncItem && onSetDescriptionOverride) {
-        // Save description override: if textarea is empty, clear override; otherwise set it
         const descValue = description.trim() || null;
         await onSetDescriptionOverride(task.id, descValue);
       }
@@ -133,16 +137,36 @@ export function EditTaskModal({ task, onSave, onDelete, onClose, onSetDescriptio
           )}
 
           {isSyncItem && (
-            <p className="text-[0.75rem] text-zinc-500">
-              <span className="font-semibold text-zinc-800">{task.title}</span>
-              <br />
-              <span className="mt-1 block">
+            <div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <label htmlFor="edit-title" className="block text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-zinc-400">Title</label>
+                {task.hasTitleOverride && (
+                  <span className="inline-flex items-center px-1.5 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.08em] bg-zinc-100 text-zinc-500 rounded">
+                    Renamed
+                  </span>
+                )}
+              </div>
+              <input
+                id="edit-title"
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                maxLength={500}
+                placeholder={task.originalTitle ?? task.title}
+                className="w-full border border-zinc-300 bg-white py-2.5 px-3 text-[0.9rem] text-black outline-none transition-colors focus:border-black placeholder:text-zinc-400"
+              />
+              {task.hasTitleOverride && task.originalTitle && (
+                <p className="mt-1 text-[0.7rem] text-zinc-400">
+                  Original: <span className="text-zinc-500">{task.originalTitle}</span>
+                </p>
+              )}
+              <p className="mt-1.5 text-[0.7rem] text-zinc-400">
                 Assign a local due date — won&apos;t update the source service.
                 {task.hasUserDueAt && (
                   <span className="ml-1 text-zinc-400">(override active)</span>
                 )}
-              </span>
-            </p>
+              </p>
+            </div>
           )}
 
           {isSyncItem && (
@@ -194,7 +218,7 @@ export function EditTaskModal({ task, onSave, onDelete, onClose, onSetDescriptio
               type="datetime-local"
               value={dueAt}
               onChange={(e) => setDueAt(e.target.value)}
-              autoFocus={isSyncItem && !task.description}
+              autoFocus={isSyncItem && !task.hasTitleOverride && !task.description}
               className="w-full border border-zinc-300 bg-white py-2.5 px-3 text-[0.9rem] text-black outline-none transition-colors focus:border-black placeholder:text-zinc-400"
             />
           </div>

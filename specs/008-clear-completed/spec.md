@@ -2,7 +2,7 @@
 
 **Feature Branch**: `008-clear-completed`  
 **Created**: 2026-03-10  
-**Status**: Draft  
+**Status**: Complete  
 **GitHub Issue**: [#20](https://github.com/jwill824/ordrctrl/issues/20)
 
 ## Overview

@@ -21,8 +21,8 @@ description: "Task list for 014-vite-migration"
 
 **Purpose**: Remove Next.js dependency, add Vite + React Router, and install.
 
-- [ ] T001 Update `frontend/package.json` — remove `next` and `eslint-config-next`; add `react-router-dom@^6` dependency; update scripts: `dev` → `vite`, `build` → `tsc && vite build`, `start` → `vite preview`
-- [ ] T002 Run `pnpm install` inside `frontend/` to apply dependency changes
+- [x] T001 Update `frontend/package.json` — remove `next` and `eslint-config-next`; add `react-router-dom@^6` dependency; update scripts: `dev` → `vite`, `build` → `tsc && vite build`, `start` → `vite preview`
+- [x] T002 Run `pnpm install` inside `frontend/` to apply dependency changes
 
 ---
 
@@ -32,11 +32,11 @@ description: "Task list for 014-vite-migration"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T003 [P] Create `frontend/vite.config.ts` — configure `@vitejs/plugin-react`, `resolve.alias` (`@` → `./src`), `server.port: 3000`, `server.historyApiFallback: true`, `build.outDir: 'dist'`
-- [ ] T004 [P] Create `frontend/index.html` — SPA entry point with Inter Google Fonts `<link>` tags, `<div id="root">`, and `<script type="module" src="/src/main.tsx">`
-- [ ] T005 [P] Create `frontend/src/main.tsx` — `ReactDOM.createRoot` bootstrap that renders `<App />` inside `<React.StrictMode>`, imports `./app/globals.css`
-- [ ] T006 [P] Create `frontend/src/App.tsx` — `BrowserRouter` + `Routes` with all 10 routes per `contracts/routing.md`: root redirect, auth routes (`/login`, `/signup`, `/forgot-password`, `/reset-password`), legacy redirect (`/settings/dismissed` → `/feed?showDismissed=true`), and protected routes (`/feed`, `/inbox`, `/onboarding`, `/settings/integrations`, `/settings/feed`) wrapped in `<ProtectedRoute>`
-- [ ] T007 Create `frontend/src/components/ProtectedRoute.tsx` — auth guard that reads `{ isAuthenticated, isLoading }` from `useAuth`, uses `useNavigate` + `useLocation` to redirect unauthenticated users to `/login?redirect=<pathname>`, renders `null` while loading
+- [x] T003 [P] Create `frontend/vite.config.ts` — configure `@vitejs/plugin-react`, `resolve.alias` (`@` → `./src`), `server.port: 3000`, `server.historyApiFallback: true`, `build.outDir: 'dist'`
+- [x] T004 [P] Create `frontend/index.html` — SPA entry point with Inter Google Fonts `<link>` tags, `<div id="root">`, and `<script type="module" src="/src/main.tsx">`
+- [x] T005 [P] Create `frontend/src/main.tsx` — `ReactDOM.createRoot` bootstrap that renders `<App />` inside `<React.StrictMode>`, imports `./app/globals.css`
+- [x] T006 [P] Create `frontend/src/App.tsx` — `BrowserRouter` + `Routes` with all 10 routes per `contracts/routing.md`: root redirect, auth routes (`/login`, `/signup`, `/forgot-password`, `/reset-password`), legacy redirect (`/settings/dismissed` → `/feed?showDismissed=true`), and protected routes (`/feed`, `/inbox`, `/onboarding`, `/settings/integrations`, `/settings/feed`) wrapped in `<ProtectedRoute>`
+- [x] T007 Create `frontend/src/components/ProtectedRoute.tsx` — auth guard that reads `{ isAuthenticated, isLoading }` from `useAuth`, uses `useNavigate` + `useLocation` to redirect unauthenticated users to `/login?redirect=<pathname>`, renders `null` while loading
 
 **Checkpoint**: SPA shell is in place — user story implementation can now begin
 
@@ -48,24 +48,24 @@ description: "Task list for 014-vite-migration"
 
 **Independent Test**: Start `pnpm dev`, open `http://localhost:3000` in a browser, log in, navigate all routes, and confirm every feature (feed, inbox, settings, integrations) works exactly as before.
 
-- [ ] T008 [P] [US1] Update `frontend/src/hooks/useAuth.ts` — replace `useRouter` from `next/navigation` with `useNavigate` from `react-router-dom`
-- [ ] T009 [P] [US1] Update `frontend/src/components/AccountMenu.tsx` — replace `import { useRouter } from 'next/navigation'` with `import { useNavigate } from 'react-router-dom'`; replace `const router = useRouter()` with `const navigate = useNavigate()`; replace all `router.push(` calls with `navigate(`
-- [ ] T010 [P] [US1] Update `frontend/src/components/auth/LoginForm.tsx` — replace `import { useRouter } from 'next/navigation'` with `useNavigate`; replace `import Link from 'next/link'` with `import { Link } from 'react-router-dom'`; replace all `<Link href=` with `<Link to=`; replace `router.push(` with `navigate(`
-- [ ] T011 [P] [US1] Update `frontend/src/components/auth/SignupForm.tsx` — replace `import Link from 'next/link'` with `import { Link } from 'react-router-dom'`; replace all `<Link href=` with `<Link to=`
-- [ ] T012 [P] [US1] Update `frontend/src/components/feed/FeedEmptyState.tsx` — replace `import Link from 'next/link'` with `import { Link } from 'react-router-dom'`; replace all `<Link href=` with `<Link to=`
-- [ ] T013 [P] [US1] Update `frontend/src/components/feed/IntegrationErrorBanner.tsx` — replace `process.env.NEXT_PUBLIC_APP_URL` with `import.meta.env.VITE_APP_URL`
-- [ ] T014 [P] [US1] Update `frontend/src/components/integrations/AppleCredentialForm.tsx` — replace all `process.env.NEXT_PUBLIC_DEV_APPLE_USERNAME` → `import.meta.env.VITE_DEV_APPLE_USERNAME` and `process.env.NEXT_PUBLIC_DEV_APPLE_APP_SPECIFIC_PASSWORD` → `import.meta.env.VITE_DEV_APPLE_APP_SPECIFIC_PASSWORD`
-- [ ] T015 [P] [US1] Update `frontend/src/app/feed/page.tsx` — replace `import Link from 'next/link'` with `import { Link } from 'react-router-dom'`; replace `<Link href=` with `<Link to=`; replace `import { useSearchParams } from 'next/navigation'` with `import { useSearchParams } from 'react-router-dom'`
-- [ ] T016 [P] [US1] Update `frontend/src/app/reset-password/page.tsx` — replace `useRouter` with `useNavigate`; replace `useSearchParams` import from `next/navigation` with `react-router-dom`; replace `import Link from 'next/link'` with `import { Link } from 'react-router-dom'`; replace `<Link href=` with `<Link to=`; replace `router.push(` with `navigate(`
-- [ ] T017 [P] [US1] Update `frontend/src/app/forgot-password/page.tsx` — replace `import Link from 'next/link'` with `import { Link } from 'react-router-dom'`; replace `<Link href=` with `<Link to=`
-- [ ] T018 [P] [US1] Update `frontend/src/app/onboarding/page.tsx` — replace `import { redirect } from 'next/navigation'` with `import { Navigate } from 'react-router-dom'`; replace server-side `redirect('/path')` call with `return <Navigate to="/path" replace />`
-- [ ] T019 [P] [US1] Update `frontend/src/app/settings/integrations/page.tsx` — replace `import Link from 'next/link'` with `import { Link } from 'react-router-dom'`; replace `<Link href=` with `<Link to=`; replace `useSearchParams` import from `next/navigation` with `react-router-dom`
-- [ ] T020 [P] [US1] Update `frontend/src/app/settings/feed/page.tsx` — replace `import Link from 'next/link'` with `import { Link } from 'react-router-dom'`; replace `<Link href=` with `<Link to=`
-- [ ] T021 [P] [US1] Update 6 service files — in `frontend/src/services/api-client.ts`, `feed.service.ts`, `inbox.service.ts`, `integrations.service.ts`, `tasks.service.ts`, `user.service.ts`: replace all `process.env.NEXT_PUBLIC_API_URL` → `import.meta.env.VITE_API_URL` and any other `NEXT_PUBLIC_` prefixes → `VITE_`
-- [ ] T022 [P] [US1] Update `frontend/.env.example` — rename all 4 vars: `NEXT_PUBLIC_API_URL` → `VITE_API_URL`, `NEXT_PUBLIC_APP_URL` → `VITE_APP_URL`, `NEXT_PUBLIC_DEV_APPLE_USERNAME` → `VITE_DEV_APPLE_USERNAME`, `NEXT_PUBLIC_DEV_APPLE_APP_SPECIFIC_PASSWORD` → `VITE_DEV_APPLE_APP_SPECIFIC_PASSWORD`; also update any `.env` and `.env.local` files with the same renames
-- [ ] T023 [P] [US1] Update `frontend/src/app/globals.css` — add `:root { --font-inter: 'Inter', system-ui, sans-serif; }` at the top to replace the `next/font` CSS variable injection
-- [ ] T024 [P] [US1] Update `frontend/tailwind.config.ts` — replace content paths with `['./index.html', './src/**/*.{js,ts,jsx,tsx}']` (remove `src/app/` glob, add `index.html`)
-- [ ] T025 [US1] Delete `frontend/next.config.mjs` and `frontend/src/middleware.ts` — these are replaced by `vite.config.ts` and `ProtectedRoute.tsx` respectively
+- [x] T008 [P] [US1] Update `frontend/src/hooks/useAuth.ts` — replace `useRouter` from `next/navigation` with `useNavigate` from `react-router-dom`
+- [x] T009 [P] [US1] Update `frontend/src/components/AccountMenu.tsx` — replace `import { useRouter } from 'next/navigation'` with `import { useNavigate } from 'react-router-dom'`; replace `const router = useRouter()` with `const navigate = useNavigate()`; replace all `router.push(` calls with `navigate(`
+- [x] T010 [P] [US1] Update `frontend/src/components/auth/LoginForm.tsx` — replace `import { useRouter } from 'next/navigation'` with `useNavigate`; replace `import Link from 'next/link'` with `import { Link } from 'react-router-dom'`; replace all `<Link href=` with `<Link to=`; replace `router.push(` with `navigate(`
+- [x] T011 [P] [US1] Update `frontend/src/components/auth/SignupForm.tsx` — replace `import Link from 'next/link'` with `import { Link } from 'react-router-dom'`; replace all `<Link href=` with `<Link to=`
+- [x] T012 [P] [US1] Update `frontend/src/components/feed/FeedEmptyState.tsx` — replace `import Link from 'next/link'` with `import { Link } from 'react-router-dom'`; replace all `<Link href=` with `<Link to=`
+- [x] T013 [P] [US1] Update `frontend/src/components/feed/IntegrationErrorBanner.tsx` — replace `process.env.NEXT_PUBLIC_APP_URL` with `import.meta.env.VITE_APP_URL`
+- [x] T014 [P] [US1] Update `frontend/src/components/integrations/AppleCredentialForm.tsx` — replace all `process.env.NEXT_PUBLIC_DEV_APPLE_USERNAME` → `import.meta.env.VITE_DEV_APPLE_USERNAME` and `process.env.NEXT_PUBLIC_DEV_APPLE_APP_SPECIFIC_PASSWORD` → `import.meta.env.VITE_DEV_APPLE_APP_SPECIFIC_PASSWORD`
+- [x] T015 [P] [US1] Update `frontend/src/app/feed/page.tsx` — replace `import Link from 'next/link'` with `import { Link } from 'react-router-dom'`; replace `<Link href=` with `<Link to=`; replace `import { useSearchParams } from 'next/navigation'` with `import { useSearchParams } from 'react-router-dom'`
+- [x] T016 [P] [US1] Update `frontend/src/app/reset-password/page.tsx` — replace `useRouter` with `useNavigate`; replace `useSearchParams` import from `next/navigation` with `react-router-dom`; replace `import Link from 'next/link'` with `import { Link } from 'react-router-dom'`; replace `<Link href=` with `<Link to=`; replace `router.push(` with `navigate(`
+- [x] T017 [P] [US1] Update `frontend/src/app/forgot-password/page.tsx` — replace `import Link from 'next/link'` with `import { Link } from 'react-router-dom'`; replace `<Link href=` with `<Link to=`
+- [x] T018 [P] [US1] Update `frontend/src/app/onboarding/page.tsx` — replace `import { redirect } from 'next/navigation'` with `import { Navigate } from 'react-router-dom'`; replace server-side `redirect('/path')` call with `return <Navigate to="/path" replace />`
+- [x] T019 [P] [US1] Update `frontend/src/app/settings/integrations/page.tsx` — replace `import Link from 'next/link'` with `import { Link } from 'react-router-dom'`; replace `<Link href=` with `<Link to=`; replace `useSearchParams` import from `next/navigation` with `react-router-dom`
+- [x] T020 [P] [US1] Update `frontend/src/app/settings/feed/page.tsx` — replace `import Link from 'next/link'` with `import { Link } from 'react-router-dom'`; replace `<Link href=` with `<Link to=`
+- [x] T021 [P] [US1] Update 6 service files — in `frontend/src/services/api-client.ts`, `feed.service.ts`, `inbox.service.ts`, `integrations.service.ts`, `tasks.service.ts`, `user.service.ts`: replace all `process.env.NEXT_PUBLIC_API_URL` → `import.meta.env.VITE_API_URL` and any other `NEXT_PUBLIC_` prefixes → `VITE_`
+- [x] T022 [P] [US1] Update `frontend/.env.example` — rename all 4 vars: `NEXT_PUBLIC_API_URL` → `VITE_API_URL`, `NEXT_PUBLIC_APP_URL` → `VITE_APP_URL`, `NEXT_PUBLIC_DEV_APPLE_USERNAME` → `VITE_DEV_APPLE_USERNAME`, `NEXT_PUBLIC_DEV_APPLE_APP_SPECIFIC_PASSWORD` → `VITE_DEV_APPLE_APP_SPECIFIC_PASSWORD`; also update any `.env` and `.env.local` files with the same renames
+- [x] T023 [P] [US1] Update `frontend/src/app/globals.css` — add `:root { --font-inter: 'Inter', system-ui, sans-serif; }` at the top to replace the `next/font` CSS variable injection
+- [x] T024 [P] [US1] Update `frontend/tailwind.config.ts` — replace content paths with `['./index.html', './src/**/*.{js,ts,jsx,tsx}']` (remove `src/app/` glob, add `index.html`)
+- [x] T025 [US1] Delete `frontend/next.config.mjs` and `frontend/src/middleware.ts` — these are replaced by `vite.config.ts` and `ProtectedRoute.tsx` respectively
 
 **Checkpoint**: Dev server (`pnpm dev`) should start on port 3000; all routes should be navigable and fully functional
 
@@ -77,10 +77,10 @@ description: "Task list for 014-vite-migration"
 
 **Independent Test**: Run `pnpm test` and `pnpm test:e2e` from `frontend/` and confirm zero failures.
 
-- [ ] T026 [P] [US2] Update `frontend/playwright.config.ts` — change `webServer.command` to use Vite: set command to `pnpm dev`, confirm `url: 'http://localhost:3000'`
-- [ ] T027 [P] [US2] Update `frontend/vitest.config.ts` — remove `**/.next/**` from the `exclude` list
-- [ ] T028 [US2] Run unit test suite from `frontend/` (`pnpm test`) and confirm all tests pass; fix any TypeScript or import errors surfaced by the Vite/Vitest configuration
-- [ ] T029 [US2] Run e2e test suite from `frontend/` (`pnpm test:e2e`) and confirm all Playwright tests pass; fix any failures caused by routing or environment variable changes
+- [x] T026 [P] [US2] Update `frontend/playwright.config.ts` — change `webServer.command` to use Vite: set command to `pnpm dev`, confirm `url: 'http://localhost:3000'`
+- [x] T027 [P] [US2] Update `frontend/vitest.config.ts` — remove `**/.next/**` from the `exclude` list
+- [x] T028 [US2] Run unit test suite from `frontend/` (`pnpm test`) and confirm all tests pass; fix any TypeScript or import errors surfaced by the Vite/Vitest configuration
+- [x] T029 [US2] Run e2e test suite from `frontend/` (`pnpm test:e2e`) and confirm all Playwright tests pass; fix any failures caused by routing or environment variable changes
 
 **Checkpoint**: `pnpm test` and `pnpm test:e2e` both exit with zero failures
 
@@ -92,8 +92,8 @@ description: "Task list for 014-vite-migration"
 
 **Independent Test**: Run `pnpm build`; confirm `frontend/dist/` exists and contains only HTML, JS, CSS, and media files with no Node.js runtime dependency.
 
-- [ ] T030 [US3] Run production build (`pnpm build` from `frontend/`) and verify `frontend/dist/` is created containing only static assets (HTML, JS, CSS, fonts, images); confirm no server-side runtime files are present
-- [ ] T031 [US3] Verify build output is mobile-wrapper-ready — confirm `frontend/dist/index.html` exists as the SPA entry point and all asset references are relative paths, making the bundle directly consumable by Capacitor (`webDir: 'dist'`)
+- [x] T030 [US3] Run production build (`pnpm build` from `frontend/`) and verify `frontend/dist/` is created containing only static assets (HTML, JS, CSS, fonts, images); confirm no server-side runtime files are present
+- [x] T031 [US3] Verify build output is mobile-wrapper-ready — confirm `frontend/dist/index.html` exists as the SPA entry point and all asset references are relative paths, making the bundle directly consumable by Capacitor (`webDir: 'dist'`)
 
 **Checkpoint**: `frontend/dist/` is a valid static SPA bundle — spec 015 (Capacitor) can now proceed
 
@@ -105,7 +105,7 @@ description: "Task list for 014-vite-migration"
 
 **Independent Test**: Load `frontend/dist/` inside a Tauri shell on macOS and confirm all routes render correctly.
 
-- [ ] T032 [US4] Verify the `frontend/dist/` output from T030 is desktop-wrapper-ready — confirm asset paths are relative and compatible with Tauri's `frontendDist` configuration; manually test by loading the bundle in a Tauri dev shell if available
+- [x] T032 [US4] Verify the `frontend/dist/` output from T030 is desktop-wrapper-ready — confirm asset paths are relative and compatible with Tauri's `frontendDist` configuration; manually test by loading the bundle in a Tauri dev shell if available
 
 **Checkpoint**: The same `frontend/dist/` bundle serves both mobile and desktop — spec 016 (Tauri) can now proceed
 
@@ -115,8 +115,8 @@ description: "Task list for 014-vite-migration"
 
 **Purpose**: Final cleanup and full-suite validation per quickstart.md
 
-- [ ] T033 [P] Remove any residual `next/` import references across `frontend/src/` — run `grep -r "from 'next/" frontend/src/` and resolve any remaining hits
-- [ ] T034 Run full quickstart.md validation sequence: `pnpm dev` (confirm < 10s cold start), `pnpm test` (all pass), `pnpm test:e2e` (all pass), `pnpm build` (dist/ produced), manual browser walkthrough of all 10 routes
+- [x] T033 [P] Remove any residual `next/` import references across `frontend/src/` — run `grep -r "from 'next/" frontend/src/` and resolve any remaining hits
+- [x] T034 Run full quickstart.md validation sequence: `pnpm dev` (confirm < 10s cold start), `pnpm test` (all pass), `pnpm test:e2e` (all pass), `pnpm build` (dist/ produced), manual browser walkthrough of all 10 routes
 
 ---
 

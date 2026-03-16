@@ -8,6 +8,8 @@ export interface FeedItem {
   serviceId: string;
   itemType: 'task' | 'event' | 'message';
   title: string;
+  originalTitle: string | null;
+  hasTitleOverride: boolean;
   dueAt: string | null;
   startAt: string | null;
   endAt: string | null;
@@ -160,6 +162,24 @@ export async function setDescriptionOverride(
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data.message || 'Failed to set description override');
+  }
+  return res.json();
+}
+
+export async function setTitleOverride(
+  itemId: string,
+  value: string | null
+): Promise<FeedItem> {
+  const rawId = itemId.replace(/^sync:/, '');
+  const res = await fetch(`${API_URL}/api/feed/sync/${rawId}/title-override`, {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ value }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || 'Failed to set title override');
   }
   return res.json();
 }

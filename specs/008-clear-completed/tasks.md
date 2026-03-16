@@ -17,8 +17,8 @@
 
 **Purpose**: Verify branch state and tooling. No new project structure is needed — all changes are additive to existing files.
 
-- [ ] T001 Verify `008-clear-completed` branch is checked out and up to date with main
-- [ ] T002 Confirm `pnpm install` passes and dev environment starts cleanly
+- [x] T001 Verify `008-clear-completed` branch is checked out and up to date with main
+- [x] T002 Confirm `pnpm install` passes and dev environment starts cleanly
 
 **Checkpoint**: Dev environment ready ✅
 
@@ -28,11 +28,11 @@
 
 **Purpose**: Backend service function and endpoint that both P1 user stories depend on. No schema changes required.
 
-- [ ] T003 Add `clearCompletedItems(userId: string): Promise<{ clearedCount: number }>` to `backend/src/feed/feed.service.ts` — queries eligible sync items (completedInOrdrctrl=true, no DISMISSED/REOPENED override) and eligible native tasks (completed=true, dismissed=false), bulk-creates SyncOverride(DISMISSED) records with skipDuplicates and bulk-updates NativeTask.dismissed=true, returns total count
-- [ ] T004 Add `POST /api/feed/completed/clear` route to `backend/src/api/feed.routes.ts` — auth-guarded, calls `clearCompletedItems(userId)`, returns `{ clearedCount: number }` with 200; returns 401 if unauthenticated
-- [ ] T005 [P] Add `clearAllCompleted(): Promise<{ clearedCount: number }>` to `frontend/src/services/feedService.ts` — calls `POST /api/feed/completed/clear`, returns parsed response
-- [ ] T006 [P] Write unit tests for `clearCompletedItems()` in `backend/tests/feed.service.test.ts` — test: clears eligible sync items, clears eligible native tasks, excludes items with REOPENED override, excludes already-dismissed items, returns correct count, handles 0 eligible items
-- [ ] T007 [P] Write endpoint test for `POST /api/feed/completed/clear` in `backend/tests/feed.routes.test.ts` — test: returns 200 with clearedCount, returns 401 when unauthenticated, returns 200 with clearedCount=0 when nothing to clear
+- [x] T003 Add `clearCompletedItems(userId: string): Promise<{ clearedCount: number }>` to `backend/src/feed/feed.service.ts` — queries eligible sync items (completedInOrdrctrl=true, no DISMISSED/REOPENED override) and eligible native tasks (completed=true, dismissed=false), bulk-creates SyncOverride(DISMISSED) records with skipDuplicates and bulk-updates NativeTask.dismissed=true, returns total count
+- [x] T004 Add `POST /api/feed/completed/clear` route to `backend/src/api/feed.routes.ts` — auth-guarded, calls `clearCompletedItems(userId)`, returns `{ clearedCount: number }` with 200; returns 401 if unauthenticated
+- [x] T005 [P] Add `clearAllCompleted(): Promise<{ clearedCount: number }>` to `frontend/src/services/feedService.ts` — calls `POST /api/feed/completed/clear`, returns parsed response
+- [x] T006 [P] Write unit tests for `clearCompletedItems()` in `backend/tests/unit/feed.service.test.ts` — test: clears eligible sync items, clears eligible native tasks, excludes items with REOPENED override, excludes already-dismissed items, returns correct count, handles 0 eligible items
+- [x] T007 [P] Write endpoint test for `POST /api/feed/completed/clear` in `backend/tests/contract/feed.test.ts` — test: returns 200 with clearedCount, returns 401 when unauthenticated, returns 200 with clearedCount=0 when nothing to clear
 
 **Checkpoint**: Service + endpoint functional, passing tests ✅ — US1 and US2 can now be implemented
 
@@ -46,11 +46,11 @@
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Add `clearCompleted: () => Promise<void>` and `clearedCount: number | null` state to `frontend/src/hooks/useFeed.ts` — call `feedService.clearAllCompleted()`, optimistically empty the `completed` array immediately, store count in `clearedCount` state, reload feed on success, revert optimistic update and set error on failure
-- [ ] T009 [US1] Add `onClear: () => void` prop to `CompletedSection` interface and "Clear" button to section header in `frontend/src/components/feed/CompletedSection.tsx` — button appears only when `items.length > 0`, styled consistently with existing header text (text-zinc-400, small/uppercase), positioned right-aligned in the header row
-- [ ] T010 [US1] Wire `clearCompleted` from `useFeed` to `CompletedSection` via `onClear` prop in `frontend/src/app/feed/page.tsx`
-- [ ] T011 [P] [US1] Write component test for `CompletedSection` "Clear" button in `frontend/tests/components/CompletedSection.test.tsx` — test: button renders when items exist, button absent when items empty, button calls onClear on click
-- [ ] T012 [P] [US1] Write hook test for `clearCompleted` in `frontend/tests/hooks/useFeed.test.ts` — test: optimistic empty of completed array, count stored on success, revert on error
+- [x] T008 [US1] Add `clearCompleted: () => Promise<void>` and `clearedCount: number | null` state to `frontend/src/hooks/useFeed.ts` — call `feedService.clearAllCompleted()`, optimistically empty the `completed` array immediately, store count in `clearedCount` state, reload feed on success, revert optimistic update and set error on failure
+- [x] T009 [US1] Add `onClear: () => void` prop to `CompletedSection` interface and "Clear" button to section header in `frontend/src/components/feed/CompletedSection.tsx` — button appears only when `items.length > 0`, styled consistently with existing header text (text-zinc-400, small/uppercase), positioned right-aligned in the header row
+- [x] T010 [US1] Wire `clearCompleted` from `useFeed` to `CompletedSection` via `onClear` prop in `frontend/src/app/feed/page.tsx`
+- [x] T011 [P] [US1] Write component test for `CompletedSection` "Clear" button in `frontend/tests/unit/components/feed/CompletedSection.test.tsx` — test: button renders when items exist, button absent when items empty, button calls onClear on click
+- [x] T012 [P] [US1] Write hook test for `clearCompleted` in `frontend/tests/unit/hooks/useFeed.clearCompleted.test.ts` — test: optimistic empty of completed array, count stored on success, revert on error
 
 **Checkpoint**: US1 fully functional ✅ — user can clear all completed tasks in one click
 
@@ -64,10 +64,10 @@
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] Add cleared-count toast to `frontend/src/app/feed/page.tsx` — display toast when `clearedCount` is non-null (after clear), message format: "Cleared {n} completed task(s) — find them in Dismissed Items", include close button to dismiss toast, clear `clearedCount` on close (call `clearClearedToast()` or equivalent hook setter)
-- [ ] T014 [P] [US2] Add `clearClearedToast: () => void` to `frontend/src/hooks/useFeed.ts` — resets `clearedCount` to null
-- [ ] T015 [P] [US2] Add error toast handling for failed clear in `frontend/src/hooks/useFeed.ts` — on API error during `clearCompleted`, show existing error toast pattern and revert the optimistic completed-array state
-- [ ] T016 [P] [US2] Write toast render test in `frontend/tests/components/ClearedToast.test.tsx` (or extend feed page test) — test: toast shows correct count, close button hides toast, toast absent before clear action fires
+- [x] T013 [US2] Add cleared-count toast to `frontend/src/app/feed/page.tsx` — display toast when `clearedCount` is non-null (after clear), message format: "Cleared {n} completed task(s) — find them in Dismissed Items", include close button to dismiss toast, clear `clearedCount` on close (call `clearClearedToast()` or equivalent hook setter)
+- [x] T014 [P] [US2] Add `clearClearedToast: () => void` to `frontend/src/hooks/useFeed.ts` — resets `clearedCount` to null
+- [x] T015 [P] [US2] Add error toast handling for failed clear in `frontend/src/hooks/useFeed.ts` — on API error during `clearCompleted`, show existing error toast pattern and revert the optimistic completed-array state
+- [x] T016 [P] [US2] Write toast render/dismiss tests — no standalone `ClearedToast` component exists; toast logic is inline on the feed page; covered by `frontend/tests/unit/hooks/useFeed.clearCompleted.test.ts` (count stored on success, reset to null on dismiss) — test: toast shows correct count, close button hides toast, toast absent before clear action fires
 
 **Checkpoint**: US2 fully functional ✅ — feedback loop complete; combined with US1 this is the shippable MVP
 
@@ -83,23 +83,23 @@
 
 ### P2 Schema Change
 
-- [ ] T017 Add `settings Json?` column to `User` model in `backend/prisma/schema.prisma` with inline comment `// user-level preferences e.g. { autoClearWindowDays: 7 }`
-- [ ] T018 Generate and apply Prisma migration: `cd backend && npx prisma migrate dev --name add-user-settings`
+- [x] T017 Add `settings Json?` column to `User` model in `backend/prisma/schema.prisma` with inline comment `// user-level preferences e.g. { autoClearWindowDays: 7 }`
+- [x] T018 Generate and apply Prisma migration: `cd backend && npx prisma migrate dev --name add-user-settings`
 
 ### P2 Backend
 
-- [ ] T019 [P] [US3] Create `backend/src/user/user.service.ts` — implement `getUserSettings(userId): Promise<UserSettings>` (returns `{ autoClearWindowDays: null }` if unset) and `updateUserSettings(userId, patch: Partial<UserSettings>): Promise<UserSettings>` with validation (autoClearWindowDays must be 1 | 3 | 7 | 30 | null)
-- [ ] T020 [P] [US3] Create `backend/src/api/user.routes.ts` — add `GET /api/user/settings` (returns current settings) and `PATCH /api/user/settings` (validates + updates, returns 400 with error message for invalid window value)
-- [ ] T021 [US3] Add `clearExpiredCompleted(userId: string, windowDays: number): Promise<void>` to `backend/src/feed/feed.service.ts` — queries completed items where `completedAt < now() - windowDays * 86400s`, uses same bulk dismiss logic as `clearCompletedItems()`, skips users where autoClearWindowDays is null
-- [ ] T022 [US3] Add auto-clear post-sync hook to `backend/src/sync/sync.worker.ts` — after each sync job completes, fetch user settings, if `autoClearWindowDays` is set call `clearExpiredCompleted(userId, autoClearWindowDays)`
-- [ ] T023 [P] [US3] Write unit tests for `getUserSettings`, `updateUserSettings`, and `clearExpiredCompleted` in `backend/tests/user.service.test.ts` and add `clearExpiredCompleted` tests to `backend/tests/feed.service.test.ts`
-- [ ] T024 [P] [US3] Write endpoint tests for `GET /api/user/settings` and `PATCH /api/user/settings` in `backend/tests/user.routes.test.ts`
+- [x] T019 [P] [US3] Create `backend/src/user/user.service.ts` — implement `getUserSettings(userId): Promise<UserSettings>` (returns `{ autoClearWindowDays: null }` if unset) and `updateUserSettings(userId, patch: Partial<UserSettings>): Promise<UserSettings>` with validation (autoClearWindowDays must be 1 | 3 | 7 | 30 | null)
+- [x] T020 [P] [US3] Create `backend/src/api/user.routes.ts` — add `GET /api/user/settings` (returns current settings) and `PATCH /api/user/settings` (validates + updates, returns 400 with error message for invalid window value)
+- [x] T021 [US3] Add `clearExpiredCompleted(userId: string, windowDays: number): Promise<void>` to `backend/src/feed/feed.service.ts` — queries completed items where `completedAt < now() - windowDays * 86400s`, uses same bulk dismiss logic as `clearCompletedItems()`, skips users where autoClearWindowDays is null
+- [x] T022 [US3] Add auto-clear post-sync hook to `backend/src/sync/sync.worker.ts` — after each sync job completes, fetch user settings, if `autoClearWindowDays` is set call `clearExpiredCompleted(userId, autoClearWindowDays)`
+- [x] T023 [P] [US3] Write unit tests for `getUserSettings`, `updateUserSettings`, and `clearExpiredCompleted` in `backend/tests/unit/user.service.test.ts` and add `clearExpiredCompleted` tests to `backend/tests/unit/feed.service.test.ts`
+- [x] T024 [P] [US3] Write endpoint tests for `GET /api/user/settings` and `PATCH /api/user/settings` in `backend/tests/contract/user.test.ts`
 
 ### P2 Frontend
 
-- [ ] T025 [US3] Create auto-clear settings UI component `frontend/src/components/settings/AutoClearSettings.tsx` — dropdown with options: Disabled (default), 1 day, 3 days, 7 days, 30 days; calls `PATCH /api/user/settings` on change; shows current value on load via `GET /api/user/settings`
-- [ ] T026 [P] [US3] Add settings page or settings section in `frontend/src/app/settings/page.tsx` (create if not exists) — include `AutoClearSettings` component with a descriptive label
-- [ ] T027 [P] [US3] Write component test for `AutoClearSettings` in `frontend/tests/components/AutoClearSettings.test.tsx` — test: renders current value, calls API on change, shows all valid options
+- [x] T025 [US3] Create auto-clear settings UI component `frontend/src/components/settings/AutoClearSettings.tsx` — dropdown with options: Disabled (default), 1 day, 3 days, 7 days, 30 days; calls `PATCH /api/user/settings` on change; shows current value on load via `GET /api/user/settings`
+- [x] T026 [P] [US3] Add settings page or settings section in `frontend/src/app/settings/page.tsx` (create if not exists) — include `AutoClearSettings` component with a descriptive label
+- [x] T027 [P] [US3] Write component test for `AutoClearSettings` in `frontend/tests/unit/components/settings/AutoClearSettings.test.tsx` — test: renders current value, calls API on change, shows all valid options
 
 **Checkpoint**: US3 fully functional ✅ — auto-clear fires within one 15-min sync cycle
 
@@ -107,13 +107,13 @@
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T028 [P] Run full backend test suite: `cd backend && pnpm test` — confirm all new + existing tests pass
-- [ ] T029 [P] Run full frontend test suite: `cd frontend && pnpm test` — confirm all new + existing tests pass
-- [ ] T030 Run frontend build: `cd frontend && pnpm build` — confirm no type errors or lint failures
-- [ ] T031 [P] Verify the "Clear" button is absent when no completed tasks exist (manual smoke test in dev)
-- [ ] T032 [P] Verify cleared items appear in Dismissed Items page (manual smoke test in dev)
-- [ ] T033 [P] Update `frontend/src/components/feed/CompletedSection.tsx` accessibility — ensure "Clear" button has appropriate `aria-label` (e.g., "Clear all completed tasks")
-- [ ] T034 Commit all changes and push to `008-clear-completed`, open PR referencing issue #20
+- [x] T028 [P] Run full backend test suite: `cd backend && pnpm test` — confirm all new + existing tests pass
+- [x] T029 [P] Run full frontend test suite: `cd frontend && pnpm test` — confirm all new + existing tests pass
+- [x] T030 Run frontend build: `cd frontend && pnpm build` — confirm no type errors or lint failures
+- [x] T031 [P] Verify the "Clear" button is absent when no completed tasks exist (manual smoke test in dev)
+- [x] T032 [P] Verify cleared items appear in Dismissed Items page (manual smoke test in dev)
+- [x] T033 [P] Update `frontend/src/components/feed/CompletedSection.tsx` accessibility — ensure "Clear" button has appropriate `aria-label` (e.g., "Clear all completed tasks")
+- [x] T034 Commit all changes and push to `008-clear-completed`, open PR referencing issue #20
 
 ---
 
