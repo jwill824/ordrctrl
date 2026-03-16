@@ -10,7 +10,7 @@
 This spec groups three small but meaningful polish items:
 
 1. **Task rename** (#49) — Users can rename any task to a custom title while the original content is preserved in the task description. Today, the only way to "customize" a task title is via the description override, which replaces the description instead of preserving it.
-2. **Console error fix** (#48) — A recurring `TypeError: Cannot read properties of null (reading 'id')` appears in the developer console on every session. While it does not affect functionality, it creates noise that masks real errors and undermines confidence in the codebase.
+2. **Console error fix** (#48) — A recurring `TypeError: Cannot read properties of null (reading 'id')` appeared in the developer console on every session. Confirmed to originate from the Fetch browser extension (`content.js`), not app code. Documented in `docs/development.md` under "Known browser noise"; no app code change required.
 3. **Documentation polish** (#58) — Four targeted doc improvements: update branch naming conventions to reflect how the project actually works (spec-numbered branches), move the speckit workflow section from README to CONTRIBUTING where it belongs, remove the redundant TL;DR from the development guide, and convert the plain-text architecture diagram to Mermaid for maintainability.
 
 ---
@@ -95,8 +95,8 @@ A new contributor reads the README and CONTRIBUTING guide and comes away with a 
 
 **Console Error Fix (#48)**
 
-- **FR-007**: The recurring `TypeError: Cannot read properties of null (reading 'id')` MUST NOT appear in the developer console during normal app usage after this fix
-- **FR-008**: If the error is determined to originate outside app code (e.g., a browser extension), the issue MUST be documented with a clear explanation and may be closed without a code change
+- **FR-007**: The recurring `TypeError: Cannot read properties of null (reading 'id')` MUST be investigated and its origin documented. *(Resolved: confirmed as Fetch browser extension artifact from `content.js` — not app code.)*
+- **FR-008**: If the error is determined to originate outside app code (e.g., a browser extension), the issue MUST be documented with a clear explanation and may be closed without a code change. *(Resolved: documented in `docs/development.md` § "Known browser noise".)*
 
 **Documentation Polish (#58)**
 

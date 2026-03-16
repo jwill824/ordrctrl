@@ -12,7 +12,7 @@ import FeedSettingsPage from '@/app/settings/feed/page';
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
         {/* Root redirect — ProtectedRoute handles auth/unauth split */}
         <Route path="/" element={<Navigate to="/feed" replace />} />
