@@ -114,6 +114,9 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 30
     needs: [build-ios]
+    env:
+      MAESTRO_TEST_EMAIL: ${{ secrets.MAESTRO_TEST_EMAIL }}
+      MAESTRO_TEST_PASSWORD: ${{ secrets.MAESTRO_TEST_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
 
@@ -124,11 +127,13 @@ jobs:
           path: frontend/ios/build
 
       - name: Install Maestro
+        if: env.MAESTRO_TEST_EMAIL != ''
         run: |
           curl -Ls "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> $GITHUB_PATH
 
       - name: Boot iOS simulator
+        if: env.MAESTRO_TEST_EMAIL != ''
         run: |
           RUNTIME=$(xcrun simctl list runtimes -j | \
             python3 -c "import sys,json; rts=[r for r in json.load(sys.stdin)['runtimes'] if 'iOS' in r['name']]; print(sorted(rts, key=lambda r: r['version'])[-1]['identifier'])")
@@ -139,15 +144,8 @@ jobs:
           xcrun simctl install "$UDID" frontend/ios/build/App.app
 
       - name: Run Maestro flows
-        run: |
-          if [ -z "$MAESTRO_TEST_EMAIL" ]; then
-            echo "⚠️  MAESTRO_TEST_EMAIL not configured — skipping Maestro tests"
-            exit 0
-          fi
-          maestro test .maestro/flows/
-        env:
-          MAESTRO_TEST_EMAIL: ${{ secrets.MAESTRO_TEST_EMAIL }}
-          MAESTRO_TEST_PASSWORD: ${{ secrets.MAESTRO_TEST_PASSWORD }}
+        if: env.MAESTRO_TEST_EMAIL != ''
+        run: maestro test .maestro/flows/
 
   # T016 — FR-014
   maestro-android:
