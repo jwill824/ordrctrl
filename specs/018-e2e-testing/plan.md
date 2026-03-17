@@ -14,13 +14,14 @@ surfaces.
 
 ## Technical Context
 
-**Language/Version**: TypeScript 5.4 (frontend), Node 20 (CI runners)  
+**Language/Version**: TypeScript 5.4 (frontend), Node 20 (existing `ci.yml` jobs), Node 22 (native build jobs — Capacitor CLI requires ≥22)  
 **Primary Dependencies**:
 - Playwright 1.42 (web e2e, already installed)
 - Maestro CLI ≥ v1.38 (native mobile e2e, new)
 - Capacitor 8.2 (iOS + Android app packaging)
 - Vite 5 / React 18 (web app under test)
 - pnpm 9 (package manager, workspace)
+- Temurin JDK 21 (Android build — `capacitor.build.gradle` sets `VERSION_21`)
 
 **Storage**: N/A (tests are read-only; no test data written to persistent storage)  
 **Testing**:
@@ -83,7 +84,7 @@ frontend/
 ├── playwright.config.ts          # Existing — no changes needed
 └── tests/
     └── e2e/
-        ├── auth.spec.ts          # Existing (8 tests — no changes)
+        ├── auth.spec.ts          # Existing — SSO button selectors fixed (getByRole('button'))
         ├── integrations.spec.ts  # Existing (6 tests — no changes)
         └── feed.spec.ts          # NEW — 5 feed interaction tests
 
@@ -94,11 +95,16 @@ frontend/
     ├── feed-load.yaml      # NEW — verify feed loads with at least one task
     └── task-complete.yaml  # NEW — complete a task, verify Completed section
 
-# CI pipeline (existing file, new jobs appended)
+# CI pipeline
 .github/
 └── workflows/
-    └── ci.yml              # MODIFIED — 5 new jobs added
+    ├── ci.yml              # MODIFIED — 1 new job (e2e-web) + postgres/redis services for backend-contract
+    └── native.yml          # NEW — 4 native jobs: build-ios, build-android, maestro-ios, maestro-android
 ```
+
+**Platform notes**:
+- This project uses Swift Package Manager (SPM), not CocoaPods. `xcodebuild` must target `-project ios/App/App.xcodeproj`, not a workspace. No `pod install` step is needed.
+- `CONFIGURATION_BUILD_DIR` in xcodebuild must be an absolute path (`"$(pwd)/ios/build"`) because relative paths are resolved against `SRCROOT` (the Xcode project directory), not the shell working directory.
 
 **Structure Decision**: Option 2 (web app) extended with a native flow tree at repo root.
 The Playwright e2e tests live inside `frontend/tests/e2e/` (existing convention). Maestro flows
