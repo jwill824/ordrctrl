@@ -46,7 +46,7 @@ jobs:
             -scheme App \
             -sdk iphonesimulator \
             -configuration Debug \
-            CONFIGURATION_BUILD_DIR=ios/build \
+            CONFIGURATION_BUILD_DIR="$(pwd)/ios/build" \
             build
         working-directory: frontend
 
