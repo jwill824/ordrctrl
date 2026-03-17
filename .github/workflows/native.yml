@@ -3,10 +3,10 @@ name: Native
 on:
   push:
     branches: [main]
-    paths: ['frontend/**']
+    paths: ['frontend/**', '.maestro/**']
   pull_request:
     branches: [main]
-    paths: ['frontend/**']
+    paths: ['frontend/**', '.maestro/**']
 
 concurrency:
   group: native-${{ github.ref }}

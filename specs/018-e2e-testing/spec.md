@@ -2,7 +2,7 @@
 
 **Feature Branch**: `018-e2e-testing`
 **Created**: 2026-03-16
-**Status**: Implemented
+**Status**: Completed
 **Closes**: [#12](https://github.com/jwill824/ordrctrl/issues/12), [#56](https://github.com/jwill824/ordrctrl/issues/56)
 
 ## Overview
@@ -142,7 +142,7 @@ When a pull request touches the frontend, CI automatically builds the iOS and An
 
 - **FR-015**: The CI pipeline MUST include a job that builds the iOS native app package on every pull request targeting main
 - **FR-016**: The CI pipeline MUST include a job that builds the Android native app package on every pull request targeting main
-- **FR-017**: Successful native build jobs MUST produce a downloadable build artifact (IPA for iOS, APK/AAB for Android) attached to the CI run
+- **FR-017**: Successful native build jobs MUST produce a downloadable build artifact (simulator `.app` bundle for iOS — not an IPA, which requires code signing certificates excluded by FR-018; debug APK for Android) attached to the CI run
 - **FR-018**: Native build jobs MUST NOT require manual secrets or signing certificates to produce a debug/unsigned build for CI verification purposes
 - **FR-019**: A failing native build MUST block PR merge
 
