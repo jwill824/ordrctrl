@@ -11,6 +11,14 @@ ordrctrl's main feed shows all active tasks in a flat list, which works well for
 
 This feature introduces a **Task Timeline View**: a chronological, date-grouped visualization of tasks. Users can see tasks organized by when they're due — past-due, today, this week, and later — giving a clear picture of workload distribution and helping users prioritize and plan without leaving ordrctrl.
 
+## Clarifications
+
+### Session 2026-03-17
+
+- Q: Should the timeline show only tasks already accepted into the feed, or also Inbox items (pending triage) that have a due date? → A: Feed-only — timeline shows accepted tasks only; Inbox items are excluded.
+- Q: How is the timeline view accessed/surfaced in navigation? → A: Platform-adaptive — swipe left/right gesture on mobile (iOS/Android); UI toggle (segmented control or equivalent) on desktop and web.
+- Q: Should date groups be collapsible, and what is the default expand/collapse state? → A: Auto-collapse — "Overdue" and "Today" are always expanded by default; "This Week" and "Later" start collapsed; users can expand them by tapping the group header.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - View Tasks Organized by Due Date (Priority: P1)
@@ -23,27 +31,30 @@ A user switches to the timeline view and sees all their active feed tasks groupe
 
 **Acceptance Scenarios**:
 
-1. **Given** the user has active tasks with varied due dates, **When** they open the timeline view, **Then** tasks are displayed in chronological date groups (Overdue, Today, This Week, Later, Unscheduled).
+1. **Given** the user has active tasks with varied due dates, **When** they open the timeline view, **Then** "Overdue" and "Today" groups are fully expanded; "This Week" and "Later" groups are collapsed by default.
 2. **Given** a task is past its due date, **When** the user views the timeline, **Then** that task appears in the "Overdue" group, visually distinguished from on-time tasks.
 3. **Given** a task has no due date, **When** the user views the timeline, **Then** it appears in an "Unscheduled" section rather than being hidden.
 4. **Given** a date group has no tasks, **When** the user views the timeline, **Then** that group is not shown (empty groups are hidden).
-5. **Given** the user completes or dismisses a task in the timeline view, **When** the action is confirmed, **Then** the task disappears from the timeline and the group updates or hides if now empty.
+5. **Given** "This Week" or "Later" is collapsed, **When** the user taps the group header, **Then** the group expands to show all tasks within it.
+6. **Given** the user completes or dismisses a task in the timeline view, **When** the action is confirmed, **Then** the task disappears from the timeline and the group updates or hides if now empty.
 
 ---
 
 ### User Story 2 - Navigate Between Timeline and Feed (Priority: P2)
 
-A user can freely switch between the existing flat feed view and the new timeline view without losing their place or any task data. Their preference is remembered across sessions.
+A user can freely switch between the existing flat feed view and the new timeline view. On mobile (iOS/Android), swiping left on the feed enters the timeline; swiping right returns to the feed. On desktop and web, a UI toggle (e.g., segmented control) switches between the two views. Their preference is remembered across sessions.
 
 **Why this priority**: The timeline is a complementary view, not a replacement. Users need to move fluidly between planning (timeline) and triage (feed). Persistence avoids re-navigating on every app open.
 
-**Independent Test**: Switch from feed to timeline and back. Verify tasks are identical in both views and the chosen view persists after closing and reopening the app.
+**Independent Test**: On mobile, swipe left on the feed to enter the timeline view; verify tasks match; swipe right to return. On desktop/web, use the toggle to switch views. Verify the chosen view persists after closing and reopening the app on each platform.
 
 **Acceptance Scenarios**:
 
-1. **Given** the user is in the feed view, **When** they select the timeline view, **Then** the same active tasks are shown, now grouped by due date.
-2. **Given** the user switches to timeline view, **When** they close and reopen the app, **Then** the timeline view is still active (preference persisted).
-3. **Given** the user takes an action (accept, dismiss, complete) in the timeline view, **When** they switch to feed view, **Then** the feed reflects the same change.
+1. **Given** the user is in the feed view on mobile, **When** they swipe left, **Then** the timeline view slides in showing the same active tasks grouped by due date.
+2. **Given** the user is in the timeline view on mobile, **When** they swipe right, **Then** the feed view slides back in.
+3. **Given** the user is on desktop or web, **When** they use the feed/timeline toggle, **Then** the view switches between the flat list and the date-grouped timeline.
+4. **Given** the user switches to timeline view, **When** they close and reopen the app, **Then** the timeline view is still active (preference persisted).
+5. **Given** the user takes an action (complete or dismiss) in the timeline view, **When** they return to feed view, **Then** the feed reflects the same change.
 
 ---
 
@@ -84,15 +95,17 @@ A user can narrow the timeline to show only tasks from a specific source integra
 - What happens when all tasks are overdue? The "Overdue" group is shown; all other groups are hidden. The user sees the full overdue list with no "This Week" or "Later" noise.
 - What happens when the user has no tasks at all? The timeline shows an empty state message indicating there are no tasks to display.
 - What happens when a task's due date changes (e.g., updated in a source integration after sync)? The task moves to the correct date group on the next sync or page refresh.
-- What happens when there are hundreds of tasks in one date group (e.g., many overdue)? Tasks within a group are scrollable; the group does not collapse or truncate by default, but the header stays sticky while scrolling through a large group.
+- What happens when there are hundreds of tasks in one date group (e.g., many overdue)? Since "Overdue" and "Today" are always expanded, their content is scrollable with a sticky header. "This Week" and "Later" start collapsed, so large future task counts don't overwhelm the initial view; the user expands them deliberately.
 - What happens when the device's date/time changes (timezone shift or manual adjustment)? The timeline re-calculates group membership based on the new local date/time on next view render.
 - What happens when the user is offline? The timeline shows the last cached task state with a visual indicator that data may be stale.
+- What happens on first launch before the user discovers the swipe gesture? A one-time hint or visual indicator (e.g., a peek animation or tooltip) is shown on the feed to signal the swipe affordance exists.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: The system MUST provide a timeline view as an alternative to the existing feed view, accessible from the main navigation.
+- **FR-001**: The system MUST provide a timeline view accessible via lateral swipe on mobile (swipe left from feed → timeline; swipe right → feed) and via a UI toggle on desktop and web.
+- **FR-001a**: The timeline view MUST only display tasks that have been accepted into the feed; Inbox items pending triage are explicitly excluded.
 - **FR-002**: The timeline view MUST display active tasks grouped into the following date buckets: Overdue, Today, This Week, Later, and Unscheduled.
 - **FR-003**: The "Overdue" group MUST include all tasks whose due date is before today's date and that are not yet completed or dismissed.
 - **FR-004**: The "Today" group MUST include tasks due on the current calendar day.
@@ -107,6 +120,9 @@ A user can narrow the timeline to show only tasks from a specific source integra
 - **FR-013**: Users MUST be able to filter the timeline by source integration.
 - **FR-014**: Overdue tasks MUST be visually distinguished from on-schedule tasks (e.g., distinct color, label, or icon).
 - **FR-015**: Each date group header MUST remain visible (sticky) while the user scrolls through tasks within that group.
+- **FR-016**: The "Overdue" and "Today" date groups MUST be expanded by default when the timeline view is opened.
+- **FR-017**: The "This Week" and "Later" date groups MUST be collapsed by default when the timeline view is opened; each shows a task count in the header while collapsed.
+- **FR-018**: Users MUST be able to expand or collapse the "This Week" and "Later" groups by tapping their header; collapse state resets to default each time the timeline view is opened.
 
 ### Key Entities
 
@@ -115,7 +131,7 @@ A user can narrow the timeline to show only tasks from a specific source integra
 
 ### Assumptions
 
-- The timeline view reads directly from the existing active task set (feed tasks) — no separate data fetch or model is needed.
+- The timeline view reads directly from the existing active task set (feed tasks) — no separate data fetch or model is needed. Inbox items (pending triage) are not included.
 - "This Week" means the next 7 calendar days after today, not the ISO calendar week boundary.
 - Tasks within each date group are sorted by due date ascending (earliest first), then by title alphabetically for tasks sharing the same due date.
 - The timeline view is available on all supported platforms (iOS, Android, web) from day one.
