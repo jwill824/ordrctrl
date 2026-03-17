@@ -166,6 +166,7 @@ jobs:
           path: apk
 
       - name: Install Maestro
+        if: env.MAESTRO_TEST_EMAIL != ''
         run: |
           curl -Ls "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> $GITHUB_PATH
