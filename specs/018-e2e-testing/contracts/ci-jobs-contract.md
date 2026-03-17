@@ -106,7 +106,7 @@ build-ios:
     - name: Build iOS simulator app
       run: |
         xcodebuild \
-          -workspace ios/App/App.xcworkspace \
+          -project ios/App/App.xcodeproj \
           -scheme App \
           -sdk iphonesimulator \
           -configuration Debug \
