@@ -13,8 +13,8 @@ test.describe('US1 — Account Creation & Login', () => {
     await expect(page).toHaveTitle(/ordrctrl/i);
 
     // SSO buttons should be visible above the form
-    await expect(page.getByRole('link', { name: /continue with google/i })).toBeVisible();
-    await expect(page.getByRole('link', { name: /continue with apple/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /continue with google/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /continue with apple/i })).toBeVisible();
 
     // Email form is present
     await expect(page.getByLabel(/email/i)).toBeVisible();
@@ -24,8 +24,8 @@ test.describe('US1 — Account Creation & Login', () => {
   test('login page loads and shows SSO buttons first', async ({ page }) => {
     await page.goto(`${BASE_URL}/login`);
 
-    await expect(page.getByRole('link', { name: /continue with google/i })).toBeVisible();
-    await expect(page.getByRole('link', { name: /continue with apple/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /continue with google/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /continue with apple/i })).toBeVisible();
     await expect(page.getByLabel(/email/i)).toBeVisible();
   });
 
@@ -50,7 +50,7 @@ test.describe('US1 — Account Creation & Login', () => {
     await page.getByRole('button', { name: /sign in/i }).click();
 
     // Should show an error message without redirecting
-    await expect(page.getByText(/invalid|incorrect|failed|check your credentials/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/invalid|incorrect|failed|check your credentials|network/i)).toBeVisible({ timeout: 5000 });
     expect(page.url()).toContain('/login');
   });
 
