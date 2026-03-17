@@ -2,7 +2,7 @@
 
 **Feature Branch**: `017-task-rename-polish`
 **Created**: 2026-03-15
-**Status**: Draft
+**Status**: Complete
 **Closes**: [#49](https://github.com/jwill824/ordrctrl/issues/49), [#48](https://github.com/jwill824/ordrctrl/issues/48), [#58](https://github.com/jwill824/ordrctrl/issues/58)
 
 ## Overview

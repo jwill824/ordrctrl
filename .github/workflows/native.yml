@@ -1,0 +1,185 @@
+name: Native
+
+on:
+  push:
+    branches: [main]
+    paths: ['frontend/**']
+  pull_request:
+    branches: [main]
+    paths: ['frontend/**']
+
+concurrency:
+  group: native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # T013 — FR-015, FR-017, FR-018, FR-019
+  build-ios:
+    name: iOS Build (Simulator)
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build frontend (web assets)
+        run: pnpm --filter frontend build
+
+      - name: Capacitor sync iOS
+        run: pnpm exec cap sync ios
+        working-directory: frontend
+
+      - name: Build iOS simulator app
+        run: |
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            CONFIGURATION_BUILD_DIR=ios/build \
+            build
+        working-directory: frontend
+
+      - name: Upload iOS build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-simulator-app
+          path: frontend/ios/build/App.app
+          retention-days: 7
+
+  # T014 — FR-016, FR-017, FR-018, FR-019
+  build-android:
+    name: Android Build (Debug APK)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('frontend/android/**/*.gradle*', 'frontend/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build frontend (web assets)
+        run: pnpm --filter frontend build
+
+      - name: Capacitor sync Android
+        run: pnpm exec cap sync android
+        working-directory: frontend
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug
+        working-directory: frontend/android
+
+      - name: Upload Android APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-debug-apk
+          path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7
+
+  # T015 — FR-014
+  maestro-ios:
+    name: Maestro E2E (iOS)
+    runs-on: macos-latest
+    timeout-minutes: 30
+    needs: [build-ios]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download iOS build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ios-simulator-app
+          path: frontend/ios/build
+
+      - name: Install Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+
+      - name: Boot iOS simulator
+        run: |
+          RUNTIME=$(xcrun simctl list runtimes -j | \
+            python3 -c "import sys,json; rts=[r for r in json.load(sys.stdin)['runtimes'] if 'iOS' in r['name']]; print(sorted(rts, key=lambda r: r['version'])[-1]['identifier'])")
+          UDID=$(xcrun simctl create "MaestroTest" \
+            "com.apple.CoreSimulator.SimDeviceType.iPhone-15" "$RUNTIME")
+          xcrun simctl boot "$UDID"
+          echo "SIMULATOR_UDID=$UDID" >> $GITHUB_ENV
+          xcrun simctl install "$UDID" frontend/ios/build/App.app
+
+      - name: Run Maestro flows
+        run: |
+          if [ -z "$MAESTRO_TEST_EMAIL" ]; then
+            echo "⚠️  MAESTRO_TEST_EMAIL not configured — skipping Maestro tests"
+            exit 0
+          fi
+          maestro test .maestro/flows/
+        env:
+          MAESTRO_TEST_EMAIL: ${{ secrets.MAESTRO_TEST_EMAIL }}
+          MAESTRO_TEST_PASSWORD: ${{ secrets.MAESTRO_TEST_PASSWORD }}
+
+  # T016 — FR-014
+  maestro-android:
+    name: Maestro E2E (Android)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    needs: [build-android]
+    env:
+      MAESTRO_TEST_EMAIL: ${{ secrets.MAESTRO_TEST_EMAIL }}
+      MAESTRO_TEST_PASSWORD: ${{ secrets.MAESTRO_TEST_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Android APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: android-debug-apk
+          path: apk
+
+      - name: Install Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+
+      - name: Run Maestro flows on Android emulator
+        if: env.MAESTRO_TEST_EMAIL != ''
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: |
+            adb install apk/app-debug.apk
+            maestro test .maestro/flows/

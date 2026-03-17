@@ -226,14 +226,16 @@ On token expiry:
 ## Native platform layer
 
 <!-- spec:015 -->
+<!-- spec:018 -->
 > *Added in spec 015. Both wrappers use the Vite SPA build output unchanged.*
+> *CI native builds and Maestro e2e suite added in [spec 018](../specs/018-e2e-testing/).*
 
 The Vite `dist/` build is consumed identically by all three targets:
 
 | Target | Wrapper | URL scheme | Auth callback |
 |--------|---------|------------|---------------|
 | Web | Browser | `https://` | `GET /api/auth/*/callback` |
-| iOS / Android | Capacitor 6 | `capacitor://localhost` | `ordrctrl://auth/callback` |
+| iOS / Android | Capacitor 8 | `capacitor://localhost` | `ordrctrl://auth/callback` |
 | macOS / Windows | Tauri 2 | `tauri://localhost` | `ordrctrl://auth/callback` |
 
 **Plugin abstraction** (`frontend/src/plugins/`): Native capabilities (notifications, deep links) are accessed through a shared service layer, not called directly. Platform detection at runtime selects the Capacitor, Tauri, or no-op (web) implementation.
@@ -269,3 +271,4 @@ The Vite `dist/` build is consumed identically by all three targets:
 | [014-vite-migration](../specs/014-vite-migration/) | Frontend migrated from Next.js to Vite SPA |
 | [015-native-app-targets](../specs/015-native-app-targets/) | Added Capacitor (iOS/Android) + Tauri (macOS/Windows); multi-origin CORS; `SameSite: none` in prod |
 | [016-native-auth-fixes](../specs/016-native-auth-fixes/) | Redis-based OAuth state store; removed `response_mode: form_post` from Apple flow |
+| [018-e2e-testing](../specs/018-e2e-testing/) | Playwright feed e2e suite; Maestro native flows; CI jobs for e2e-web, build-ios, build-android, maestro-ios, maestro-android |
