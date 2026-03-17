@@ -105,6 +105,7 @@ TOKEN_ENCRYPTION_KEY="<output of second command>"
 | `NODE_ENV` | `development` | |
 | `VITE_DEV_APPLE_USERNAME` | *(optional)* | Pre-fills Apple CalDAV credential form locally |
 | `VITE_DEV_APPLE_APP_SPECIFIC_PASSWORD` | *(optional)* | Pre-fills Apple CalDAV credential form locally |
+| `E2E_SESSION_COOKIE` | *(optional)* | Session token for authenticated Playwright e2e tests — see [E2E testing](#e2e-testing) |
 
 ---
 
@@ -319,6 +320,49 @@ pnpm exec tauri build --config desktop/tauri.conf.json
 
 ---
 
+## E2E testing
+
+<!-- spec:018 -->
+> *Added in [spec 018](../specs/018-e2e-testing/).*
+
+### Playwright (web)
+
+With `pnpm dev` running:
+
+```bash
+# Unauthenticated tests only (auth flows, redirects)
+cd frontend && pnpm test:e2e
+
+# Authenticated tests (feed interactions — requires a session cookie)
+# 1. Log in via the browser and grab the sessionId cookie value from DevTools
+# 2. Run:
+E2E_SESSION_COOKIE=<your-session-token> pnpm --filter frontend test:e2e
+
+# Run only the feed test suite
+E2E_SESSION_COOKIE=<token> pnpm exec playwright test --grep "Feed interactions"
+
+# View the HTML report after a run
+cd frontend && pnpm exec playwright show-report
+```
+
+**Unauthenticated tests skip** (not fail) when `E2E_SESSION_COOKIE` is absent.
+
+### Maestro (iOS / Android native)
+
+**Prerequisites:** Maestro CLI ≥ v1.38 (`curl -Ls "https://get.maestro.mobile.dev" | bash`), a running iOS or Android simulator with the app installed.
+
+```bash
+# Run all flows in order (auth → feed-load → task-complete)
+MAESTRO_TEST_EMAIL=<email> MAESTRO_TEST_PASSWORD=<password> maestro test .maestro/flows/
+
+# Run a single flow
+maestro test .maestro/flows/auth.yaml
+```
+
+Flows skip gracefully when `MAESTRO_TEST_EMAIL` is not set.
+
+---
+
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |
@@ -349,3 +393,12 @@ content.js:264 Uncaught (in promise) TypeError: Cannot read properties of null (
 **Verification**: Open an incognito window with all extensions disabled and reload the app. The error will not appear.
 
 **Resolution**: The error originates from one of your installed browser extensions, not from ordrctrl's code. No fix is needed; the issue was investigated and closed in [spec 017](../specs/017-task-rename-polish/).
+
+---
+
+## Document history
+
+| Spec | Change |
+|------|--------|
+| [001-mvp-core](../specs/001-mvp-core/) | Initial setup guide |
+| [018-e2e-testing](../specs/018-e2e-testing/) | Added E2E testing section (Playwright + Maestro); `E2E_SESSION_COOKIE` env var |
