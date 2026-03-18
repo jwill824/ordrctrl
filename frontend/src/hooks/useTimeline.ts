@@ -26,6 +26,34 @@ const BUCKET_LABELS: Record<TimelineBucket, string> = {
 };
 
 /**
+ * Normalise a date string to local midnight for day-diff calculations.
+ *
+ * All-day calendar events (e.g. Apple Calendar) are stored as UTC midnight
+ * (T00:00:00.000Z). Calling setHours(0,0,0,0) on these in a UTC-negative
+ * timezone shifts the date back to the previous calendar day, causing events
+ * to appear in the wrong bucket (e.g. "Today" instead of "Tomorrow").
+ *
+ * Fix: when the stored value is exactly UTC midnight, extract the UTC date
+ * components and construct local midnight from them — bypassing the shift.
+ * Timed events (non-midnight UTC) are normalised via setHours as usual.
+ */
+function toLocalMidnight(dateStr: string): Date {
+  const d = new Date(dateStr);
+  if (
+    d.getUTCHours() === 0 &&
+    d.getUTCMinutes() === 0 &&
+    d.getUTCSeconds() === 0 &&
+    d.getUTCMilliseconds() === 0
+  ) {
+    // All-day event sentinel — use UTC date parts directly as local midnight
+    return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  }
+  const copy = new Date(d);
+  copy.setHours(0, 0, 0, 0);
+  return copy;
+}
+
+/**
  * Assign a temporal bucket using midnight-normalised date comparison.
  * Falls back to startAt when dueAt is null (e.g. calendar events that have
  * a start time but no explicit due date).
@@ -40,8 +68,7 @@ function getBucket(dueAt: string | null, startAt: string | null, now: Date): Tim
   const dateKey = dueAt ?? startAt;
   if (!dateKey) return 'unscheduled';
 
-  const dueDay = new Date(dateKey);
-  dueDay.setHours(0, 0, 0, 0);
+  const dueDay = toLocalMidnight(dateKey);
 
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
