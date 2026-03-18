@@ -250,6 +250,7 @@ The Vite `dist/` build is consumed identically by all three targets:
 ---
 
 ## Key design decisions
+<!-- spec:019 -->
 
 | Decision | Rationale | Spec |
 |----------|-----------|------|
@@ -260,6 +261,7 @@ The Vite `dist/` build is consumed identically by all three targets:
 | Enumerated CORS origins | `credentials: include` cannot use `*`; native webview origins must be explicitly listed | 015 |
 | AES-256-GCM for token encryption | OAuth tokens stored encrypted at rest; key rotatable via `TOKEN_ENCRYPTION_KEY` | 001 |
 | `rawPayload` never in API/logs | Source API payloads contain PII (email subjects, task body text) | 001 |
+| Timeline view is a pure frontend transform | No new API endpoints or DB migrations; `useTimeline` re-buckets the existing `useFeed` `FeedItem[]` into date groups at render time | 019 |
 
 ---
 
@@ -272,3 +274,4 @@ The Vite `dist/` build is consumed identically by all three targets:
 | [015-native-app-targets](../specs/015-native-app-targets/) | Added Capacitor (iOS/Android) + Tauri (macOS/Windows); multi-origin CORS; `SameSite: none` in prod |
 | [016-native-auth-fixes](../specs/016-native-auth-fixes/) | Redis-based OAuth state store; removed `response_mode: form_post` from Apple flow |
 | [018-e2e-testing](../specs/018-e2e-testing/) | Playwright feed e2e suite; Maestro native flows; CI jobs for e2e-web, build-ios, build-android, maestro-ios, maestro-android |
+| [019-task-timeline-view](../specs/019-task-timeline-view/) | Timeline view: `useTimeline` hook, `TimelineGroup`/`TimelineView`/`TimelineSwipeContainer` components; `feedViewMode` preference in `UserSettings` |

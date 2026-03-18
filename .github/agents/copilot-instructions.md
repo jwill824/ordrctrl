@@ -31,6 +31,8 @@ Auto-generated from all feature plans. Last updated: 2026-03-04
 - PostgreSQL (existing `SyncOverride` table — adding one new enum value); no schema migrations beyond enum update (017-task-rename-polish)
 - TypeScript 5.4 (frontend), Node 20 (CI runners) (018-e2e-testing)
 - N/A (tests are read-only; no test data written to persistent storage) (018-e2e-testing)
+- TypeScript 5.4 / React 18.2 + React Router DOM v6, Capacitor 8 (iOS/Android), Tauri 2 (macOS/Windows), Vite, Vitest, Playwrigh (019-task-timeline-view)
+- No new storage — `FeedItem[]` from existing `useFeed` hook; view preference via existing `NativePrefs` pattern (`@capacitor/preferences` → `localStorage` fallback) (019-task-timeline-view)
 
 - TypeScript 5.x (frontend + backend) + Next.js 14 (frontend), Fastify 4 (backend API), Prisma (ORM), (001-mvp-core)
 
@@ -50,9 +52,9 @@ npm test && npm run lint
 TypeScript 5.x (frontend + backend): Follow standard conventions
 
 ## Recent Changes
+- 019-task-timeline-view: Added TypeScript 5.4 / React 18.2 + React Router DOM v6, Capacitor 8 (iOS/Android), Tauri 2 (macOS/Windows), Vite, Vitest, Playwrigh
 - 018-e2e-testing: Added TypeScript 5.4 (frontend), Node 20 (CI runners)
 - 017-task-rename-polish: Added TypeScript 5.4 (frontend + backend), Rust 1.75+ (Tauri shell — unaffected) + Fastify 4, Prisma ORM, React 18, Vite 5, Vitest — all existing; no new dependencies
-- 016-native-auth-fixes: Added TypeScript 5.4 (backend + frontend)
 
 
 <!-- MANUAL ADDITIONS START -->

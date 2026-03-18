@@ -20,7 +20,7 @@ description: "Task list for 019-task-timeline-view implementation"
 
 **Purpose**: Establish directory structure for new timeline components
 
-- [ ] T001 Create `frontend/src/components/timeline/` directory and initialize `frontend/src/components/timeline/index.ts` with empty barrel export
+- [x] T001 Create `frontend/src/components/timeline/` directory and initialize `frontend/src/components/timeline/index.ts` with empty barrel export
 
 ---
 
@@ -30,9 +30,9 @@ description: "Task list for 019-task-timeline-view implementation"
 
 **⚠️ CRITICAL**: All three user story phases (US1–US4) depend on these types being in place
 
-- [ ] T002 Define `TimelineBucket`, `TimelineGroupData`, and `TimelineViewMode` types in `frontend/src/types/timeline.ts` — use exact definitions from `data-model.md`
-- [ ] T003 [P] Extend `UserSettings` interface in `backend/src/user/user.service.ts` with `feedViewMode?: 'feed' | 'timeline'` — no Prisma migration required (stored in existing `User.settings` JSON column)
-- [ ] T004 [P] Extend frontend `UserSettings` type in `frontend/src/plugins/notifications.ts` with `feedViewMode?: 'feed' | 'timeline'` to align with backend type
+- [x] T002 Define `TimelineBucket`, `TimelineGroupData`, and `TimelineViewMode` types in `frontend/src/types/timeline.ts` — use exact definitions from `data-model.md`
+- [x] T003 [P] Extend `UserSettings` interface in `backend/src/user/user.service.ts` with `feedViewMode?: 'feed' | 'timeline'` — no Prisma migration required (stored in existing `User.settings` JSON column)
+- [x] T004 [P] Extend frontend `UserSettings` type in `frontend/src/plugins/notifications.ts` with `feedViewMode?: 'feed' | 'timeline'` to align with backend type
 
 **Checkpoint**: Foundation ready — T002 types importable; T003/T004 settings fields typed on both ends
 
@@ -44,10 +44,10 @@ description: "Task list for 019-task-timeline-view implementation"
 
 **Independent Test**: Load the app with tasks spanning multiple due dates. Open timeline view and verify tasks appear in the correct Overdue / Today / This Week / Later / Unscheduled buckets; empty buckets are hidden; Overdue and Today expand by default; This Week and Later start collapsed.
 
-- [ ] T005 [P] [US1] Implement `useTimeline` hook in `frontend/src/hooks/useTimeline.ts` — midnight-normalized bucket assignment per `data-model.md` (`setHours(0,0,0,0)`), filter out `completed` and `dismissed` items, sort each bucket by `dueAt ASC` then `title ASC` (unscheduled by `title ASC` only), return only non-empty `TimelineGroupData[]` in canonical order: overdue → today → this-week → later → unscheduled; accept `FeedItem[]` and `now: Date` as inputs
-- [ ] T006 [P] [US1] Create `TimelineGroup` component in `frontend/src/components/timeline/TimelineGroup.tsx` — sticky group header with label and task count badge, `useState(defaultExpanded)` for collapse/expand (state resets on each mount, no persistence), renders a `FeedItemRow` per item (directly reused from `frontend/src/components/feed/FeedItem.tsx`), threads `onComplete`/`onDismiss`/`onEdit` callback props through to each `FeedItemRow`; accept `TimelineGroupData` props plus the three action callbacks
-- [ ] T007 [US1] Create `TimelineView` component in `frontend/src/components/timeline/TimelineView.tsx` — call `useTimeline(feedItems, now)` from `useLiveDate()`, map output to `TimelineGroup` instances, render empty-state message when all buckets are empty, accept and pass `onComplete`/`onDismiss`/`onEdit` action callbacks to each group; accept `feedItems: FeedItem[]` as prop
-- [ ] T008 [US1] Export `TimelineView` and `TimelineGroup` from `frontend/src/components/timeline/index.ts`
+- [x] T005 [P] [US1] Implement `useTimeline` hook in `frontend/src/hooks/useTimeline.ts` — midnight-normalized bucket assignment per `data-model.md` (`setHours(0,0,0,0)`), filter out `completed` and `dismissed` items, sort each bucket by `dueAt ASC` then `title ASC` (unscheduled by `title ASC` only), return only non-empty `TimelineGroupData[]` in canonical order: overdue → today → this-week → later → unscheduled; accept `FeedItem[]` and `now: Date` as inputs
+- [x] T006 [P] [US1] Create `TimelineGroup` component in `frontend/src/components/timeline/TimelineGroup.tsx` — sticky group header with label and task count badge, `useState(defaultExpanded)` for collapse/expand (state resets on each mount, no persistence), renders a `FeedItemRow` per item (directly reused from `frontend/src/components/feed/FeedItem.tsx`), threads `onComplete`/`onDismiss`/`onEdit` callback props through to each `FeedItemRow`; accept `TimelineGroupData` props plus the three action callbacks
+- [x] T007 [US1] Create `TimelineView` component in `frontend/src/components/timeline/TimelineView.tsx` — call `useTimeline(feedItems, now)` from `useLiveDate()`, map output to `TimelineGroup` instances, render empty-state message when all buckets are empty, accept and pass `onComplete`/`onDismiss`/`onEdit` action callbacks to each group; accept `feedItems: FeedItem[]` as prop
+- [x] T008 [US1] Export `TimelineView` and `TimelineGroup` from `frontend/src/components/timeline/index.ts`
 
 **Checkpoint**: `<TimelineView feedItems={mockItems} onComplete={...} onDismiss={...} onEdit={...} />` renders correctly in a dev harness — groups visible, collapse/expand works, empty state renders when `feedItems` is empty
 
@@ -59,9 +59,9 @@ description: "Task list for 019-task-timeline-view implementation"
 
 **Independent Test**: On mobile, swipe left from the feed to enter timeline; swipe right to return. On desktop/web, use the toggle control to switch. Close and reopen the app on each platform — verify the last-used view is restored.
 
-- [ ] T009 [P] [US2] Create `TimelineSwipeContainer` component in `frontend/src/components/timeline/TimelineSwipeContainer.tsx` — vanilla pointer events (`onPointerDown`/`onPointerMove`/`onPointerUp`), 50 px horizontal threshold, `Math.abs(deltaX) > Math.abs(deltaY)` guard to avoid intercepting vertical scroll, side-by-side feed+timeline layout with CSS `translateX` transition; accept `onSwipeLeft`/`onSwipeRight` callbacks and `activeView: 'feed' | 'timeline'` prop
-- [ ] T010 [US2] Integrate view switching into `frontend/src/app/feed/page.tsx` — use `usePlatform()` to branch: on `isMobile` wrap content with `TimelineSwipeContainer`; on desktop/web render a segmented toggle control in the feed header and conditionally render `FeedSection` or `TimelineView`; read `feedViewMode` from `getUserSettings()` on mount for initial state; write via `updateUserSettings({ feedViewMode })` on toggle/swipe with optimistic local state update
-- [ ] T011 [US2] Export `TimelineSwipeContainer` from `frontend/src/components/timeline/index.ts`
+- [x] T009 [P] [US2] Create `TimelineSwipeContainer` component in `frontend/src/components/timeline/TimelineSwipeContainer.tsx` — vanilla pointer events (`onPointerDown`/`onPointerMove`/`onPointerUp`), 50 px horizontal threshold, `Math.abs(deltaX) > Math.abs(deltaY)` guard to avoid intercepting vertical scroll, side-by-side feed+timeline layout with CSS `translateX` transition; accept `onSwipeLeft`/`onSwipeRight` callbacks and `activeView: 'feed' | 'timeline'` prop
+- [x] T010 [US2] Integrate view switching into `frontend/src/app/feed/page.tsx` — use `usePlatform()` to branch: on `isMobile` wrap content with `TimelineSwipeContainer`; on desktop/web render a segmented toggle control in the feed header and conditionally render `FeedSection` or `TimelineView`; read `feedViewMode` from `getUserSettings()` on mount for initial state; write via `updateUserSettings({ feedViewMode })` on toggle/swipe with optimistic local state update
+- [x] T011 [US2] Export `TimelineSwipeContainer` from `frontend/src/components/timeline/index.ts`
 
 **Checkpoint**: Full navigation flow works on iOS/Android (swipe), macOS/Windows (toggle), and web (toggle); preference survives cold app restart on each platform
 
@@ -73,9 +73,9 @@ description: "Task list for 019-task-timeline-view implementation"
 
 **Independent Test**: In timeline view, mark one task complete and dismiss another. Verify both are removed from the timeline immediately. Verify overdue tasks have distinct visual styling. Simulate offline — verify stale-data indicator appears.
 
-- [ ] T012 [P] [US3] Add overdue visual distinction to `frontend/src/components/timeline/TimelineGroup.tsx` — apply a distinct Tailwind color class (e.g., `text-red-600` / `border-red-400`) to the overdue bucket header and to each `FeedItemRow` wrapper div when `bucket === 'overdue'`; satisfies FR-014
-- [ ] T013 [P] [US3] Add offline stale-data indicator to `frontend/src/components/timeline/TimelineView.tsx` — detect offline/stale state (reuse existing network-state detection pattern from the feed page if available), render a banner or subtle badge below the timeline header when data may be stale
-- [ ] T014 [US3] Add first-launch swipe discovery hint to `frontend/src/app/feed/page.tsx` — on mobile, check a `timelineHintShown` flag via `NativePrefs` (using the existing `readPref`/`writePref` pattern from `frontend/src/plugins/notifications.ts`); if absent, show a one-time peek animation or tooltip pointing left to signal the swipe affordance; write the flag after display so it never repeats
+- [x] T012 [P] [US3] Add overdue visual distinction to `frontend/src/components/timeline/TimelineGroup.tsx` — apply a distinct Tailwind color class (e.g., `text-red-600` / `border-red-400`) to the overdue bucket header and to each `FeedItemRow` wrapper div when `bucket === 'overdue'`; satisfies FR-014
+- [x] T013 [P] [US3] Add offline stale-data indicator to `frontend/src/components/timeline/TimelineView.tsx` — detect offline/stale state (reuse existing network-state detection pattern from the feed page if available), render a banner or subtle badge below the timeline header when data may be stale
+- [x] T014 [US3] Add first-launch swipe discovery hint to `frontend/src/app/feed/page.tsx` — on mobile, check a `timelineHintShown` flag via `NativePrefs` (using the existing `readPref`/`writePref` pattern from `frontend/src/plugins/notifications.ts`); if absent, show a one-time peek animation or tooltip pointing left to signal the swipe affordance; write the flag after display so it never repeats
 
 **Checkpoint**: Complete/dismiss actions in timeline remove tasks instantly and reflect in the feed; overdue bucket header and items are visually distinct from other buckets; offline indicator appears when stale
 
@@ -87,9 +87,9 @@ description: "Task list for 019-task-timeline-view implementation"
 
 **Independent Test**: With tasks from at least two integrations, select a source filter. Verify only tasks from that source appear across all date groups; groups with no matching tasks are hidden. Clear the filter and verify all tasks return.
 
-- [ ] T015 [P] [US4] Add optional `sourceFilter?: string` parameter to `useTimeline` in `frontend/src/hooks/useTimeline.ts` — pre-filter `FeedItem[]` by `item.source === sourceFilter` before bucketing when a filter value is provided; pass `undefined` for no filter (existing behavior unchanged)
-- [ ] T016 [P] [US4] Add source filter UI to `frontend/src/components/timeline/TimelineView.tsx` — derive available source options from the unfiltered `feedItems` prop (deduplicated), render a horizontal chip row or compact dropdown above the group list, manage `activeSource` state locally, pass to `useTimeline` call; hide the filter control when fewer than two distinct sources are present
-- [ ] T017 [US4] Wire `sourceFilter` state in `frontend/src/app/feed/page.tsx` — pass active source filter value down to `TimelineView` via prop; clear active filter when the user switches back to feed view
+- [x] T015 [P] [US4] Add optional `sourceFilter?: string` parameter to `useTimeline` in `frontend/src/hooks/useTimeline.ts` — pre-filter `FeedItem[]` by `item.source === sourceFilter` before bucketing when a filter value is provided; pass `undefined` for no filter (existing behavior unchanged)
+- [x] T016 [P] [US4] Add source filter UI to `frontend/src/components/timeline/TimelineView.tsx` — derive available source options from the unfiltered `feedItems` prop (deduplicated), render a horizontal chip row or compact dropdown above the group list, manage `activeSource` state locally, pass to `useTimeline` call; hide the filter control when fewer than two distinct sources are present
+- [x] T017 [US4] Wire `sourceFilter` state in `frontend/src/app/feed/page.tsx` — pass active source filter value down to `TimelineView` via prop; clear active filter when the user switches back to feed view
 
 **Checkpoint**: Source filter chips appear when multiple integrations are present; selecting one filters across all date buckets; groups with no matching tasks disappear; clearing the filter restores all tasks
 
@@ -99,8 +99,8 @@ description: "Task list for 019-task-timeline-view implementation"
 
 **Purpose**: Refinements that affect multiple user stories and final production readiness
 
-- [ ] T018 Add sticky group header CSS to `frontend/src/components/timeline/TimelineGroup.tsx` — apply `position: sticky; top: 0` with appropriate `z-index` so the header remains visible while scrolling through a long group; satisfies FR-015
-- [ ] T019 Add task count badge to collapsed group header in `frontend/src/components/timeline/TimelineGroup.tsx` — render `{items.length} tasks` (or equivalent) in the header when `isExpanded === false`; satisfies FR-017
+- [x] T018 Add sticky group header CSS to `frontend/src/components/timeline/TimelineGroup.tsx` — apply `position: sticky; top: 0` with appropriate `z-index` so the header remains visible while scrolling through a long group; satisfies FR-015
+- [x] T019 Add task count badge to collapsed group header in `frontend/src/components/timeline/TimelineGroup.tsx` — render `{items.length} tasks` (or equivalent) in the header when `isExpanded === false`; satisfies FR-017
 - [ ] T020 Run `specs/019-task-timeline-view/quickstart.md` manual acceptance checklist end-to-end on iOS, Android, and desktop/web — resolve any gaps found before marking feature complete
 
 **Checkpoint**: All FR and acceptance scenarios from `spec.md` pass on all target platforms (iOS, Android, macOS/Windows, web)

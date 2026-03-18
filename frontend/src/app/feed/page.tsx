@@ -1,11 +1,17 @@
 // T055 + T061 — Feed page
+// T010 — view mode toggle / swipe integration
+// T014 — first-launch swipe hint
+// T017 — source filter state
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Suspense } from 'react';
 import { useFeed } from '@/hooks/useFeed';
+import { useTimeline } from '@/hooks/useTimeline';
 import { useNativeTasks } from '@/hooks/useNativeTasks';
 import { useInboxCount } from '@/hooks/useInboxCount';
+import { usePlatform } from '@/plugins/index';
+import { getUserSettings, updateUserSettings } from '@/services/user.service';
 import { FeedSection } from '@/components/feed/FeedSection';
 import { CompletedSection } from '@/components/feed/CompletedSection';
 import { IntegrationErrorBanner } from '@/components/feed/IntegrationErrorBanner';
@@ -13,7 +19,11 @@ import { FeedEmptyState } from '@/components/feed/FeedEmptyState';
 import { AddTaskForm } from '@/components/tasks/AddTaskForm';
 import { EditTaskModal } from '@/components/tasks/EditTaskModal';
 import { AccountMenu } from '@/components/AccountMenu';
+import { TimelineView, TimelineSwipeContainer } from '@/components/timeline';
 import type { FeedItem } from '@/services/feed.service';
+import type { TimelineViewMode } from '@/types/timeline';
+
+const SWIPE_HINT_KEY = 'ordrctrl.timeline.swipeHintSeen';
 
 function FeedPageContent() {
   const [searchParams] = useSearchParams();
@@ -28,6 +38,57 @@ function FeedPageContent() {
   } = useFeed({ showDismissed });
   const { create, update, remove } = useNativeTasks(reloadFeed);
   const { inboxCount } = useInboxCount();
+  const { isMobile, isDesktop } = usePlatform();
+
+  // ── View mode (T010) ──────────────────────────────────────────────────────
+  const [viewMode, setViewMode] = useState<TimelineViewMode>('feed');
+  const settingsLoadedRef = useRef(false);
+
+  useEffect(() => {
+    if (settingsLoadedRef.current) return;
+    settingsLoadedRef.current = true;
+    getUserSettings()
+      .then((s) => {
+        if (s.feedViewMode) setViewMode(s.feedViewMode);
+      })
+      .catch(() => {/* silently default to 'feed' */});
+  }, []);
+
+  const handleModeChange = (mode: TimelineViewMode) => {
+    setViewMode(mode);
+    updateUserSettings({ feedViewMode: mode }).catch(() => {/* best-effort */});
+  };
+
+  // ── Source filter (T017) ──────────────────────────────────────────────────
+  const [sourceFilter, setSourceFilter] = useState<string | null>(null);
+
+  const availableSources = useMemo(() => {
+    const ids = new Set(items.map((i) => i.serviceId));
+    return Array.from(ids).sort();
+  }, [items]);
+
+  // ── Timeline groups (T005) ────────────────────────────────────────────────
+  const timelineGroups = useTimeline({ items, sourceFilter });
+
+  // ── Offline detection (T013) ──────────────────────────────────────────────
+  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+  const lastSyncAt = Object.values(syncStatus)
+    .map((s) => s.lastSyncAt)
+    .filter(Boolean)
+    .sort()
+    .at(-1) ?? null;
+
+  // ── First-launch swipe hint (T014) ────────────────────────────────────────
+  const [showSwipeHint, setShowSwipeHint] = useState(false);
+  useEffect(() => {
+    if (!isMobile) return;
+    if (typeof window === 'undefined') return;
+    const seen = window.localStorage.getItem(SWIPE_HINT_KEY);
+    if (!seen) {
+      setShowSwipeHint(true);
+      window.localStorage.setItem(SWIPE_HINT_KEY, 'true');
+    }
+  }, [isMobile]);
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingTask, setEditingTask] = useState<FeedItem | null>(null);
@@ -38,11 +99,10 @@ function FeedPageContent() {
   const isEmpty = items.length === 0 && !loading;
 
   const handleItemClick = (item: FeedItem) => {
-    // Native tasks: edit via modal. Sync tasks: edit due date via modal.
     setEditingTask(item);
   };
 
-  // Split active items into dated and undated sections
+  // Split active items into dated and undated sections (feed view)
   const datedItems = items.filter((i) => i.dueAt !== null);
   const undatedItems = items.filter((i) => i.dueAt === null);
 
@@ -55,6 +115,29 @@ function FeedPageContent() {
         </span>
 
         <div className="flex items-center gap-3">
+          {/* T010 — desktop/web view mode toggle */}
+          {!showDismissed && !isMobile && (
+            <button
+              type="button"
+              aria-label={viewMode === 'feed' ? 'Switch to timeline view' : 'Switch to feed view'}
+              title={viewMode === 'feed' ? 'Timeline view' : 'Feed view'}
+              onClick={() => handleModeChange(viewMode === 'feed' ? 'timeline' : 'feed')}
+              className="bg-transparent border-0 p-1 flex items-center cursor-pointer text-zinc-500 hover:text-black"
+            >
+              {viewMode === 'feed' ? (
+                /* Timeline icon — horizontal bars with varying indent */
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                  <path d="M2 4h12M4 8h8M6 12h4"/>
+                </svg>
+              ) : (
+                /* Feed/list icon */
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                  <path d="M2 4h12M2 8h12M2 12h12"/>
+                </svg>
+              )}
+            </button>
+          )}
+
           {inboxCount > 0 ? (
             <Link to="/inbox"
               aria-label={`Inbox — ${inboxCount} item${inboxCount !== 1 ? 's' : ''}`}
@@ -174,24 +257,75 @@ function FeedPageContent() {
           <>
             {isEmpty && <FeedEmptyState hasIntegrations={hasIntegrations} />}
 
-            {items.length > 0 && (
-              <>
-                <FeedSection
-                  label="Upcoming"
-                  items={datedItems}
+            {items.length > 0 && (() => {
+              // Shared feed JSX
+              const feedJsx = (
+                <>
+                  <FeedSection
+                    label="Upcoming"
+                    items={datedItems}
+                    onComplete={completeItem}
+                    onDismiss={dismissItem}
+                    onEdit={handleItemClick}
+                  />
+                  <FeedSection
+                    label="No Date"
+                    items={undatedItems}
+                    onComplete={completeItem}
+                    onDismiss={dismissItem}
+                    onEdit={handleItemClick}
+                  />
+                </>
+              );
+
+              // Shared timeline JSX
+              const timelineJsx = (
+                <TimelineView
+                  groups={timelineGroups}
                   onComplete={completeItem}
                   onDismiss={dismissItem}
                   onEdit={handleItemClick}
+                  isOffline={isOffline}
+                  lastSyncAt={lastSyncAt}
+                  sourceFilter={sourceFilter}
+                  availableSources={availableSources}
+                  onSourceFilterChange={setSourceFilter}
                 />
-                <FeedSection
-                  label="No Date"
-                  items={undatedItems}
-                  onComplete={completeItem}
-                  onDismiss={dismissItem}
-                  onEdit={handleItemClick}
-                />
-              </>
-            )}
+              );
+
+              // T010 — mobile: swipe container; desktop/web: render based on viewMode
+              if (isMobile) {
+                return (
+                  <>
+                    {/* T014 — first-launch swipe hint */}
+                    {showSwipeHint && (
+                      <div className="flex items-center justify-between mb-3 px-1 py-1.5 bg-zinc-50 border border-zinc-100">
+                        <span className="text-[0.7rem] text-zinc-500">
+                          Swipe left for timeline view
+                        </span>
+                        <button
+                          type="button"
+                          aria-label="Dismiss hint"
+                          onClick={() => setShowSwipeHint(false)}
+                          className="bg-transparent border-0 p-0 cursor-pointer text-zinc-400 hover:text-zinc-600 leading-none text-base ml-2"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    )}
+                    <TimelineSwipeContainer
+                      mode={viewMode}
+                      onModeChange={handleModeChange}
+                      feedContent={feedJsx}
+                      timelineContent={timelineJsx}
+                    />
+                  </>
+                );
+              }
+
+              // Desktop / web
+              return viewMode === 'timeline' ? timelineJsx : feedJsx;
+            })()}
 
             <CompletedSection items={completed} onUncomplete={uncompleteItem} onClear={clearCompleted} />
           </>
