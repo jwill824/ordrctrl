@@ -123,6 +123,7 @@ A user can narrow the timeline to show only tasks from a specific source integra
 - **FR-016**: The "Overdue" and "Today" date groups MUST be expanded by default when the timeline view is opened.
 - **FR-017**: The "This Week" and "Later" date groups MUST be collapsed by default when the timeline view is opened; each shows a task count in the header while collapsed.
 - **FR-018**: Users MUST be able to expand or collapse the "This Week" and "Later" groups by tapping their header; collapse state resets to default each time the timeline view is opened.
+- **FR-019**: The "Unscheduled" group MUST also be collapsed by default when the timeline view is opened.
 
 ### Key Entities
 

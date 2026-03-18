@@ -4,7 +4,7 @@
 
 ## Summary
 
-Add a swipe-accessible (mobile) / toggle-accessible (desktop/web) timeline view that renders the existing feed's `FeedItem[]` data grouped into five chronological buckets: Overdue, Today, This Week, Later, and Unscheduled. No new backend endpoints or database models are required — the timeline is a pure frontend rendering concern layered on top of the existing `useFeed` hook. The primary deliverables are a `useTimeline` grouping hook, a family of `TimelineView` / `TimelineGroup` components, a swipe gesture container for mobile, and a view-preference persistence layer extending the existing `NativePrefs` pattern.
+Add a swipe-accessible (mobile) / toggle-accessible (desktop/web) timeline view that renders the existing feed's `FeedItem[]` data grouped into five chronological buckets: Overdue, Today, This Week, Later, and Unscheduled. No new backend endpoints or database migrations are required. `backend/src/user/user.service.ts` and `backend/src/api/user.routes.ts` are modified at the TypeScript/Zod schema level only (to extend the `UserSettings` type with `feedViewMode`) — no Prisma migration, no new endpoints, no new database models. The primary deliverables are a `useTimeline` grouping hook, a family of `TimelineView` / `TimelineGroup` components, a swipe gesture container for mobile, and a view-preference persistence layer extending the existing `NativePrefs` pattern.
 
 ## Technical Context
 
@@ -65,10 +65,16 @@ frontend/src/
 └── plugins/
     └── notifications.ts                # Modified: add viewPreference key to NativePrefs
 
+backend/src/
+├── user/
+│   └── user.service.ts                 # Modified: extend UserSettings with feedViewMode (TypeScript/Zod only)
+└── api/
+    └── user.routes.ts                  # Modified: expose feedViewMode field via existing settings endpoint (TypeScript/Zod only)
+
 frontend/tests/
 └── timeline/
     ├── useTimeline.test.ts             # New: unit tests for grouping logic
     └── timeline.e2e.ts                 # New: Playwright e2e for swipe/toggle + collapse
 ```
 
-**Structure Decision**: Frontend-only change. No backend modifications. Follows the existing `components/feed/` → `hooks/useFeed` → `services/feed.service` layering pattern. New `components/timeline/` directory mirrors `components/feed/` structure.
+**Structure Decision**: Primarily a frontend change. Backend is touched at the TypeScript/Zod schema level only — no Prisma migration or new endpoints. Follows the existing `components/feed/` → `hooks/useFeed` → `services/feed.service` layering pattern. New `components/timeline/` directory mirrors `components/feed/` structure.

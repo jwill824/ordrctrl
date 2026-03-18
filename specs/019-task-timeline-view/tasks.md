@@ -88,8 +88,8 @@ description: "Task list for 019-task-timeline-view implementation"
 **Independent Test**: With tasks from at least two integrations, select a source filter. Verify only tasks from that source appear across all date groups; groups with no matching tasks are hidden. Clear the filter and verify all tasks return.
 
 - [x] T015 [P] [US4] Add optional `sourceFilter?: string` parameter to `useTimeline` in `frontend/src/hooks/useTimeline.ts` — pre-filter `FeedItem[]` by `item.source === sourceFilter` before bucketing when a filter value is provided; pass `undefined` for no filter (existing behavior unchanged)
-- [x] T016 [P] [US4] Add source filter UI to `frontend/src/components/timeline/TimelineView.tsx` — derive available source options from the unfiltered `feedItems` prop (deduplicated), render a horizontal chip row or compact dropdown above the group list, manage `activeSource` state locally, pass to `useTimeline` call; hide the filter control when fewer than two distinct sources are present
-- [x] T017 [US4] Wire `sourceFilter` state in `frontend/src/app/feed/page.tsx` — pass active source filter value down to `TimelineView` via prop; clear active filter when the user switches back to feed view
+- [x] T016 [P] [US4] Add source filter UI to `frontend/src/components/timeline/TimelineView.tsx` — accept `activeSource?: string` and `onSourceChange: (source: string | undefined) => void` as controlled props, derive available source options from `feedItems`, render filter chips; hide when fewer than two sources are present
+- [x] T017 [US4] Manage `activeSource` state in `frontend/src/app/feed/page.tsx` — `useState<string | undefined>(undefined)`, pass to `TimelineView` as `activeSource` and `onSourceChange` props; clear filter on view switch back to feed
 
 **Checkpoint**: Source filter chips appear when multiple integrations are present; selecting one filters across all date buckets; groups with no matching tasks disappear; clearing the filter restores all tasks
 
@@ -102,6 +102,8 @@ description: "Task list for 019-task-timeline-view implementation"
 - [x] T018 Add sticky group header CSS to `frontend/src/components/timeline/TimelineGroup.tsx` — apply `position: sticky; top: 0` with appropriate `z-index` so the header remains visible while scrolling through a long group; satisfies FR-015
 - [x] T019 Add task count badge to collapsed group header in `frontend/src/components/timeline/TimelineGroup.tsx` — render `{items.length} tasks` (or equivalent) in the header when `isExpanded === false`; satisfies FR-017
 - [ ] T020 Run `specs/019-task-timeline-view/quickstart.md` manual acceptance checklist end-to-end on iOS, Android, and desktop/web — resolve any gaps found before marking feature complete
+- [ ] T021 [P] Write Vitest unit tests for `useTimeline` in `frontend/tests/timeline/useTimeline.test.ts` — test cases: each of the 5 bucket assignments (overdue/today/this-week/later/unscheduled), boundary conditions (diffDays === 0, diffDays === 7, diffDays === 8), empty input returns empty output, sourceFilter filters correctly, completed/dismissed items are excluded, sort order (dueAt ASC then title ASC), 200-item performance assertion using performance.now()
+- [ ] T022 Write Playwright e2e tests in `frontend/tests/timeline/timeline.e2e.ts` — test cases: swipe left enters timeline on mobile, swipe right returns to feed, toggle switches view on desktop/web, feedViewMode preference persists after page reload, This Week/Later groups start collapsed, tapping group header expands it, completing a task removes it from the timeline immediately
 
 **Checkpoint**: All FR and acceptance scenarios from `spec.md` pass on all target platforms (iOS, Android, macOS/Windows, web)
 
@@ -118,6 +120,7 @@ description: "Task list for 019-task-timeline-view implementation"
 - **US3 (Phase 5)**: Requires Phase 3; can run in parallel with US2
 - **US4 (Phase 6)**: Requires Phase 3; can run in parallel with US2 and US3
 - **Polish (Phase 7)**: Requires all user story phases complete
+- **T021 and T022 MUST pass before the PR can be merged** (Constitution IV — Test Coverage Required)
 
 ### User Story Dependencies
 
