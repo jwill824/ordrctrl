@@ -97,6 +97,8 @@ A user can narrow the timeline to show only tasks from a specific source integra
 - What happens when a task's due date changes (e.g., updated in a source integration after sync)? The task moves to the correct date group on the next sync or page refresh.
 - What happens when there are hundreds of tasks in one date group (e.g., many overdue)? Since "Overdue" and "Today" are always expanded, their content is scrollable with a sticky header. "This Week" and "Later" start collapsed, so large future task counts don't overwhelm the initial view; the user expands them deliberately.
 - What happens when the device's date/time changes (timezone shift or manual adjustment)? The timeline re-calculates group membership based on the new local date/time on next view render.
+- What happens with all-day calendar events (e.g. Apple Calendar `DTSTART;VALUE=DATE`)? All-day events have no clock time; they are stored as a UTC noon sentinel (`T12:00:00.000Z`) to avoid timezone-shift issues. The bucket algorithm extracts the UTC calendar date directly (bypassing local-time conversion) so the event appears in the correct day bucket regardless of the user's UTC offset. Legacy data stored as UTC midnight (`T00:00:00.000Z`) is handled the same way.
+- What happens when a calendar event has no `dueAt` (null), but has a `startAt`? The bucket algorithm falls back to `startAt` when `dueAt` is null, so calendar events from integrations like Apple Calendar that store event start time in `startAt` still appear in the correct bucket.
 - What happens when the user is offline? The timeline shows the last cached task state with a visual indicator that data may be stale.
 - What happens on first launch before the user discovers the swipe gesture? A one-time hint or visual indicator (e.g., a peek animation or tooltip) is shown on the feed to signal the swipe affordance exists.
 
@@ -107,11 +109,11 @@ A user can narrow the timeline to show only tasks from a specific source integra
 - **FR-001**: The system MUST provide a timeline view accessible via lateral swipe on mobile (swipe left from feed → timeline; swipe right → feed) and via a UI toggle on desktop and web.
 - **FR-001a**: The timeline view MUST only display tasks that have been accepted into the feed; Inbox items pending triage are explicitly excluded.
 - **FR-002**: The timeline view MUST display active tasks grouped into the following date buckets: Overdue, Today, This Week, Later, and Unscheduled.
-- **FR-003**: The "Overdue" group MUST include all tasks whose due date is before today's date and that are not yet completed or dismissed.
+- **FR-003**: The "Overdue" group MUST include all tasks whose due date (midnight-normalized to local calendar day, using UTC date components for all-day event sentinels) is before today's date and that are not yet completed or dismissed.
 - **FR-004**: The "Today" group MUST include tasks due on the current calendar day.
 - **FR-005**: The "This Week" group MUST include tasks due within the next 7 days (excluding today).
 - **FR-006**: The "Later" group MUST include tasks due beyond the next 7 days.
-- **FR-007**: The "Unscheduled" group MUST include tasks that have no due date.
+- **FR-007**: The "Unscheduled" group MUST include tasks that have neither a `dueAt` nor a `startAt` date. Tasks from integrations that populate only `startAt` (e.g., Apple Calendar events) MUST be bucketed by `startAt` when `dueAt` is null.
 - **FR-008**: Date groups with no tasks MUST be hidden from the timeline.
 - **FR-009**: Users MUST be able to complete, dismiss, and open any task directly from the timeline view.
 - **FR-010**: All task actions taken in the timeline view MUST be reflected in the feed view immediately.

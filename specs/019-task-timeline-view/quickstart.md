@@ -107,3 +107,6 @@ pnpm --filter frontend test:e2e
 - [ ] Source integration filter correctly hides groups with no matching tasks
 - [ ] Empty state shown when no active tasks exist
 - [ ] Offline: last cached state shown with stale indicator
+- [ ] All-day calendar events (Apple Calendar) appear in the correct date bucket (e.g. a 3/18 all-day event shows as "This Week"/"Tomorrow", not "Today") regardless of timezone
+- [ ] Calendar events with null `dueAt` but a valid `startAt` still appear in the timeline in the correct bucket
+- [ ] Due date displayed in the task modal shows the user's local time (not UTC) for timed events; shows date only (no time) for all-day events

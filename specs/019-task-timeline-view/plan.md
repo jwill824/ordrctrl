@@ -62,6 +62,10 @@ frontend/src/
 ├── hooks/
 │   ├── useFeed.ts                      # Unchanged — timeline reuses this
 │   └── useTimeline.ts                  # New: groups FeedItem[] into TimelineGroup[]
+├── utils/
+│   └── dateUtils.ts                    # New: shared timezone-safe date helpers (toLocalMidnight,
+│                                       #   isAllDayDate, formatRelativeDay, formatLocalTime,
+│                                       #   toLocalDateTimeInput, toLocalDateInput)
 └── plugins/
     └── notifications.ts                # Modified: add viewPreference key to NativePrefs
 

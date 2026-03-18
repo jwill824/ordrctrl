@@ -77,16 +77,33 @@ export interface UserSettings {
 
 ## Bucket Assignment Logic
 
+> **Implementation**: This algorithm is implemented in `frontend/src/utils/dateUtils.ts` (`toLocalMidnight`, `isAllDayDate`) and called by `frontend/src/hooks/useTimeline.ts` (`getBucket`).
+
 ```
-Given a FeedItem with dueAt (ISO 8601 string or null) and the current local date (now):
+Given a FeedItem with dueAt and startAt (ISO 8601 strings or null) and the current local date (now):
 
-1. If dueAt is null → bucket = 'unscheduled'
+1. dateKey = dueAt ?? startAt
+   If dateKey is null → bucket = 'unscheduled'
 
-2. Normalize both dates to local midnight:
-     dueDay  = new Date(dueAt);  dueDay.setHours(0, 0, 0, 0)
-     today   = new Date(now);    today.setHours(0, 0, 0, 0)
+   (Calendar events — e.g. Apple Calendar — may have dueAt: null and startAt populated.
+    Always fall back to startAt when dueAt is absent.)
 
-3. diffDays = (dueDay - today) / 86_400_000   [integer, floor]
+2. Normalize dateKey to local midnight via toLocalMidnight(dateKey):
+
+   All-day sentinel detection (isAllDayDate):
+     A date is "all-day" if its UTC time is exactly T00:00:00.000Z (legacy UTC midnight)
+     or T12:00:00.000Z (UTC noon — canonical all-day sentinel safe for all UTC-12…UTC+11.5 timezones).
+
+   For all-day sentinels:
+     dueDay = new Date(UTC_year, UTC_month, UTC_date)   ← local midnight of the UTC calendar date
+     (Do NOT call setHours() — that would shift the date in UTC-negative timezones)
+
+   For timed events:
+     dueDay = new Date(dateKey);  dueDay.setHours(0, 0, 0, 0)   ← local midnight
+
+   today = new Date(now);  today.setHours(0, 0, 0, 0)
+
+3. diffDays = Math.round((dueDay - today) / 86_400_000)
 
 4. Assign bucket:
      diffDays < 0            → 'overdue'
@@ -94,6 +111,8 @@ Given a FeedItem with dueAt (ISO 8601 string or null) and the current local date
      diffDays >= 1 && <= 7   → 'this-week'
      diffDays > 7            → 'later'
 ```
+
+**Why UTC noon for all-day events**: `new Date('YYYY-MM-DD')` in JavaScript is parsed as UTC midnight. In UTC-negative timezones, this represents the *previous* local calendar day. Storing all-day dates as UTC noon (`YYYY-MM-DDT12:00:00.000Z`) eliminates this shift: UTC noon is always positive-local for UTC-12 through UTC+11.5. The frontend detects both sentinels and extracts the UTC date components directly.
 
 **Groups with zero items are omitted** — `useTimeline` returns only buckets that have at least one `FeedItem`.
 
@@ -108,7 +127,8 @@ Key fields used by the timeline:
 | Field | Type | Usage |
 |-------|------|-------|
 | `id` | `string` | React key; passed to action callbacks |
-| `dueAt` | `string \| null` | Bucket assignment; sort key |
+| `dueAt` | `string \| null` | Primary bucket assignment key; sort key. Null for some integration events (e.g. Apple Calendar) — fall back to `startAt`. |
+| `startAt` | `string \| null` | Fallback bucket key when `dueAt` is null (e.g. Apple Calendar events). All-day events use UTC noon sentinel (`T12:00:00.000Z`). |
 | `title` | `string` | Secondary sort key; display |
 | `source` | `string` | Source integration filter (FR-013) |
 | `serviceId` | `string` | Integration color/icon in `FeedItemRow` |
