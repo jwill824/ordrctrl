@@ -27,17 +27,20 @@ const BUCKET_LABELS: Record<TimelineBucket, string> = {
 
 /**
  * Assign a temporal bucket using midnight-normalised date comparison.
- * Specification from data-model.md:
+ * Falls back to startAt when dueAt is null (e.g. calendar events that have
+ * a start time but no explicit due date).
+ *
  *   diffDays < 0  → 'overdue'
  *   diffDays === 0 → 'today'
  *   diffDays 1–7  → 'this-week'
  *   diffDays > 7  → 'later'
- *   dueAt === null → 'unscheduled'
+ *   dueAt === null && startAt === null → 'unscheduled'
  */
-function getBucket(dueAt: string | null, now: Date): TimelineBucket {
-  if (!dueAt) return 'unscheduled';
+function getBucket(dueAt: string | null, startAt: string | null, now: Date): TimelineBucket {
+  const dateKey = dueAt ?? startAt;
+  if (!dateKey) return 'unscheduled';
 
-  const dueDay = new Date(dueAt);
+  const dueDay = new Date(dateKey);
   dueDay.setHours(0, 0, 0, 0);
 
   const today = new Date(now);
@@ -81,7 +84,7 @@ export function useTimeline({ items, sourceFilter }: UseTimelineOptions): Timeli
     const buckets = new Map<TimelineBucket, FeedItem[]>();
 
     for (const item of filtered) {
-      const bucket = getBucket(item.dueAt, now);
+      const bucket = getBucket(item.dueAt, item.startAt, now);
       if (!buckets.has(bucket)) buckets.set(bucket, []);
       buckets.get(bucket)!.push(item);
     }
@@ -92,9 +95,9 @@ export function useTimeline({ items, sourceFilter }: UseTimelineOptions): Timeli
         if (bucket === 'unscheduled') {
           return a.title.localeCompare(b.title);
         }
-        // dueAt ASC, then title ASC
-        const dateA = a.dueAt ? new Date(a.dueAt).getTime() : 0;
-        const dateB = b.dueAt ? new Date(b.dueAt).getTime() : 0;
+        // dueAt ?? startAt ASC, then title ASC
+        const dateA = (a.dueAt ?? a.startAt) ? new Date(a.dueAt ?? a.startAt!).getTime() : 0;
+        const dateB = (b.dueAt ?? b.startAt) ? new Date(b.dueAt ?? b.startAt!).getTime() : 0;
         if (dateA !== dateB) return dateA - dateB;
         return a.title.localeCompare(b.title);
       });
