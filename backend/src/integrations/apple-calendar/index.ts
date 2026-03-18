@@ -318,7 +318,7 @@ function parseVEventItems(xmlText: string, subSourceId?: string): NormalizedItem
       externalId: uidMatch[1].trim(),
       itemType: 'event',
       title: summaryMatch[1].trim(),
-      dueAt: null,
+      dueAt: dtStartMatch ? parseICalDate(dtStartMatch[1]) : null,
       startAt: dtStartMatch ? parseICalDate(dtStartMatch[1]) : null,
       endAt: dtEndMatch ? parseICalDate(dtEndMatch[1]) : null,
       subSourceId,
