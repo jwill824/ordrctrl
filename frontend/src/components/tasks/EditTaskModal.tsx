@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react';
 import type { FeedItem } from '@/services/feed.service';
 import { buildSourceLinkHandler } from '@/hooks/useSourceLink';
+import { isAllDayDate, toLocalDateTimeInput, toLocalDateInput } from '@/utils/dateUtils';
 
 const SOURCE_LABEL_MAP: Record<string, string> = {
   gmail: 'Open in Gmail',
@@ -26,9 +27,12 @@ interface EditTaskModalProps {
 
 export function EditTaskModal({ task, onSave, onDelete, onClose, onSetDescriptionOverride, onSetTitleOverride }: EditTaskModalProps) {
   const isSyncItem = task.id.startsWith('sync:') && task.serviceId !== 'ordrctrl';
+  const allDay = task.dueAt ? isAllDayDate(task.dueAt) : false;
   const [title, setTitle] = useState(task.title);
   const [dueAt, setDueAt] = useState(
-    task.dueAt ? new Date(task.dueAt).toISOString().slice(0, 16) : ''
+    task.dueAt
+      ? allDay ? toLocalDateInput(task.dueAt) : toLocalDateTimeInput(task.dueAt)
+      : ''
   );
   const [description, setDescription] = useState(task.description ?? '');
   const [showOriginal, setShowOriginal] = useState(false);
@@ -38,7 +42,12 @@ export function EditTaskModal({ task, onSave, onDelete, onClose, onSetDescriptio
 
   useEffect(() => {
     setTitle(task.title);
-    setDueAt(task.dueAt ? new Date(task.dueAt).toISOString().slice(0, 16) : '');
+    const isTaskAllDay = task.dueAt ? isAllDayDate(task.dueAt) : false;
+    setDueAt(
+      task.dueAt
+        ? isTaskAllDay ? toLocalDateInput(task.dueAt) : toLocalDateTimeInput(task.dueAt)
+        : ''
+    );
     setDescription(task.description ?? '');
   }, [task]);
 
@@ -48,7 +57,11 @@ export function EditTaskModal({ task, onSave, onDelete, onClose, onSetDescriptio
     setError(null);
     setSaving(true);
     try {
-      const isoDate = dueAt ? new Date(dueAt).toISOString() : null;
+      // All-day dates come from a `date` input (YYYY-MM-DD); store as UTC noon.
+      // Timed dates come from a `datetime-local` input (YYYY-MM-DDTHH:mm); new Date() treats as local.
+      const isoDate = dueAt
+        ? allDay ? `${dueAt}T12:00:00.000Z` : new Date(dueAt).toISOString()
+        : null;
       if (isSyncItem && onSetTitleOverride) {
         // Empty title means "revert to original synced title" (pass null to clear override)
         await onSetTitleOverride(task.id, title.trim() || null);
@@ -215,7 +228,7 @@ export function EditTaskModal({ task, onSave, onDelete, onClose, onSetDescriptio
             </label>
             <input
               id="edit-due"
-              type="datetime-local"
+              type={allDay ? 'date' : 'datetime-local'}
               value={dueAt}
               onChange={(e) => setDueAt(e.target.value)}
               autoFocus={isSyncItem && !task.hasTitleOverride && !task.description}

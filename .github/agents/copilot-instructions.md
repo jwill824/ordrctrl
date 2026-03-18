@@ -31,6 +31,11 @@ Auto-generated from all feature plans. Last updated: 2026-03-04
 - PostgreSQL (existing `SyncOverride` table — adding one new enum value); no schema migrations beyond enum update (017-task-rename-polish)
 - TypeScript 5.4 (frontend), Node 20 (CI runners) (018-e2e-testing)
 - N/A (tests are read-only; no test data written to persistent storage) (018-e2e-testing)
+- TypeScript 5.4 / React 18.2 + React Router DOM v6, Capacitor 8 (iOS/Android), Tauri 2 (macOS/Windows), Vite, Vitest, Playwright (019-task-timeline-view)
+- No new storage — `FeedItem[]` from existing `useFeed` hook; view preference via existing `NativePrefs` pattern (`@capacitor/preferences` → `localStorage` fallback) (019-task-timeline-view)
+- New `frontend/src/utils/dateUtils.ts`: shared timezone-safe date helpers — `isAllDayDate`, `toLocalMidnight`, `formatRelativeDay`, `formatLocalTime`, `toLocalDateTimeInput`, `toLocalDateInput`; imported by `useTimeline`, `FeedItemRow`, `EditTaskModal` (019-task-timeline-view)
+- All-day calendar events use UTC noon sentinel (`T12:00:00.000Z`). Use `isAllDayDate()` to detect; use `toLocalMidnight()` for bucket/day comparison — do NOT call `setHours(0,0,0,0)` directly on dates from external sources. For display, use `formatLocalTime()` (returns `""` for all-day) and `toLocalDateInput()` / `toLocalDateTimeInput()` for form inputs (019-task-timeline-view)
+- Apple Calendar events may have `dueAt: null`; always use `dueAt ?? startAt` as the date key for bucketing and display (019-task-timeline-view)
 
 - TypeScript 5.x (frontend + backend) + Next.js 14 (frontend), Fastify 4 (backend API), Prisma (ORM), (001-mvp-core)
 
@@ -50,9 +55,9 @@ npm test && npm run lint
 TypeScript 5.x (frontend + backend): Follow standard conventions
 
 ## Recent Changes
+- 019-task-timeline-view: Added timeline view components, useTimeline hook, dateUtils.ts (toLocalMidnight/isAllDayDate/formatLocalTime), Apple Calendar dueAt fix, UTC-midnight all-day display fixes
 - 018-e2e-testing: Added TypeScript 5.4 (frontend), Node 20 (CI runners)
 - 017-task-rename-polish: Added TypeScript 5.4 (frontend + backend), Rust 1.75+ (Tauri shell — unaffected) + Fastify 4, Prisma ORM, React 18, Vite 5, Vitest — all existing; no new dependencies
-- 016-native-auth-fixes: Added TypeScript 5.4 (backend + frontend)
 
 
 <!-- MANUAL ADDITIONS START -->

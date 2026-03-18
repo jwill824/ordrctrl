@@ -6,6 +6,7 @@ import { useState } from 'react';
 import type { FeedItem as FeedItemType } from '@/services/feed.service';
 import { useLiveDate } from '@/hooks/useLiveDate';
 import { buildSourceLinkHandler } from '@/hooks/useSourceLink';
+import { formatRelativeDay, formatLocalTime } from '@/utils/dateUtils';
 
 const SERVICE_COLORS: Record<string, string> = {
   gmail: '#EA4335',
@@ -30,26 +31,6 @@ const SOURCE_LABEL_MAP: Record<string, string> = {
   apple_reminders: 'Open in Reminders',
 };
 
-function formatDate(iso: string | null, now: Date): string {
-  if (!iso) return '';
-  const d = new Date(iso);
-  const diff = d.getTime() - now.getTime();
-  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-
-  if (days === 0) return 'Today';
-  if (days === 1) return 'Tomorrow';
-  if (days === -1) return 'Yesterday';
-  if (days < 0) return `${Math.abs(days)}d overdue`;
-  if (days < 7) return `In ${days}d`;
-
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
-
-function formatTime(iso: string | null): string {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-}
 
 interface FeedItemProps {
   item: FeedItemType;
@@ -88,9 +69,13 @@ export function FeedItemRow({ item, onComplete, onUncomplete, onDismiss, onResto
   const serviceName = SERVICE_NAMES[item.serviceId] ?? item.serviceId;
   const showAccountLabel = item.serviceId !== 'ordrctrl' && item.source !== serviceName;
   const dateStr = item.dueAt
-    ? formatDate(item.dueAt, now)
+    ? formatRelativeDay(item.dueAt, now)
     : item.startAt
-    ? `${formatDate(item.startAt, now)} ${formatTime(item.startAt)}`.trim()
+    ? (() => {
+        const label = formatRelativeDay(item.startAt, now);
+        const time = formatLocalTime(item.startAt);
+        return time ? `${label} · ${time}` : label;
+      })()
     : '';
 
   const isOverdue =
@@ -170,9 +155,9 @@ export function FeedItemRow({ item, onComplete, onUncomplete, onDismiss, onResto
           )}
 
           {/* Event end time */}
-          {item.itemType === 'event' && item.endAt && (
+          {item.itemType === 'event' && item.endAt && formatLocalTime(item.endAt) && (
             <span className="text-xs text-zinc-400">
-              – {formatTime(item.endAt)}
+              – {formatLocalTime(item.endAt)}
             </span>
           )}
 

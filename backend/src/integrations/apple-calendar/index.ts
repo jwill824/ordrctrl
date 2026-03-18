@@ -288,8 +288,13 @@ function parseCalDAVCollections(xmlText: string, componentType: 'VTODO' | 'VEVEN
 function parseICalDate(s: string): Date | null {
   let iso: string;
   if (s.length === 8) {
-    // YYYYMMDD → YYYY-MM-DD
-    iso = `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+    // YYYYMMDD — all-day event (no time component).
+    // Use UTC noon instead of UTC midnight so that client-side timezone
+    // normalisation (setHours(0,0,0,0)) lands on the correct calendar date
+    // for all UTC-12…UTC+11.5 timezones.  'YYYY-MM-DD' alone is treated by
+    // JS as UTC midnight, which shifts to the previous local date in any
+    // UTC-negative timezone.
+    iso = `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}T12:00:00.000Z`;
   } else if (s.length >= 15) {
     // YYYYMMDDTHHmmss[Z] → YYYY-MM-DDTHH:mm:ss[Z]
     iso = `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}T${s.slice(9, 11)}:${s.slice(11, 13)}:${s.slice(13, 15)}${s.endsWith('Z') ? 'Z' : ''}`;
@@ -318,7 +323,7 @@ function parseVEventItems(xmlText: string, subSourceId?: string): NormalizedItem
       externalId: uidMatch[1].trim(),
       itemType: 'event',
       title: summaryMatch[1].trim(),
-      dueAt: null,
+      dueAt: dtStartMatch ? parseICalDate(dtStartMatch[1]) : null,
       startAt: dtStartMatch ? parseICalDate(dtStartMatch[1]) : null,
       endAt: dtEndMatch ? parseICalDate(dtEndMatch[1]) : null,
       subSourceId,

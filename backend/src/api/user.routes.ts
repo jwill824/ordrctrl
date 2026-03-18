@@ -18,6 +18,7 @@ function requireAuth(request: FastifyRequest, reply: FastifyReply): string | nul
 const patchSettingsSchema = z.object({
   autoClearEnabled: z.boolean().optional(),
   autoClearWindowDays: z.number().int().min(1).max(365).optional(),
+  feedViewMode: z.enum(['feed', 'timeline']).optional(),
 });
 
 export async function registerUserRoutes(app: FastifyInstance): Promise<void> {
