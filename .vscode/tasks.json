@@ -1,0 +1,681 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+
+        // ============================================================
+        // INDIVIDUAL TASKS — run any single command standalone
+        // ============================================================
+
+        // Backend
+        {
+            "label": "Backend: Dev",
+            "type": "shell",
+            "command": "pnpm --filter backend dev",
+            "isBackground": true,
+            "presentation": { "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Backend: Dev (Device)",
+            "type": "shell",
+            "command": "pnpm --filter backend dev:device",
+            "isBackground": true,
+            "presentation": { "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Backend: Ngrok",
+            "type": "shell",
+            "command": "pnpm --filter backend dev:ngrok",
+            "isBackground": true,
+            "presentation": { "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Backend: Test",
+            "type": "shell",
+            "command": "pnpm --filter backend test",
+            "group": "test",
+            "presentation": { "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Backend: Test (Watch)",
+            "type": "shell",
+            "command": "pnpm --filter backend test:watch",
+            "isBackground": true,
+            "presentation": { "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Backend: Test (Contract)",
+            "type": "shell",
+            "command": "pnpm --filter backend test:contract",
+            "group": "test",
+            "presentation": { "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+
+        // Frontend
+        {
+            "label": "Frontend: Dev",
+            "type": "shell",
+            "command": "pnpm --filter frontend dev",
+            "isBackground": true,
+            "presentation": { "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Frontend: Dev (Device)",
+            "type": "shell",
+            "command": "pnpm --filter frontend dev:device",
+            "isBackground": true,
+            "presentation": { "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Frontend: Test",
+            "type": "shell",
+            "command": "pnpm --filter frontend test",
+            "group": "test",
+            "presentation": { "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Frontend: Test (Watch)",
+            "type": "shell",
+            "command": "pnpm --filter frontend test:watch",
+            "isBackground": true,
+            "presentation": { "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Frontend: E2E (Playwright)",
+            "type": "shell",
+            "command": "pnpm --filter frontend test:e2e",
+            "group": "test",
+            "presentation": { "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+
+        // iOS
+        {
+            "label": "iOS: Cap Sync",
+            "type": "shell",
+            "command": "pnpm exec cap sync ios",
+            "options": { "cwd": "${workspaceFolder}/frontend" },
+            "presentation": { "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+        {
+            "label": "iOS: Run Simulator",
+            "type": "shell",
+            "command": "pnpm exec cap run ios",
+            "options": { "cwd": "${workspaceFolder}/frontend" },
+            "isBackground": true,
+            "presentation": { "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+        {
+            "label": "iOS: E2E (Maestro)",
+            "type": "shell",
+            "command": "maestro test .maestro/flows/",
+            "group": "test",
+            "presentation": { "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+
+        // Android
+        {
+            "label": "Android: Cap Sync",
+            "type": "shell",
+            "command": "pnpm exec cap sync android",
+            "options": { "cwd": "${workspaceFolder}/frontend" },
+            "presentation": { "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Android: Run Emulator",
+            "type": "shell",
+            "command": "pnpm exec cap run android",
+            "options": { "cwd": "${workspaceFolder}/frontend" },
+            "isBackground": true,
+            "presentation": { "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Android: E2E (Maestro)",
+            "type": "shell",
+            "command": "maestro test .maestro/flows/",
+            "group": "test",
+            "presentation": { "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+
+        // Desktop (Tauri)
+        {
+            "label": "Desktop: Dev (Tauri)",
+            "type": "shell",
+            "command": "pnpm exec tauri dev",
+            "options": { "cwd": "${workspaceFolder}/frontend" },
+            "isBackground": true,
+            "presentation": { "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+        {
+            "label": "Desktop: Build (Tauri)",
+            "type": "shell",
+            "command": "pnpm exec tauri build",
+            "options": { "cwd": "${workspaceFolder}/frontend" },
+            "presentation": { "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+
+        // Kills dev servers (ports 3000/4000), Tauri, Capacitor, Vitest watch,
+        // and Maestro. Terminals with close: true vanish automatically.
+        {
+            "label": "⚡ Stop: All",
+            "type": "shell",
+            "command": "for pid in $(lsof -ti:3000,4000 2>/dev/null) $(pgrep -f vitest 2>/dev/null) $(pgrep -f maestro 2>/dev/null) $(pgrep -f 'cargo run' 2>/dev/null) $(pgrep -f 'cap run' 2>/dev/null); do pgid=$(ps -o pgid= -p $pid 2>/dev/null | tr -d ' '); [ -n \"$pgid\" ] && kill -- -$pgid 2>/dev/null; done; sleep 0.5; echo 'All tasks stopped'",
+            "presentation": { "panel": "shared", "reveal": "silent", "close": true },
+            "problemMatcher": []
+        },
+
+        // ============================================================
+        // SCENARIO LEAF TASKS — used only by compound tasks below.
+        // Each scenario gets a unique presentation.group so VS Code
+        // renders those terminals as split panes within one tab.
+        // close: true auto-closes the terminal when the process exits
+        // (triggered by ⚡ Stop: All Dev before switching scenarios).
+        // ============================================================
+
+        // --- ▶ Web: Dev (2 terminals) ---
+        {
+            "label": "[web-dev] Backend",
+            "type": "shell",
+            "command": "pnpm --filter backend dev",
+            "isBackground": true,
+            "presentation": { "group": "web-dev", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "[web-dev] Frontend",
+            "type": "shell",
+            "command": "pnpm --filter frontend dev",
+            "isBackground": true,
+            "presentation": { "group": "web-dev", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+
+        // --- ▶ Web: Dev + E2E (3 terminals) ---
+        {
+            "label": "[web-e2e] Backend",
+            "type": "shell",
+            "command": "pnpm --filter backend dev",
+            "isBackground": true,
+            "presentation": { "group": "web-e2e", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "[web-e2e] Frontend",
+            "type": "shell",
+            "command": "pnpm --filter frontend dev",
+            "isBackground": true,
+            "presentation": { "group": "web-e2e", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "[web-e2e] Playwright",
+            "type": "shell",
+            "command": "pnpm --filter frontend test:e2e",
+            "isBackground": true,
+            "presentation": { "group": "web-e2e", "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+
+        // --- ▶ iOS: Simulator Dev (3 terminals) ---
+        {
+            "label": "[ios-sim] Backend",
+            "type": "shell",
+            "command": "pnpm --filter backend dev",
+            "isBackground": true,
+            "presentation": { "group": "ios-sim", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "[ios-sim] Frontend",
+            "type": "shell",
+            "command": "pnpm --filter frontend dev",
+            "isBackground": true,
+            "presentation": { "group": "ios-sim", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "[ios-sim] Simulator",
+            "type": "shell",
+            "command": "pnpm exec cap run ios",
+            "options": { "cwd": "${workspaceFolder}/frontend" },
+            "presentation": { "group": "ios-sim", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+
+        // --- ▶ iOS: Device Dev (3 terminals — real device via ngrok) ---
+        {
+            "label": "[ios-device] Backend",
+            "type": "shell",
+            "command": "pnpm --filter backend dev:device",
+            "isBackground": true,
+            "presentation": { "group": "ios-device", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "[ios-device] Frontend",
+            "type": "shell",
+            "command": "pnpm --filter frontend dev:device",
+            "isBackground": true,
+            "presentation": { "group": "ios-device", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "[ios-device] Ngrok",
+            "type": "shell",
+            "command": "pnpm --filter backend dev:ngrok",
+            "isBackground": true,
+            "presentation": { "group": "ios-device", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+
+        // --- ▶ Android: Emulator Dev (3 terminals) ---
+        {
+            "label": "[android-emu] Backend",
+            "type": "shell",
+            "command": "pnpm --filter backend dev",
+            "isBackground": true,
+            "presentation": { "group": "android-emu", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "[android-emu] Frontend",
+            "type": "shell",
+            "command": "pnpm --filter frontend dev",
+            "isBackground": true,
+            "presentation": { "group": "android-emu", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "[android-emu] Emulator",
+            "type": "shell",
+            "command": "pnpm exec cap run android",
+            "options": { "cwd": "${workspaceFolder}/frontend" },
+            "presentation": { "group": "android-emu", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+
+        // --- ▶ Android: Device Dev (3 terminals — real device via ngrok) ---
+        {
+            "label": "[android-device] Backend",
+            "type": "shell",
+            "command": "pnpm --filter backend dev:device",
+            "isBackground": true,
+            "presentation": { "group": "android-device", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "[android-device] Frontend",
+            "type": "shell",
+            "command": "pnpm --filter frontend dev:device",
+            "isBackground": true,
+            "presentation": { "group": "android-device", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "[android-device] Ngrok",
+            "type": "shell",
+            "command": "pnpm --filter backend dev:ngrok",
+            "isBackground": true,
+            "presentation": { "group": "android-device", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+
+        // --- ▶ Desktop: Dev (2 terminals) ---
+        {
+            "label": "[desktop-dev] Backend",
+            "type": "shell",
+            "command": "pnpm --filter backend dev",
+            "isBackground": true,
+            "presentation": { "group": "desktop-dev", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "[desktop-dev] Tauri",
+            "type": "shell",
+            "command": "pnpm exec tauri dev",
+            "options": { "cwd": "${workspaceFolder}/frontend" },
+            "presentation": { "group": "desktop-dev", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+
+        // --- ▶ Test: Unit Watch (2 terminals) ---
+        {
+            "label": "[test-watch] Backend",
+            "type": "shell",
+            "command": "pnpm --filter backend test:watch",
+            "isBackground": true,
+            "presentation": { "group": "test-watch", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "[test-watch] Frontend",
+            "type": "shell",
+            "command": "pnpm --filter frontend test:watch",
+            "isBackground": true,
+            "presentation": { "group": "test-watch", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+
+        // --- ▶ Test: All (4 terminals) ---
+        {
+            "label": "[test-all] Backend Unit",
+            "type": "shell",
+            "command": "pnpm --filter backend test",
+            "isBackground": true,
+            "presentation": { "group": "test-all", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "[test-all] Backend Contract",
+            "type": "shell",
+            "command": "pnpm --filter backend test:contract",
+            "isBackground": true,
+            "presentation": { "group": "test-all", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "[test-all] Frontend Unit",
+            "type": "shell",
+            "command": "pnpm --filter frontend test",
+            "isBackground": true,
+            "presentation": { "group": "test-all", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "[test-all] Frontend E2E",
+            "type": "shell",
+            "command": "pnpm --filter frontend test:e2e",
+            "isBackground": true,
+            "presentation": { "group": "test-all", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+
+        // --- ▶ Test: Mobile E2E (2 terminals) ---
+        {
+            "label": "[mobile-e2e] iOS Maestro",
+            "type": "shell",
+            "command": "maestro test .maestro/flows/",
+            "isBackground": true,
+            "presentation": { "group": "mobile-e2e", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "[mobile-e2e] Android Maestro",
+            "type": "shell",
+            "command": "maestro test .maestro/flows/",
+            "isBackground": true,
+            "presentation": { "group": "mobile-e2e", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+
+        // --- ▶ Test: All (keep) — same as above but terminals stay open ---
+        {
+            "label": "[test-all-keep] Backend Unit",
+            "type": "shell",
+            "command": "pnpm --filter backend test",
+            "presentation": { "group": "test-all-keep", "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+        {
+            "label": "[test-all-keep] Backend Contract",
+            "type": "shell",
+            "command": "pnpm --filter backend test:contract",
+            "presentation": { "group": "test-all-keep", "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+        {
+            "label": "[test-all-keep] Frontend Unit",
+            "type": "shell",
+            "command": "pnpm --filter frontend test",
+            "presentation": { "group": "test-all-keep", "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+        {
+            "label": "[test-all-keep] Frontend E2E",
+            "type": "shell",
+            "command": "pnpm --filter frontend test:e2e",
+            "presentation": { "group": "test-all-keep", "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+
+        // --- ▶ Test: Unit Watch (keep) ---
+        {
+            "label": "[test-watch-keep] Backend",
+            "type": "shell",
+            "command": "pnpm --filter backend test:watch",
+            "isBackground": true,
+            "presentation": { "group": "test-watch-keep", "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+        {
+            "label": "[test-watch-keep] Frontend",
+            "type": "shell",
+            "command": "pnpm --filter frontend test:watch",
+            "isBackground": true,
+            "presentation": { "group": "test-watch-keep", "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+
+        // --- ▶ Test: Mobile E2E (keep) ---
+        {
+            "label": "[mobile-e2e-keep] iOS Maestro",
+            "type": "shell",
+            "command": "maestro test .maestro/flows/",
+            "presentation": { "group": "mobile-e2e-keep", "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+        {
+            "label": "[mobile-e2e-keep] Android Maestro",
+            "type": "shell",
+            "command": "maestro test .maestro/flows/",
+            "presentation": { "group": "mobile-e2e-keep", "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+
+
+        //
+        // Dev scenarios use a two-level structure:
+        //   Outer (sequence): ⚡ Stop: All Dev → <Scenario> (start)
+        //   Inner (parallel): all leaf terminals launch simultaneously
+        //
+        // When switching scenarios, the stop task kills dev ports
+        // (3000, 4000) and Tauri/Capacitor processes. Because leaf
+        // tasks have close: true, their terminals vanish automatically,
+        // giving you a clean split view for the new scenario.
+        // ============================================================
+
+        // Inner parallel start tasks (not meant to be run directly)
+        {
+            "label": "▶ Web: Dev (start)",
+            "dependsOn": ["[web-dev] Backend", "[web-dev] Frontend"],
+            "dependsOrder": "parallel",
+            "problemMatcher": []
+        },
+        {
+            "label": "▶ Web: Dev + E2E (start)",
+            "dependsOn": ["[web-e2e] Backend", "[web-e2e] Frontend", "[web-e2e] Playwright"],
+            "dependsOrder": "parallel",
+            "problemMatcher": []
+        },
+        {
+            "label": "▶ iOS: Simulator Dev (start)",
+            "dependsOn": ["[ios-sim] Backend", "[ios-sim] Frontend", "[ios-sim] Simulator"],
+            "dependsOrder": "parallel",
+            "problemMatcher": []
+        },
+        {
+            "label": "▶ iOS: Device Dev (start)",
+            "dependsOn": ["[ios-device] Backend", "[ios-device] Frontend", "[ios-device] Ngrok"],
+            "dependsOrder": "parallel",
+            "problemMatcher": []
+        },
+        {
+            "label": "▶ Android: Emulator Dev (start)",
+            "dependsOn": ["[android-emu] Backend", "[android-emu] Frontend", "[android-emu] Emulator"],
+            "dependsOrder": "parallel",
+            "problemMatcher": []
+        },
+        {
+            "label": "▶ Android: Device Dev (start)",
+            "dependsOn": ["[android-device] Backend", "[android-device] Frontend", "[android-device] Ngrok"],
+            "dependsOrder": "parallel",
+            "problemMatcher": []
+        },
+        {
+            "label": "▶ Desktop: Dev (start)",
+            "dependsOn": ["[desktop-dev] Backend", "[desktop-dev] Tauri"],
+            "dependsOrder": "parallel",
+            "problemMatcher": []
+        },
+
+        // Outer tasks — stop existing servers, then open new split view
+        {
+            "label": "▶ Web: Dev",
+            "dependsOn": ["⚡ Stop: All", "▶ Web: Dev (start)"],
+            "dependsOrder": "sequence",
+            "group": { "kind": "build", "isDefault": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "▶ Web: Dev + E2E",
+            "dependsOn": ["⚡ Stop: All", "▶ Web: Dev + E2E (start)"],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
+        },
+        {
+            "label": "▶ iOS: Simulator Dev",
+            "dependsOn": ["⚡ Stop: All", "▶ iOS: Simulator Dev (start)"],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
+        },
+        {
+            "label": "▶ iOS: Device Dev",
+            "dependsOn": ["⚡ Stop: All", "▶ iOS: Device Dev (start)"],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
+        },
+        {
+            "label": "▶ Android: Emulator Dev",
+            "dependsOn": ["⚡ Stop: All", "▶ Android: Emulator Dev (start)"],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
+        },
+        {
+            "label": "▶ Android: Device Dev",
+            "dependsOn": ["⚡ Stop: All", "▶ Android: Device Dev (start)"],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
+        },
+        {
+            "label": "▶ Desktop: Dev",
+            "dependsOn": ["⚡ Stop: All", "▶ Desktop: Dev (start)"],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
+        },
+        // Inner parallel start tasks for test scenarios
+        {
+            "label": "▶ Test: Unit Watch (start)",
+            "dependsOn": ["[test-watch] Backend", "[test-watch] Frontend"],
+            "dependsOrder": "parallel",
+            "problemMatcher": []
+        },
+        {
+            "label": "▶ Test: All (start)",
+            "dependsOn": [
+                "[test-all] Backend Unit",
+                "[test-all] Backend Contract",
+                "[test-all] Frontend Unit",
+                "[test-all] Frontend E2E"
+            ],
+            "dependsOrder": "parallel",
+            "problemMatcher": []
+        },
+        {
+            "label": "▶ Test: Mobile E2E (start)",
+            "dependsOn": ["[mobile-e2e] iOS Maestro", "[mobile-e2e] Android Maestro"],
+            "dependsOrder": "parallel",
+            "problemMatcher": []
+        },
+        {
+            "label": "▶ Test: Unit Watch",
+            "dependsOn": ["⚡ Stop: All", "▶ Test: Unit Watch (start)"],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
+        },
+        {
+            "label": "▶ Test: All",
+            "dependsOn": ["⚡ Stop: All", "▶ Test: All (start)"],
+            "dependsOrder": "sequence",
+            "group": { "kind": "test", "isDefault": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "▶ Test: Mobile E2E",
+            "dependsOn": ["⚡ Stop: All", "▶ Test: Mobile E2E (start)"],
+            "dependsOrder": "sequence",
+            "group": "test",
+            "problemMatcher": []
+        },
+
+        // (keep) variants — same stop-then-start flow, but terminals stay
+        // open after completion so you can review results.
+        {
+            "label": "▶ Test: Unit Watch (keep)",
+            "dependsOn": ["⚡ Stop: All", "▶ Test: Unit Watch (keep-start)"],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
+        },
+        {
+            "label": "▶ Test: All (keep)",
+            "dependsOn": ["⚡ Stop: All", "▶ Test: All (keep-start)"],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
+        },
+        {
+            "label": "▶ Test: Mobile E2E (keep)",
+            "dependsOn": ["⚡ Stop: All", "▶ Test: Mobile E2E (keep-start)"],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
+        },
+        {
+            "label": "▶ Test: Unit Watch (keep-start)",
+            "dependsOn": ["[test-watch-keep] Backend", "[test-watch-keep] Frontend"],
+            "dependsOrder": "parallel",
+            "problemMatcher": []
+        },
+        {
+            "label": "▶ Test: All (keep-start)",
+            "dependsOn": [
+                "[test-all-keep] Backend Unit",
+                "[test-all-keep] Backend Contract",
+                "[test-all-keep] Frontend Unit",
+                "[test-all-keep] Frontend E2E"
+            ],
+            "dependsOrder": "parallel",
+            "problemMatcher": []
+        },
+        {
+            "label": "▶ Test: Mobile E2E (keep-start)",
+            "dependsOn": ["[mobile-e2e-keep] iOS Maestro", "[mobile-e2e-keep] Android Maestro"],
+            "dependsOrder": "parallel",
+            "problemMatcher": []
+        }
+    ]
+}

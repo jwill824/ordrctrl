@@ -184,6 +184,12 @@ cd ..
 
 ### Start dev servers
 
+The quickest way is to use the VS Code task (see [VS Code tasks](#vs-code-tasks) below):
+
+> `Cmd+Shift+B` → opens backend + frontend in a split terminal view
+
+Or from the terminal:
+
 ```bash
 pnpm dev
 ```
@@ -196,6 +202,58 @@ Or start them individually:
 cd backend && pnpm dev      # backend only
 cd frontend && pnpm dev     # frontend only
 ```
+
+---
+
+## VS Code tasks
+
+The project ships with a full set of VS Code tasks (`.vscode/tasks.json`) that open split-terminal views and manage process lifecycle automatically. They are the recommended way to run dev servers and tests during active development.
+
+### How to run a task
+
+**Command Palette** (recommended): `Cmd+Shift+P` → *Tasks: Run Task* → pick a task  
+**Keyboard shortcut**: `Cmd+Shift+B` runs the default build task (`▶ Web: Dev`)
+
+---
+
+### Scenario tasks — dev
+
+Each scenario task stops any running dev servers, then opens a split-terminal view with everything needed for that platform.
+
+| Task | Terminals opened | Use when |
+|------|-----------------|----------|
+| `▶ Web: Dev` | Backend · Frontend | Building or testing in a browser |
+| `▶ Web: Dev + E2E` | Backend · Frontend · Playwright | Running Playwright tests against a live dev server |
+| `▶ iOS: Simulator Dev` | Backend · Frontend · iOS Simulator | Testing the Capacitor iOS app in the Xcode simulator |
+| `▶ iOS: Device Dev` | Backend (device) · Frontend (device) · ngrok | Testing on a physical iOS device |
+| `▶ Android: Emulator Dev` | Backend · Frontend · Android Emulator | Testing the Capacitor Android app in an emulator |
+| `▶ Android: Device Dev` | Backend (device) · Frontend (device) · ngrok | Testing on a physical Android device |
+| `▶ Desktop: Dev` | Backend · Tauri | Working on the Tauri desktop app |
+
+**Switching scenarios:** just run the new scenario task — the stop step runs automatically, previous terminals close, and the new split view opens.
+
+**Manually stopping everything:** run `⚡ Stop: All` from the task picker.
+
+---
+
+### Scenario tasks — testing
+
+These do not stop running dev servers first (test runners are independent).
+
+| Task | Terminals opened | Use when |
+|------|-----------------|----------|
+| `▶ Test: All` | Backend unit · Backend contract · Frontend unit · Frontend E2E | Full pre-commit test pass (terminals auto-close) |
+| `▶ Test: All (keep)` | same | Same, but terminals stay open to review results |
+| `▶ Test: Unit Watch` | Backend watch · Frontend watch | TDD / watching tests while editing (terminals auto-close) |
+| `▶ Test: Unit Watch (keep)` | same | Same, but terminals stay open |
+| `▶ Test: Mobile E2E` | iOS Maestro · Android Maestro | Running native mobile flow tests (terminals auto-close) |
+| `▶ Test: Mobile E2E (keep)` | same | Same, but terminals stay open |
+
+---
+
+### Individual tasks
+
+Every command is also available as a standalone task for one-off use (e.g. running a single test suite, syncing Capacitor, or building the Tauri app without opening a full scenario). Find them in the task picker under their platform prefix: `Backend:`, `Frontend:`, `iOS:`, `Android:`, `Desktop:`.
 
 ---
 
