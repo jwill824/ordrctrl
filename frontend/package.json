@@ -11,7 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "dev:simulator": "vite --mode simulator"
+    "dev:simulator": "vite --mode simulator --host"
   },
   "dependencies": {
     "@capacitor/android": "^8.2.0",
