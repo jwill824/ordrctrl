@@ -16,11 +16,11 @@ appId: com.ordrctrl.app
 # Step 3: Authenticate with test credentials (FR-011)
 - tapOn:
     text: "Email"
-- inputText: ${MAESTRO_TEST_EMAIL}
+- inputText: ${output.testUser.email}
 
 - tapOn:
     text: "Password"
-- inputText: ${MAESTRO_TEST_PASSWORD}
+- inputText: ${output.testUser.password}
 
 - tapOn:
     text: "Sign In"
