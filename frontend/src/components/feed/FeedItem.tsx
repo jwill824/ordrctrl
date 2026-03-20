@@ -86,7 +86,6 @@ export function FeedItemRow({ item, onComplete, onUncomplete, onDismiss, onResto
       {/* Checkbox */}
       <button
         type="button"
-        id={item.completed ? 'reopen-task' : 'mark-complete'}
         aria-label={item.completed ? 'Reopen task' : 'Mark complete'}
         onClick={() => {
           if (item.completed) {

@@ -9,9 +9,8 @@ appId: com.ordrctrl.app
 - runFlow: subflows/login.yaml
 
 # Tap the first visible task's complete checkbox
-# Capacitor WebView exposes aria-label as accessibility ID on iOS and Android
 - tapOn:
-    id: "mark-complete"
+    text: "Mark complete"
 
 # Wait for state update animation
 - waitForAnimationToEnd
