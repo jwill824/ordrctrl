@@ -15,6 +15,7 @@ appId: com.ordrctrl.app
 # Wait for state update animation
 - waitForAnimationToEnd
 
-# Verify Completed section appears
+# Verify the button changed to "Reopen task" — confirms the task was marked complete
+# (CompletedSection is collapsed by default so we verify the item's state change directly)
 - assertVisible:
-    text: "Completed"
+    text: "Reopen task"

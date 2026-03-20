@@ -9,7 +9,6 @@ import { registerFeedRoutes } from './api/feed.routes.js';
 import { registerTaskRoutes } from './api/tasks.routes.js';
 import { registerUserRoutes } from './api/user.routes.js';
 import { registerInboxRoutes } from './api/inbox.routes.js';
-import { registerTestRoutes } from './api/test.routes.js';
 import { errorHandler, notFoundHandler } from './api/error-handler.js';
 
 export async function createApp(): Promise<FastifyInstance> {
@@ -63,6 +62,7 @@ export async function createApp(): Promise<FastifyInstance> {
 
   // Test-only routes (E2E setup/teardown — never enable in production)
   if (process.env.ENABLE_TEST_ROUTES === 'true') {
+    const { registerTestRoutes } = await import('./api/test.routes.js');
     await registerTestRoutes(app);
     app.log.warn('ENABLE_TEST_ROUTES is enabled — test endpoints are active');
   }

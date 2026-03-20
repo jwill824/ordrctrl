@@ -70,4 +70,13 @@ export async function registerTestRoutes(app: FastifyInstance): Promise<void> {
     logger.info('[test] Deleted test user', { userId: user.id, email: user.email });
     return reply.status(204).send();
   });
+
+  // POST /api/test/cleanup — deletes all users with @ordrctrl.test emails (orphan cleanup)
+  app.post('/api/test/cleanup', async (_request: FastifyRequest, reply: FastifyReply) => {
+    const deleted = await prisma.user.deleteMany({
+      where: { email: { endsWith: '@ordrctrl.test' } },
+    });
+    logger.info('[test] Cleaned up test users', { count: deleted.count });
+    return reply.status(200).send({ deleted: deleted.count });
+  });
 }
