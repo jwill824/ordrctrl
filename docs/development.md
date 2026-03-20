@@ -90,7 +90,7 @@ TOKEN_ENCRYPTION_KEY="<output of second command>"
 | `MICROSOFT_TENANT_ID` | `common` | Azure AD tenant ID — defaults to multi-tenant |
 | `APP_URL` | `http://localhost:3000` | Frontend URL |
 | `API_URL` | `http://localhost:4000` | Backend URL |
-| `NATIVE_APP_ORIGINS` | `capacitor://localhost,tauri://localhost,http://tauri.localhost` | Allowed CORS origins for native webviews |
+| `NATIVE_APP_ORIGINS` | `capacitor://localhost,tauri://localhost,http://tauri.localhost` | Allowed CORS origins for native webviews. For Android emulator live-reload, the VS Code tasks automatically append `http://10.0.2.2:3000` at runtime. |
 | `NODE_ENV` | `development` | |
 | `PORT` | `4000` | Backend port |
 | `LOG_LEVEL` | `info` | Log verbosity — `trace` \| `debug` \| `info` \| `warn` \| `error` \| `fatal` |
@@ -106,6 +106,26 @@ TOKEN_ENCRYPTION_KEY="<output of second command>"
 | `VITE_DEV_APPLE_USERNAME` | *(optional)* | Pre-fills Apple CalDAV credential form locally |
 | `VITE_DEV_APPLE_APP_SPECIFIC_PASSWORD` | *(optional)* | Pre-fills Apple CalDAV credential form locally |
 | `E2E_SESSION_COOKIE` | *(optional)* | Session token for authenticated Playwright e2e tests — see [E2E testing](#e2e-testing) |
+
+#### Platform-specific frontend env overrides
+
+Each platform has its own env file loaded on top of `frontend/.env`. Copy the example and fill in values once:
+
+| Platform | Script | Example file | Local file (gitignored) | Notes |
+|----------|--------|-------------|------------------------|-------|
+| iOS simulator | `pnpm dev:ios` | `.env.ios.example` | `.env.ios.local` | Uses `localhost` — iOS simulator shares Mac's network stack |
+| Android emulator | `pnpm dev:android` | `.env.android.example` | `.env.android.local` | Uses `10.0.2.2` — Android's alias for host loopback |
+| Physical device | `pnpm dev:device` | `.env.device.example` | `.env.device.local` | Uses ngrok HTTPS URL |
+
+```bash
+# One-time setup for iOS simulator
+cp frontend/.env.ios.example frontend/.env.ios.local
+# No edits needed — localhost works out of the box
+
+# One-time setup for Android emulator
+cp frontend/.env.android.example frontend/.env.android.local
+# No edits needed — 10.0.2.2 is the standard Android host alias
+```
 
 ---
 
@@ -271,17 +291,17 @@ With `pnpm dev` running, open `http://localhost:3000`. Sign in with email/passwo
 
 **Prerequisites:** Xcode 15+, Capacitor iOS project initialized (run once: `cd frontend && pnpm cap add ios`)
 
+The VS Code task `▶ iOS: Simulator Dev` handles everything automatically. To run manually:
+
 ```bash
 # 1. Sync Capacitor
 cd frontend && pnpm cap sync ios
 
-# 2. Open in Xcode
-pnpm cap open ios
-
-# 3. In Xcode: select an iPhone simulator → Run (▶)
+# 2. Run with live-reload (connects simulator to local Vite dev server)
+pnpm cap run ios --live-reload --host localhost
 ```
 
-The app will connect to `http://localhost:4000` directly — no ngrok needed for the simulator.
+The iOS simulator shares the Mac's network stack — `localhost` resolves to your Mac directly, so no ngrok or LAN IP setup is needed.
 
 **Sign in with Apple on simulator:** Ensure you have an Apple ID configured in the simulator's **Settings → Sign in to your iPhone** before testing.
 
