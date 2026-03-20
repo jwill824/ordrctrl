@@ -23,4 +23,4 @@ appId: com.ordrctrl.app
 
 # FR-011: verify at least one task item is visible (non-optional — core requirement)
 - assertVisible:
-    id: "Mark complete"
+    id: "mark-complete"

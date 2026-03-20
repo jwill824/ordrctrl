@@ -11,7 +11,7 @@ appId: com.ordrctrl.app
 # Tap the first visible task's complete checkbox
 # Capacitor WebView exposes aria-label as accessibility ID on iOS and Android
 - tapOn:
-    id: "Mark complete"
+    id: "mark-complete"
 
 # Wait for state update animation
 - waitForAnimationToEnd
