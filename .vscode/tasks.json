@@ -435,7 +435,7 @@
         {
             "label": "[ios-e2e] Maestro",
             "type": "shell",
-            "command": "export JAVA_HOME=$HOME/.sdkman/candidates/java/current && export PATH=$JAVA_HOME/bin:$PATH && echo 'Waiting for iOS app install on simulator...' && until xcrun simctl get_app_container booted com.ordrctrl.app 2>/dev/null; do sleep 5; done && sleep 2 && maestro test .maestro/flows/",
+            "command": "export JAVA_HOME=$HOME/.sdkman/candidates/java/current && export PATH=$JAVA_HOME/bin:$PATH && echo 'Waiting for iOS app install on simulator...' && until xcrun simctl get_app_container booted com.ordrctrl.app 2>/dev/null; do sleep 5; done && sleep 2 && ENV_FILE=.maestro/.env.local && maestro test $([ -f $ENV_FILE ] && grep -v '^#' $ENV_FILE | grep '=' | sed 's/^/--env /') .maestro/flows/",
             "presentation": { "group": "ios-e2e", "panel": "new", "reveal": "always", "close": true },
             "problemMatcher": []
         },
@@ -468,7 +468,7 @@
         {
             "label": "[android-e2e] Maestro",
             "type": "shell",
-            "command": "export JAVA_HOME=$HOME/.sdkman/candidates/java/current && export PATH=$JAVA_HOME/bin:$PATH && echo 'Waiting for Android app install on emulator...' && until adb shell pm list packages 2>/dev/null | grep -q 'com.ordrctrl.app'; do sleep 5; done && sleep 2 && maestro test .maestro/flows/",
+            "command": "export JAVA_HOME=$HOME/.sdkman/candidates/java/current && export PATH=$JAVA_HOME/bin:$PATH && echo 'Waiting for Android app install on emulator...' && until adb shell pm list packages 2>/dev/null | grep -q 'com.ordrctrl.app'; do sleep 5; done && sleep 2 && ENV_FILE=.maestro/.env.local && maestro test $([ -f $ENV_FILE ] && grep -v '^#' $ENV_FILE | grep '=' | sed 's/^/--env /') .maestro/flows/",
             "presentation": { "group": "android-e2e", "panel": "new", "reveal": "always", "close": true },
             "problemMatcher": []
         },
@@ -549,7 +549,7 @@
         {
             "label": "[ios-e2e-keep] Maestro",
             "type": "shell",
-            "command": "export JAVA_HOME=$HOME/.sdkman/candidates/java/current && export PATH=$JAVA_HOME/bin:$PATH && echo 'Waiting for iOS app install on simulator...' && until xcrun simctl get_app_container booted com.ordrctrl.app 2>/dev/null; do sleep 5; done && sleep 2 && maestro test .maestro/flows/",
+            "command": "export JAVA_HOME=$HOME/.sdkman/candidates/java/current && export PATH=$JAVA_HOME/bin:$PATH && echo 'Waiting for iOS app install on simulator...' && until xcrun simctl get_app_container booted com.ordrctrl.app 2>/dev/null; do sleep 5; done && sleep 2 && ENV_FILE=.maestro/.env.local && maestro test $([ -f $ENV_FILE ] && grep -v '^#' $ENV_FILE | grep '=' | sed 's/^/--env /') .maestro/flows/",
             "presentation": { "group": "ios-e2e-keep", "panel": "new", "reveal": "always" },
             "problemMatcher": []
         },
@@ -582,7 +582,7 @@
         {
             "label": "[android-e2e-keep] Maestro",
             "type": "shell",
-            "command": "export JAVA_HOME=$HOME/.sdkman/candidates/java/current && export PATH=$JAVA_HOME/bin:$PATH && echo 'Waiting for Android app install on emulator...' && until adb shell pm list packages 2>/dev/null | grep -q 'com.ordrctrl.app'; do sleep 5; done && sleep 2 && maestro test .maestro/flows/",
+            "command": "export JAVA_HOME=$HOME/.sdkman/candidates/java/current && export PATH=$JAVA_HOME/bin:$PATH && echo 'Waiting for Android app install on emulator...' && until adb shell pm list packages 2>/dev/null | grep -q 'com.ordrctrl.app'; do sleep 5; done && sleep 2 && ENV_FILE=.maestro/.env.local && maestro test $([ -f $ENV_FILE ] && grep -v '^#' $ENV_FILE | grep '=' | sed 's/^/--env /') .maestro/flows/",
             "presentation": { "group": "android-e2e-keep", "panel": "new", "reveal": "always" },
             "problemMatcher": []
         },

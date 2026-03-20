@@ -409,17 +409,31 @@ cd frontend && pnpm exec playwright show-report
 
 ### Maestro (iOS / Android native)
 
-**Prerequisites:** Maestro CLI ≥ v1.38 (`curl -Ls "https://get.maestro.mobile.dev" | bash`), a running iOS or Android simulator with the app installed.
+**Prerequisites:** Maestro CLI ≥ v1.38 (`curl -Ls "https://get.maestro.mobile.dev" | bash`), a stable Java LTS (Java 21 recommended — see below), and a running iOS simulator or Android emulator with the app installed.
+
+**One-time setup — credentials:**
 
 ```bash
-# Run all flows in order (auth → feed-load → task-complete)
-MAESTRO_TEST_EMAIL=<email> MAESTRO_TEST_PASSWORD=<password> maestro test .maestro/flows/
-
-# Run a single flow
-maestro test .maestro/flows/auth.yaml
+cp .maestro/.env.example .maestro/.env.local
+# Edit .maestro/.env.local with your test account credentials
 ```
 
-Flows skip gracefully when `MAESTRO_TEST_EMAIL` is not set.
+The `▶ iOS: E2E` and `▶ Android: E2E` VS Code tasks load `.maestro/.env.local` automatically.
+
+```bash
+# Run all flows manually (auth → feed-load → task-complete)
+maestro test --env MAESTRO_TEST_EMAIL=<email> --env MAESTRO_TEST_PASSWORD=<password> .maestro/flows/
+
+# Run a single flow
+maestro test --env MAESTRO_TEST_EMAIL=<email> --env MAESTRO_TEST_PASSWORD=<password> .maestro/flows/auth.yaml
+```
+
+**Java version:** Maestro 2.3.0 fails to parse Java EA version strings (e.g. `27-ea`). Install a stable LTS via SDKMAN:
+
+```bash
+sdk install java 21.0.10-tem
+sdk default java 21.0.10-tem
+```
 
 ---
 
