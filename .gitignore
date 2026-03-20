@@ -64,4 +64,5 @@ test-results/
 .maestro/.env.local
 
 # Simulator/emulator env overrides
-frontend/.env.simulator.local
+frontend/.env.ios.local
+frontend/.env.android.local
