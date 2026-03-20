@@ -2,14 +2,11 @@ appId: com.ordrctrl.app
 ---
 # Flow 3: task-complete.yaml — complete a task and verify it moves to Completed section
 # FR-012 | maestro-flows-contract.md Flow 3
-# Assumes authenticated session and at least one task visible
 
+# Start fresh and authenticate
+- clearState
 - launchApp
-- waitForAnimationToEnd
-
-# Verify we're on the feed
-- assertVisible:
-    text: "ordrctrl"
+- runFlow: subflows/login.yaml
 
 # Tap the first visible task's complete checkbox
 # Capacitor WebView exposes aria-label as accessibility ID on iOS and Android

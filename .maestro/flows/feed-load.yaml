@@ -2,10 +2,11 @@ appId: com.ordrctrl.app
 ---
 # Flow 2: feed-load.yaml — verify feed loads with tasks after authentication
 # FR-011 | maestro-flows-contract.md Flow 2
-# Assumes authenticated session established by auth.yaml
 
-# Launch app (session persists from auth.yaml)
+# Start fresh and authenticate
+- clearState
 - launchApp
+- runFlow: subflows/login.yaml
 
 # Verify feed header is visible
 - assertVisible:
