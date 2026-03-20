@@ -119,7 +119,7 @@
         {
             "label": "iOS: E2E (Maestro)",
             "type": "shell",
-            "command": "maestro test .maestro/e2e-suite.yaml; curl -s -X POST http://localhost:4000/api/test/cleanup > /dev/null 2>&1; echo "Test cleanup done"",
+            "command": "maestro test .maestro/flows/",
             "group": "test",
             "presentation": { "panel": "new", "reveal": "always" },
             "problemMatcher": []
@@ -146,7 +146,7 @@
         {
             "label": "Android: E2E (Maestro)",
             "type": "shell",
-            "command": "maestro test .maestro/e2e-suite.yaml; curl -s -X POST http://localhost:4000/api/test/cleanup > /dev/null 2>&1; echo "Test cleanup done"",
+            "command": "maestro test .maestro/flows/",
             "group": "test",
             "presentation": { "panel": "new", "reveal": "always" },
             "problemMatcher": []
@@ -435,7 +435,7 @@
         {
             "label": "[ios-e2e] Maestro",
             "type": "shell",
-            "command": "export JAVA_HOME=$HOME/.sdkman/candidates/java/current && export PATH=$JAVA_HOME/bin:$PATH && echo 'Waiting for Vite dev server...' && until curl -s http://localhost:3000 >/dev/null 2>&1; do sleep 3; done && echo 'Waiting for iOS app install on simulator...' && until xcrun simctl get_app_container booted com.ordrctrl.app 2>/dev/null; do sleep 5; done && sleep 5 && maestro test .maestro/e2e-suite.yaml; curl -s -X POST http://localhost:4000/api/test/cleanup > /dev/null 2>&1; echo "Test cleanup done"",
+            "command": "export JAVA_HOME=$HOME/.sdkman/candidates/java/current && export PATH=$JAVA_HOME/bin:$PATH && echo 'Waiting for Vite dev server...' && until curl -s http://localhost:3000 >/dev/null 2>&1; do sleep 3; done && echo 'Waiting for iOS app install on simulator...' && until xcrun simctl get_app_container booted com.ordrctrl.app 2>/dev/null; do sleep 5; done && sleep 5 && maestro test .maestro/flows/",
             "presentation": { "group": "ios-e2e", "panel": "new", "reveal": "always", "close": true },
             "problemMatcher": []
         },
@@ -468,7 +468,7 @@
         {
             "label": "[android-e2e] Maestro",
             "type": "shell",
-            "command": "export JAVA_HOME=$HOME/.sdkman/candidates/java/current && export PATH=$JAVA_HOME/bin:$PATH && echo 'Waiting for Vite dev server...' && until curl -s http://localhost:3000 >/dev/null 2>&1; do sleep 3; done && echo 'Waiting for Android app install on emulator...' && until adb shell pm list packages 2>/dev/null | grep -q 'com.ordrctrl.app'; do sleep 5; done && sleep 5 && maestro test .maestro/e2e-suite.yaml; curl -s -X POST http://localhost:4000/api/test/cleanup > /dev/null 2>&1; echo "Test cleanup done"",
+            "command": "export JAVA_HOME=$HOME/.sdkman/candidates/java/current && export PATH=$JAVA_HOME/bin:$PATH && echo 'Waiting for Vite dev server...' && until curl -s http://localhost:3000 >/dev/null 2>&1; do sleep 3; done && echo 'Waiting for Android app install on emulator...' && until adb shell pm list packages 2>/dev/null | grep -q 'com.ordrctrl.app'; do sleep 5; done && sleep 5 && maestro test .maestro/flows/",
             "presentation": { "group": "android-e2e", "panel": "new", "reveal": "always", "close": true },
             "problemMatcher": []
         },
@@ -549,7 +549,7 @@
         {
             "label": "[ios-e2e-keep] Maestro",
             "type": "shell",
-            "command": "export JAVA_HOME=$HOME/.sdkman/candidates/java/current && export PATH=$JAVA_HOME/bin:$PATH && echo 'Waiting for Vite dev server...' && until curl -s http://localhost:3000 >/dev/null 2>&1; do sleep 3; done && echo 'Waiting for iOS app install on simulator...' && until xcrun simctl get_app_container booted com.ordrctrl.app 2>/dev/null; do sleep 5; done && sleep 5 && maestro test .maestro/e2e-suite.yaml; curl -s -X POST http://localhost:4000/api/test/cleanup > /dev/null 2>&1; echo "Test cleanup done"",
+            "command": "export JAVA_HOME=$HOME/.sdkman/candidates/java/current && export PATH=$JAVA_HOME/bin:$PATH && echo 'Waiting for Vite dev server...' && until curl -s http://localhost:3000 >/dev/null 2>&1; do sleep 3; done && echo 'Waiting for iOS app install on simulator...' && until xcrun simctl get_app_container booted com.ordrctrl.app 2>/dev/null; do sleep 5; done && sleep 5 && maestro test .maestro/flows/",
             "presentation": { "group": "ios-e2e-keep", "panel": "new", "reveal": "always" },
             "problemMatcher": []
         },
@@ -582,7 +582,7 @@
         {
             "label": "[android-e2e-keep] Maestro",
             "type": "shell",
-            "command": "export JAVA_HOME=$HOME/.sdkman/candidates/java/current && export PATH=$JAVA_HOME/bin:$PATH && echo 'Waiting for Vite dev server...' && until curl -s http://localhost:3000 >/dev/null 2>&1; do sleep 3; done && echo 'Waiting for Android app install on emulator...' && until adb shell pm list packages 2>/dev/null | grep -q 'com.ordrctrl.app'; do sleep 5; done && sleep 5 && maestro test .maestro/e2e-suite.yaml; curl -s -X POST http://localhost:4000/api/test/cleanup > /dev/null 2>&1; echo "Test cleanup done"",
+            "command": "export JAVA_HOME=$HOME/.sdkman/candidates/java/current && export PATH=$JAVA_HOME/bin:$PATH && echo 'Waiting for Vite dev server...' && until curl -s http://localhost:3000 >/dev/null 2>&1; do sleep 3; done && echo 'Waiting for Android app install on emulator...' && until adb shell pm list packages 2>/dev/null | grep -q 'com.ordrctrl.app'; do sleep 5; done && sleep 5 && maestro test .maestro/flows/",
             "presentation": { "group": "android-e2e-keep", "panel": "new", "reveal": "always" },
             "problemMatcher": []
         },

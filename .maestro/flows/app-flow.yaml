@@ -1,8 +1,16 @@
 appId: com.ordrctrl.app
+
+onFlowStart:
+  - runScript: ../scripts/setup.js
+
+onFlowComplete:
+  - runScript: ../scripts/teardown.js
 ---
-# Main E2E flow: sign in → verify feed → complete a task
+# Main app E2E flow: sign in → verify feed → complete a task
 # Covers FR-010 (unauthenticated guard), FR-011 (feed load), FR-012 (task completion)
-# Replaces: auth.yaml, feed-load.yaml, task-complete.yaml
+#
+# onFlowStart creates a fresh test user with a seeded task (output.testUser).
+# onFlowComplete always runs — deletes the test user even if the flow fails.
 
 # Start with a clean slate
 - clearState
@@ -15,7 +23,7 @@ appId: com.ordrctrl.app
     text: "Email"
 
 # FR-011: authenticate and verify feed loads
-- runFlow: subflows/login.yaml
+- runFlow: ../subflows/login.yaml
 
 # Verify feed header and a task item are present
 - assertVisible:
