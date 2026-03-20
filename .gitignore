@@ -62,3 +62,6 @@ test-results/
 
 # Maestro test credentials
 .maestro/.env.local
+
+# Simulator/emulator env overrides
+frontend/.env.simulator.local
