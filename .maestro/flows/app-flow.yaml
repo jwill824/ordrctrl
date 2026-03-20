@@ -1,0 +1,34 @@
+appId: com.ordrctrl.app
+---
+# Main E2E flow: sign in → verify feed → complete a task
+# Covers FR-010 (unauthenticated guard), FR-011 (feed load), FR-012 (task completion)
+# Replaces: auth.yaml, feed-load.yaml, task-complete.yaml
+
+# Start with a clean slate
+- clearState
+- launchApp
+
+# FR-010: verify unauthenticated users see the login screen
+- assertVisible:
+    text: "Sign In"
+- assertVisible:
+    text: "Email"
+
+# FR-011: authenticate and verify feed loads
+- runFlow: subflows/login.yaml
+
+# Verify feed header and a task item are present
+- assertVisible:
+    text: "ordrctrl"
+- waitForAnimationToEnd
+- assertVisible:
+    text: "Mark complete"
+
+# FR-012: mark the first task complete
+- tapOn:
+    text: "Mark complete"
+- waitForAnimationToEnd
+
+# Confirm the button flipped — task is now done
+- assertVisible:
+    text: "Reopen task"

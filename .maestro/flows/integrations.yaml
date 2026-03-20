@@ -1,0 +1,48 @@
+appId: com.ordrctrl.app
+---
+# Integrations flow: navigate to settings → connect Apple Calendar
+#
+# Apple Calendar is tested because it uses an in-app credential form (no external OAuth).
+# Gmail and Microsoft To Do use OAuth redirects to an external browser and
+# cannot be automated end-to-end with Maestro.
+#
+# Requires:
+#   APPLE_TEST_EMAIL    — iCloud email address
+#   APPLE_TEST_PASSWORD — App-Specific Password (generated at appleid.apple.com)
+#   Both set in .maestro/.env.local (gitignored)
+
+# App should already be launched and authenticated by app-flow.yaml in the suite
+- launchApp
+
+# Open the account menu and navigate to integrations
+- tapOn:
+    id: "Account menu"
+- tapOn:
+    text: "Integrations"
+
+# Verify the integrations page loaded and all providers are visible
+- assertVisible:
+    text: "Apple Calendar"
+- assertVisible:
+    text: "Gmail"
+- assertVisible:
+    text: "Microsoft To Do"
+
+# Connect Apple Calendar with test credentials
+- tapOn:
+    text: "+ Add account"
+- tapOn:
+    text: "iCloud Email"
+- inputText: ${APPLE_TEST_EMAIL}
+
+- tapOn:
+    text: "App-Specific Password"
+- inputText: ${APPLE_TEST_PASSWORD}
+
+- tapOn:
+    text: "Connect"
+
+# Verify the integration connected successfully
+- waitForAnimationToEnd
+- assertVisible:
+    text: "Connected"

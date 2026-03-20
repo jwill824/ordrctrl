@@ -8,18 +8,16 @@ appId: com.ordrctrl.app
 # Requires:
 #   - Backend running with ENABLE_TEST_ROUTES=true
 #   - App installed on simulator/emulator
+#   - .maestro/.env.local with APPLE_TEST_EMAIL and APPLE_TEST_PASSWORD
 
-# Step 1: Create a fresh test user
+# Step 1: Create a fresh test user with a seeded task
 - runScript: scripts/setup.js
 
-# Step 2: Auth flow — verifies sign-in works
-- runFlow: flows/auth.yaml
+# Step 2: Main app flow — sign in, verify feed, complete a task
+- runFlow: flows/app-flow.yaml
 
-# Step 3: Feed load — verifies tasks appear after auth
-- runFlow: flows/feed-load.yaml
+# Step 3: Integrations — connect Apple Calendar, verify connected
+- runFlow: flows/integrations.yaml
 
-# Step 4: Task complete — verifies task can be marked done
-- runFlow: flows/task-complete.yaml
-
-# Step 5: Teardown — delete the test user
+# Step 4: Teardown — delete the test user (also runs via shell-level cleanup)
 - runScript: scripts/teardown.js
