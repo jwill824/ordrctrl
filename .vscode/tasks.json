@@ -253,7 +253,7 @@
         {
             "label": "[ios-sim] Simulator",
             "type": "shell",
-            "command": "pnpm exec cap run ios --live-reload --host localhost",
+            "command": "xcrun simctl shutdown all 2>/dev/null; pnpm exec cap run ios --live-reload --host localhost",
             "options": { "cwd": "${workspaceFolder}/frontend" },
             "presentation": { "group": "ios-sim", "panel": "new", "reveal": "always", "close": true },
             "problemMatcher": []
@@ -427,7 +427,7 @@
         {
             "label": "[ios-e2e] Simulator",
             "type": "shell",
-            "command": "pnpm exec cap run ios --live-reload --host localhost",
+            "command": "xcrun simctl shutdown all 2>/dev/null; pnpm exec cap run ios --live-reload --host localhost",
             "options": { "cwd": "${workspaceFolder}/frontend" },
             "presentation": { "group": "ios-e2e", "panel": "new", "reveal": "always", "close": true },
             "problemMatcher": []
@@ -541,7 +541,7 @@
         {
             "label": "[ios-e2e-keep] Simulator",
             "type": "shell",
-            "command": "pnpm exec cap run ios --live-reload --host localhost",
+            "command": "xcrun simctl shutdown all 2>/dev/null; pnpm exec cap run ios --live-reload --host localhost",
             "options": { "cwd": "${workspaceFolder}/frontend" },
             "presentation": { "group": "ios-e2e-keep", "panel": "new", "reveal": "always" },
             "problemMatcher": []
