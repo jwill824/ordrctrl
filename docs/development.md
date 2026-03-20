@@ -246,8 +246,10 @@ These do not stop running dev servers first (test runners are independent).
 | `▶ Test: All (keep)` | same | Same, but terminals stay open to review results |
 | `▶ Test: Unit Watch` | Backend watch · Frontend watch | TDD / watching tests while editing (terminals auto-close) |
 | `▶ Test: Unit Watch (keep)` | same | Same, but terminals stay open |
-| `▶ Test: Mobile E2E` | iOS Maestro · Android Maestro | Running native mobile flow tests (terminals auto-close) |
-| `▶ Test: Mobile E2E (keep)` | same | Same, but terminals stay open |
+| `▶ iOS: E2E` | Backend · Frontend · iOS Simulator · Maestro | iOS Maestro flow tests — boots simulator, waits for app, then runs tests (terminals auto-close) |
+| `▶ iOS: E2E (keep)` | same | Same, but terminals stay open |
+| `▶ Android: E2E` | Backend · Frontend · Android Emulator · Maestro | Android Maestro flow tests — boots emulator, waits for app, then runs tests (terminals auto-close) |
+| `▶ Android: E2E (keep)` | same | Same, but terminals stay open |
 
 ---
 

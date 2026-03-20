@@ -407,21 +407,69 @@
             "problemMatcher": []
         },
 
-        // --- ▶ Test: Mobile E2E (2 terminals) ---
+        // --- ▶ iOS: E2E (4 terminals) ---
         {
-            "label": "[mobile-e2e] iOS Maestro",
+            "label": "[ios-e2e] Backend",
             "type": "shell",
-            "command": "maestro test .maestro/flows/",
+            "command": "pnpm --filter backend dev",
             "isBackground": true,
-            "presentation": { "group": "mobile-e2e", "panel": "new", "reveal": "always", "close": true },
+            "presentation": { "group": "ios-e2e", "panel": "new", "reveal": "always", "close": true },
             "problemMatcher": []
         },
         {
-            "label": "[mobile-e2e] Android Maestro",
+            "label": "[ios-e2e] Frontend",
             "type": "shell",
-            "command": "maestro test .maestro/flows/",
+            "command": "pnpm --filter frontend dev",
             "isBackground": true,
-            "presentation": { "group": "mobile-e2e", "panel": "new", "reveal": "always", "close": true },
+            "presentation": { "group": "ios-e2e", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "[ios-e2e] Simulator",
+            "type": "shell",
+            "command": "pnpm exec cap run ios",
+            "options": { "cwd": "${workspaceFolder}/frontend" },
+            "presentation": { "group": "ios-e2e", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "[ios-e2e] Maestro",
+            "type": "shell",
+            "command": "echo 'Waiting for booted iOS simulator...' && until xcrun simctl list devices booted 2>/dev/null | grep -q 'Booted'; do sleep 5; done && sleep 3 && maestro test .maestro/flows/",
+            "presentation": { "group": "ios-e2e", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+
+        // --- ▶ Android: E2E (4 terminals) ---
+        {
+            "label": "[android-e2e] Backend",
+            "type": "shell",
+            "command": "pnpm --filter backend dev",
+            "isBackground": true,
+            "presentation": { "group": "android-e2e", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "[android-e2e] Frontend",
+            "type": "shell",
+            "command": "pnpm --filter frontend dev",
+            "isBackground": true,
+            "presentation": { "group": "android-e2e", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "[android-e2e] Emulator",
+            "type": "shell",
+            "command": "pnpm exec cap run android",
+            "options": { "cwd": "${workspaceFolder}/frontend" },
+            "presentation": { "group": "android-e2e", "panel": "new", "reveal": "always", "close": true },
+            "problemMatcher": []
+        },
+        {
+            "label": "[android-e2e] Maestro",
+            "type": "shell",
+            "command": "echo 'Waiting for Android emulator...' && until adb devices 2>/dev/null | grep -v 'List of devices' | grep -q 'device$'; do sleep 5; done && sleep 3 && maestro test .maestro/flows/",
+            "presentation": { "group": "android-e2e", "panel": "new", "reveal": "always", "close": true },
             "problemMatcher": []
         },
 
@@ -473,19 +521,69 @@
             "problemMatcher": []
         },
 
-        // --- ▶ Test: Mobile E2E (keep) ---
+        // --- ▶ iOS: E2E (keep) ---
         {
-            "label": "[mobile-e2e-keep] iOS Maestro",
+            "label": "[ios-e2e-keep] Backend",
             "type": "shell",
-            "command": "maestro test .maestro/flows/",
-            "presentation": { "group": "mobile-e2e-keep", "panel": "new", "reveal": "always" },
+            "command": "pnpm --filter backend dev",
+            "isBackground": true,
+            "presentation": { "group": "ios-e2e-keep", "panel": "new", "reveal": "always" },
             "problemMatcher": []
         },
         {
-            "label": "[mobile-e2e-keep] Android Maestro",
+            "label": "[ios-e2e-keep] Frontend",
             "type": "shell",
-            "command": "maestro test .maestro/flows/",
-            "presentation": { "group": "mobile-e2e-keep", "panel": "new", "reveal": "always" },
+            "command": "pnpm --filter frontend dev",
+            "isBackground": true,
+            "presentation": { "group": "ios-e2e-keep", "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+        {
+            "label": "[ios-e2e-keep] Simulator",
+            "type": "shell",
+            "command": "pnpm exec cap run ios",
+            "options": { "cwd": "${workspaceFolder}/frontend" },
+            "presentation": { "group": "ios-e2e-keep", "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+        {
+            "label": "[ios-e2e-keep] Maestro",
+            "type": "shell",
+            "command": "echo 'Waiting for booted iOS simulator...' && until xcrun simctl list devices booted 2>/dev/null | grep -q 'Booted'; do sleep 5; done && sleep 3 && maestro test .maestro/flows/",
+            "presentation": { "group": "ios-e2e-keep", "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+
+        // --- ▶ Android: E2E (keep) ---
+        {
+            "label": "[android-e2e-keep] Backend",
+            "type": "shell",
+            "command": "pnpm --filter backend dev",
+            "isBackground": true,
+            "presentation": { "group": "android-e2e-keep", "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+        {
+            "label": "[android-e2e-keep] Frontend",
+            "type": "shell",
+            "command": "pnpm --filter frontend dev",
+            "isBackground": true,
+            "presentation": { "group": "android-e2e-keep", "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+        {
+            "label": "[android-e2e-keep] Emulator",
+            "type": "shell",
+            "command": "pnpm exec cap run android",
+            "options": { "cwd": "${workspaceFolder}/frontend" },
+            "presentation": { "group": "android-e2e-keep", "panel": "new", "reveal": "always" },
+            "problemMatcher": []
+        },
+        {
+            "label": "[android-e2e-keep] Maestro",
+            "type": "shell",
+            "command": "echo 'Waiting for Android emulator...' && until adb devices 2>/dev/null | grep -v 'List of devices' | grep -q 'device$'; do sleep 5; done && sleep 3 && maestro test .maestro/flows/",
+            "presentation": { "group": "android-e2e-keep", "panel": "new", "reveal": "always" },
             "problemMatcher": []
         },
 
@@ -608,8 +706,14 @@
             "problemMatcher": []
         },
         {
-            "label": "▶ Test: Mobile E2E (start)",
-            "dependsOn": ["[mobile-e2e] iOS Maestro", "[mobile-e2e] Android Maestro"],
+            "label": "▶ iOS: E2E (start)",
+            "dependsOn": ["[ios-e2e] Backend", "[ios-e2e] Frontend", "[ios-e2e] Simulator", "[ios-e2e] Maestro"],
+            "dependsOrder": "parallel",
+            "problemMatcher": []
+        },
+        {
+            "label": "▶ Android: E2E (start)",
+            "dependsOn": ["[android-e2e] Backend", "[android-e2e] Frontend", "[android-e2e] Emulator", "[android-e2e] Maestro"],
             "dependsOrder": "parallel",
             "problemMatcher": []
         },
@@ -627,8 +731,15 @@
             "problemMatcher": []
         },
         {
-            "label": "▶ Test: Mobile E2E",
-            "dependsOn": ["⚡ Stop: All", "▶ Test: Mobile E2E (start)"],
+            "label": "▶ iOS: E2E",
+            "dependsOn": ["⚡ Stop: All", "▶ iOS: E2E (start)"],
+            "dependsOrder": "sequence",
+            "group": "test",
+            "problemMatcher": []
+        },
+        {
+            "label": "▶ Android: E2E",
+            "dependsOn": ["⚡ Stop: All", "▶ Android: E2E (start)"],
             "dependsOrder": "sequence",
             "group": "test",
             "problemMatcher": []
@@ -649,8 +760,14 @@
             "problemMatcher": []
         },
         {
-            "label": "▶ Test: Mobile E2E (keep)",
-            "dependsOn": ["⚡ Stop: All", "▶ Test: Mobile E2E (keep-start)"],
+            "label": "▶ iOS: E2E (keep)",
+            "dependsOn": ["⚡ Stop: All", "▶ iOS: E2E (keep-start)"],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
+        },
+        {
+            "label": "▶ Android: E2E (keep)",
+            "dependsOn": ["⚡ Stop: All", "▶ Android: E2E (keep-start)"],
             "dependsOrder": "sequence",
             "problemMatcher": []
         },
@@ -672,8 +789,14 @@
             "problemMatcher": []
         },
         {
-            "label": "▶ Test: Mobile E2E (keep-start)",
-            "dependsOn": ["[mobile-e2e-keep] iOS Maestro", "[mobile-e2e-keep] Android Maestro"],
+            "label": "▶ iOS: E2E (keep-start)",
+            "dependsOn": ["[ios-e2e-keep] Backend", "[ios-e2e-keep] Frontend", "[ios-e2e-keep] Simulator", "[ios-e2e-keep] Maestro"],
+            "dependsOrder": "parallel",
+            "problemMatcher": []
+        },
+        {
+            "label": "▶ Android: E2E (keep-start)",
+            "dependsOn": ["[android-e2e-keep] Backend", "[android-e2e-keep] Frontend", "[android-e2e-keep] Emulator", "[android-e2e-keep] Maestro"],
             "dependsOrder": "parallel",
             "problemMatcher": []
         }
