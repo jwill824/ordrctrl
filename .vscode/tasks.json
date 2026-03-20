@@ -245,7 +245,7 @@
         {
             "label": "[ios-sim] Frontend",
             "type": "shell",
-            "command": "pnpm --filter frontend dev",
+            "command": "pnpm --filter frontend dev --host",
             "isBackground": true,
             "presentation": { "group": "ios-sim", "panel": "new", "reveal": "always", "close": true },
             "problemMatcher": []
@@ -253,7 +253,7 @@
         {
             "label": "[ios-sim] Simulator",
             "type": "shell",
-            "command": "pnpm exec cap run ios",
+            "command": "pnpm exec cap run ios --livereload --external",
             "options": { "cwd": "${workspaceFolder}/frontend" },
             "presentation": { "group": "ios-sim", "panel": "new", "reveal": "always", "close": true },
             "problemMatcher": []
@@ -297,7 +297,7 @@
         {
             "label": "[android-emu] Frontend",
             "type": "shell",
-            "command": "pnpm --filter frontend dev",
+            "command": "pnpm --filter frontend dev --host",
             "isBackground": true,
             "presentation": { "group": "android-emu", "panel": "new", "reveal": "always", "close": true },
             "problemMatcher": []
@@ -305,7 +305,7 @@
         {
             "label": "[android-emu] Emulator",
             "type": "shell",
-            "command": "pnpm exec cap run android",
+            "command": "pnpm exec cap run android --livereload --external",
             "options": { "cwd": "${workspaceFolder}/frontend" },
             "presentation": { "group": "android-emu", "panel": "new", "reveal": "always", "close": true },
             "problemMatcher": []
@@ -419,7 +419,7 @@
         {
             "label": "[ios-e2e] Frontend",
             "type": "shell",
-            "command": "pnpm --filter frontend dev",
+            "command": "pnpm --filter frontend dev --host",
             "isBackground": true,
             "presentation": { "group": "ios-e2e", "panel": "new", "reveal": "always", "close": true },
             "problemMatcher": []
@@ -427,7 +427,7 @@
         {
             "label": "[ios-e2e] Simulator",
             "type": "shell",
-            "command": "pnpm exec cap run ios",
+            "command": "pnpm exec cap run ios --livereload --external",
             "options": { "cwd": "${workspaceFolder}/frontend" },
             "presentation": { "group": "ios-e2e", "panel": "new", "reveal": "always", "close": true },
             "problemMatcher": []
@@ -452,7 +452,7 @@
         {
             "label": "[android-e2e] Frontend",
             "type": "shell",
-            "command": "pnpm --filter frontend dev",
+            "command": "pnpm --filter frontend dev --host",
             "isBackground": true,
             "presentation": { "group": "android-e2e", "panel": "new", "reveal": "always", "close": true },
             "problemMatcher": []
@@ -460,7 +460,7 @@
         {
             "label": "[android-e2e] Emulator",
             "type": "shell",
-            "command": "pnpm exec cap run android",
+            "command": "pnpm exec cap run android --livereload --external",
             "options": { "cwd": "${workspaceFolder}/frontend" },
             "presentation": { "group": "android-e2e", "panel": "new", "reveal": "always", "close": true },
             "problemMatcher": []
@@ -533,7 +533,7 @@
         {
             "label": "[ios-e2e-keep] Frontend",
             "type": "shell",
-            "command": "pnpm --filter frontend dev",
+            "command": "pnpm --filter frontend dev --host",
             "isBackground": true,
             "presentation": { "group": "ios-e2e-keep", "panel": "new", "reveal": "always" },
             "problemMatcher": []
@@ -541,7 +541,7 @@
         {
             "label": "[ios-e2e-keep] Simulator",
             "type": "shell",
-            "command": "pnpm exec cap run ios",
+            "command": "pnpm exec cap run ios --livereload --external",
             "options": { "cwd": "${workspaceFolder}/frontend" },
             "presentation": { "group": "ios-e2e-keep", "panel": "new", "reveal": "always" },
             "problemMatcher": []
@@ -566,7 +566,7 @@
         {
             "label": "[android-e2e-keep] Frontend",
             "type": "shell",
-            "command": "pnpm --filter frontend dev",
+            "command": "pnpm --filter frontend dev --host",
             "isBackground": true,
             "presentation": { "group": "android-e2e-keep", "panel": "new", "reveal": "always" },
             "problemMatcher": []
@@ -574,7 +574,7 @@
         {
             "label": "[android-e2e-keep] Emulator",
             "type": "shell",
-            "command": "pnpm exec cap run android",
+            "command": "pnpm exec cap run android --livereload --external",
             "options": { "cwd": "${workspaceFolder}/frontend" },
             "presentation": { "group": "android-e2e-keep", "panel": "new", "reveal": "always" },
             "problemMatcher": []
