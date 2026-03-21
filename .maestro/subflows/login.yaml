@@ -1,0 +1,25 @@
+appId: com.ordrctrl.app
+---
+# Subflow: login.yaml — authenticate without clearing state
+# Intended to be called via runFlow from flows that require auth.
+# Does NOT call clearState — caller controls app/session state.
+#
+# Uses enterKeyhint="next" on the email input so pressing Return
+# moves focus to the password field natively — more reliable than
+# tapOn in WKWebView where accessibility activation can misfire.
+
+- tapOn:
+    text: "Email"
+- inputText: ${output.testUser.email}
+- pressKey: enter
+
+- inputText: ${output.testUser.password}
+
+- tapOn:
+    text: "Sign In"
+
+- waitForAnimationToEnd
+# Assert something only visible on the FEED page, not the login page.
+# "ordrctrl" appears on both, so assert the login form is gone instead.
+- assertNotVisible:
+    text: "Sign In"

@@ -1,0 +1,60 @@
+appId: com.ordrctrl.app
+
+onFlowStart:
+  - runScript: ../scripts/setup.js
+
+onFlowComplete:
+  - runScript: ../scripts/teardown.js
+---
+# Integrations flow: sign in → navigate to settings → connect Apple Calendar
+#
+# Apple Calendar is tested because it uses an in-app credential form (no external OAuth).
+# Gmail and Microsoft To Do use OAuth redirects to an external browser and
+# cannot be automated end-to-end with Maestro.
+#
+# onFlowStart creates a fresh test user (output.testUser).
+# onFlowComplete always runs — deletes the test user even if the flow fails.
+#
+# Requires in shell env (or .env in .maestro/flows/):
+#   APPLE_TEST_EMAIL    — iCloud email address
+#   APPLE_TEST_PASSWORD — App-Specific Password (generated at appleid.apple.com)
+
+# Start fresh and authenticate
+- clearState
+- launchApp
+- runFlow: ../subflows/login.yaml
+
+# Open the account menu and navigate to integrations
+- tapOn:
+    text: "Account menu"
+- waitForAnimationToEnd
+- tapOn:
+    text: "Integrations"
+- waitForAnimationToEnd
+
+# Verify the integrations page loaded and all providers are visible
+- assertVisible:
+    text: "Apple Calendar"
+- assertVisible:
+    text: "Gmail"
+- assertVisible:
+    text: "Microsoft To Do"
+
+# Connect Apple Calendar with test credentials
+- tapOn:
+    text: "+ Add account"
+- tapOn:
+    text: "iCloud Email"
+- inputText: ${APPLE_TEST_EMAIL}
+
+- tapOn:
+    text: "App-Specific Password"
+- inputText: ${APPLE_TEST_PASSWORD}
+
+- tapOn:
+    text: "Connect"
+
+# Verify the integration connected successfully
+- waitForAnimationToEnd
+- assertVisible:
+    text: "Connected"

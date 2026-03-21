@@ -90,7 +90,7 @@ TOKEN_ENCRYPTION_KEY="<output of second command>"
 | `MICROSOFT_TENANT_ID` | `common` | Azure AD tenant ID — defaults to multi-tenant |
 | `APP_URL` | `http://localhost:3000` | Frontend URL |
 | `API_URL` | `http://localhost:4000` | Backend URL |
-| `NATIVE_APP_ORIGINS` | `capacitor://localhost,tauri://localhost,http://tauri.localhost` | Allowed CORS origins for native webviews |
+| `NATIVE_APP_ORIGINS` | `capacitor://localhost,tauri://localhost,http://tauri.localhost` | Allowed CORS origins for native webviews. For Android emulator live-reload, the VS Code tasks automatically append `http://10.0.2.2:3000` at runtime. |
 | `NODE_ENV` | `development` | |
 | `PORT` | `4000` | Backend port |
 | `LOG_LEVEL` | `info` | Log verbosity — `trace` \| `debug` \| `info` \| `warn` \| `error` \| `fatal` |
@@ -106,6 +106,26 @@ TOKEN_ENCRYPTION_KEY="<output of second command>"
 | `VITE_DEV_APPLE_USERNAME` | *(optional)* | Pre-fills Apple CalDAV credential form locally |
 | `VITE_DEV_APPLE_APP_SPECIFIC_PASSWORD` | *(optional)* | Pre-fills Apple CalDAV credential form locally |
 | `E2E_SESSION_COOKIE` | *(optional)* | Session token for authenticated Playwright e2e tests — see [E2E testing](#e2e-testing) |
+
+#### Platform-specific frontend env overrides
+
+Each platform has its own env file loaded on top of `frontend/.env`. Copy the example and fill in values once:
+
+| Platform | Script | Example file | Local file (gitignored) | Notes |
+|----------|--------|-------------|------------------------|-------|
+| iOS simulator | `pnpm dev:ios` | `.env.ios.example` | `.env.ios.local` | Uses `localhost` — iOS simulator shares Mac's network stack |
+| Android emulator | `pnpm dev:android` | `.env.android.example` | `.env.android.local` | Uses `10.0.2.2` — Android's alias for host loopback |
+| Physical device | `pnpm dev:device` | `.env.device.example` | `.env.device.local` | Uses ngrok HTTPS URL |
+
+```bash
+# One-time setup for iOS simulator
+cp frontend/.env.ios.example frontend/.env.ios.local
+# No edits needed — localhost works out of the box
+
+# One-time setup for Android emulator
+cp frontend/.env.android.example frontend/.env.android.local
+# No edits needed — 10.0.2.2 is the standard Android host alias
+```
 
 ---
 
@@ -184,6 +204,12 @@ cd ..
 
 ### Start dev servers
 
+The quickest way is to use the VS Code task (see [VS Code tasks](#vs-code-tasks) below):
+
+> `Cmd+Shift+B` → opens backend + frontend in a split terminal view
+
+Or from the terminal:
+
 ```bash
 pnpm dev
 ```
@@ -199,6 +225,60 @@ cd frontend && pnpm dev     # frontend only
 
 ---
 
+## VS Code tasks
+
+The project ships with a full set of VS Code tasks (`.vscode/tasks.json`) that open split-terminal views and manage process lifecycle automatically. They are the recommended way to run dev servers and tests during active development.
+
+### How to run a task
+
+**Command Palette** (recommended): `Cmd+Shift+P` → *Tasks: Run Task* → pick a task  
+**Keyboard shortcut**: `Cmd+Shift+B` runs the default build task (`▶ Web: Dev`)
+
+---
+
+### Scenario tasks — dev
+
+Each scenario task stops any running dev servers, then opens a split-terminal view with everything needed for that platform.
+
+| Task | Terminals opened | Use when |
+|------|-----------------|----------|
+| `▶ Web: Dev` | Backend · Frontend | Building or testing in a browser |
+| `▶ Web: Dev + E2E` | Backend · Frontend · Playwright | Running Playwright tests against a live dev server |
+| `▶ iOS: Simulator Dev` | Backend · Frontend · iOS Simulator | Testing the Capacitor iOS app in the Xcode simulator |
+| `▶ iOS: Device Dev` | Backend (device) · Frontend (device) · ngrok | Testing on a physical iOS device |
+| `▶ Android: Emulator Dev` | Backend · Frontend · Android Emulator | Testing the Capacitor Android app in an emulator |
+| `▶ Android: Device Dev` | Backend (device) · Frontend (device) · ngrok | Testing on a physical Android device |
+| `▶ Desktop: Dev` | Backend · Tauri | Working on the Tauri desktop app |
+
+**Switching scenarios:** just run the new scenario task — the stop step runs automatically, previous terminals close, and the new split view opens.
+
+**Manually stopping everything:** run `⚡ Stop: All` from the task picker.
+
+---
+
+### Scenario tasks — testing
+
+These do not stop running dev servers first (test runners are independent).
+
+| Task | Terminals opened | Use when |
+|------|-----------------|----------|
+| `▶ Test: All` | Backend unit · Backend contract · Frontend unit · Frontend E2E | Full pre-commit test pass (terminals auto-close) |
+| `▶ Test: All (keep)` | same | Same, but terminals stay open to review results |
+| `▶ Test: Unit Watch` | Backend watch · Frontend watch | TDD / watching tests while editing (terminals auto-close) |
+| `▶ Test: Unit Watch (keep)` | same | Same, but terminals stay open |
+| `▶ iOS: E2E` | Backend · Frontend · iOS Simulator · Maestro | iOS Maestro flow tests — boots simulator, waits for app, then runs tests (terminals auto-close) |
+| `▶ iOS: E2E (keep)` | same | Same, but terminals stay open |
+| `▶ Android: E2E` | Backend · Frontend · Android Emulator · Maestro | Android Maestro flow tests — boots emulator, waits for app, then runs tests (terminals auto-close) |
+| `▶ Android: E2E (keep)` | same | Same, but terminals stay open |
+
+---
+
+### Individual tasks
+
+Every command is also available as a standalone task for one-off use (e.g. running a single test suite, syncing Capacitor, or building the Tauri app without opening a full scenario). Find them in the task picker under their platform prefix: `Backend:`, `Frontend:`, `iOS:`, `Android:`, `Desktop:`.
+
+---
+
 ## Testing scenarios
 
 ### Web (browser)
@@ -211,17 +291,17 @@ With `pnpm dev` running, open `http://localhost:3000`. Sign in with email/passwo
 
 **Prerequisites:** Xcode 15+, Capacitor iOS project initialized (run once: `cd frontend && pnpm cap add ios`)
 
+The VS Code task `▶ iOS: Simulator Dev` handles everything automatically. To run manually:
+
 ```bash
 # 1. Sync Capacitor
 cd frontend && pnpm cap sync ios
 
-# 2. Open in Xcode
-pnpm cap open ios
-
-# 3. In Xcode: select an iPhone simulator → Run (▶)
+# 2. Run with live-reload (connects simulator to local Vite dev server)
+pnpm cap run ios --live-reload --host localhost
 ```
 
-The app will connect to `http://localhost:4000` directly — no ngrok needed for the simulator.
+The iOS simulator shares the Mac's network stack — `localhost` resolves to your Mac directly, so no ngrok or LAN IP setup is needed.
 
 **Sign in with Apple on simulator:** Ensure you have an Apple ID configured in the simulator's **Settings → Sign in to your iPhone** before testing.
 
@@ -349,17 +429,31 @@ cd frontend && pnpm exec playwright show-report
 
 ### Maestro (iOS / Android native)
 
-**Prerequisites:** Maestro CLI ≥ v1.38 (`curl -Ls "https://get.maestro.mobile.dev" | bash`), a running iOS or Android simulator with the app installed.
+**Prerequisites:** Maestro CLI ≥ v1.38 (`curl -Ls "https://get.maestro.mobile.dev" | bash`), a stable Java LTS (Java 21 recommended — see below), and a running iOS simulator or Android emulator with the app installed.
+
+**One-time setup — credentials:**
 
 ```bash
-# Run all flows in order (auth → feed-load → task-complete)
-MAESTRO_TEST_EMAIL=<email> MAESTRO_TEST_PASSWORD=<password> maestro test .maestro/flows/
-
-# Run a single flow
-maestro test .maestro/flows/auth.yaml
+cp .maestro/.env.example .maestro/.env.local
+# Edit .maestro/.env.local with your test account credentials
 ```
 
-Flows skip gracefully when `MAESTRO_TEST_EMAIL` is not set.
+The `▶ iOS: E2E` and `▶ Android: E2E` VS Code tasks load `.maestro/.env.local` automatically.
+
+```bash
+# Run all flows manually (auth → feed-load → task-complete)
+maestro test --env MAESTRO_TEST_EMAIL=<email> --env MAESTRO_TEST_PASSWORD=<password> .maestro/flows/
+
+# Run a single flow
+maestro test --env MAESTRO_TEST_EMAIL=<email> --env MAESTRO_TEST_PASSWORD=<password> .maestro/flows/auth.yaml
+```
+
+**Java version:** Maestro 2.3.0 fails to parse Java EA version strings (e.g. `27-ea`). Install a stable LTS via SDKMAN:
+
+```bash
+sdk install java 21.0.10-tem
+sdk default java 21.0.10-tem
+```
 
 ---
 

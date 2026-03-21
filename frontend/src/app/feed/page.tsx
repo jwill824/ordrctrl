@@ -107,9 +107,9 @@ function FeedPageContent() {
   const undatedItems = items.filter((i) => i.dueAt === null);
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="h-[100dvh] bg-white flex flex-col pt-[env(safe-area-inset-top)] overflow-hidden">
       {/* Top nav */}
-      <header className="border-b border-zinc-100 px-5 h-12 flex items-center justify-between sticky top-0 bg-white z-10">
+      <header className="border-b border-zinc-100 px-5 h-12 flex items-center justify-between flex-shrink-0 bg-white z-10">
         <span className="text-[0.65rem] font-bold tracking-[0.28em] uppercase text-black">
           ordrctrl
         </span>
@@ -190,7 +190,8 @@ function FeedPageContent() {
       </header>
 
       {/* Main content */}
-      <main className="flex-1 max-w-[40rem] w-full mx-auto px-5 pt-4 pb-24">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden touch-pan-y">
+        <main className="max-w-[40rem] w-full mx-auto px-5 pt-4 pb-28">
         {error && (
           <div className="border-l-2 border-red-500 py-1 pl-3 text-[0.8rem] text-red-600 mb-4">
             {error}
@@ -331,6 +332,7 @@ function FeedPageContent() {
           </>
         )}
       </main>
+      </div>
 
       {/* FAB — Add task (normal feed only) */}
       {!showDismissed && !showAddForm && (
@@ -338,7 +340,7 @@ function FeedPageContent() {
           type="button"
           onClick={() => setShowAddForm(true)}
           aria-label="Add task"
-          className="fixed bottom-6 right-6 w-12 h-12 bg-black border-0 cursor-pointer flex items-center justify-center shadow-lg z-20"
+          className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-6 w-12 h-12 bg-black border-0 cursor-pointer flex items-center justify-center shadow-lg z-20"
         >
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
             <path d="M9 3v12M3 9h12"/>
@@ -371,7 +373,7 @@ function FeedPageContent() {
 
       {/* Cleared completed toast */}
       {clearedCount !== null && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-zinc-900 text-white text-sm px-4 py-2.5 shadow-lg z-30">
+        <div className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 flex items-center gap-3 bg-zinc-900 text-white text-sm px-4 py-2.5 shadow-lg z-30">
           <span>
             Cleared {clearedCount} completed task{clearedCount !== 1 ? 's' : ''} — find them in{' '}
             <Link to="/feed?showDismissed=true" className="text-zinc-300 underline underline-offset-2 hover:text-white">
@@ -391,7 +393,7 @@ function FeedPageContent() {
 
       {/* Undo toast for dismiss */}
       {undoToast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-zinc-900 text-white text-sm px-4 py-2.5 shadow-lg z-30">
+        <div className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 flex items-center gap-3 bg-zinc-900 text-white text-sm px-4 py-2.5 shadow-lg z-30">
           <span>{undoToast.message}</span>
           <button
             type="button"

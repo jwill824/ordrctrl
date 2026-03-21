@@ -1,0 +1,7 @@
+# config.yaml — Maestro workspace config for .maestro/flows/
+# Run: maestro test .maestro/flows/
+executionOrder:
+  continueOnFailure: false
+  flowsOrder:
+    - app-flow
+    - integrations

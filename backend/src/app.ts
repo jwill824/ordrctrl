@@ -60,6 +60,13 @@ export async function createApp(): Promise<FastifyInstance> {
   // Inbox routes (010-task-inbox)
   await registerInboxRoutes(app);
 
+  // Test-only routes (E2E setup/teardown — never enable in production)
+  if (process.env.ENABLE_TEST_ROUTES === 'true') {
+    const { registerTestRoutes } = await import('./api/test.routes.js');
+    await registerTestRoutes(app);
+    app.log.warn('ENABLE_TEST_ROUTES is enabled — test endpoints are active');
+  }
+
   // Error handlers
   app.setErrorHandler(errorHandler);
   app.setNotFoundHandler(notFoundHandler);

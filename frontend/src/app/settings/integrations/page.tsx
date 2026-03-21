@@ -108,7 +108,7 @@ function IntegrationSettingsContent() {
 
 export default function IntegrationSettingsPage() {
   return (
-    <main className="min-h-screen bg-white py-8 px-5 max-w-[36rem] mx-auto">
+    <main className="min-h-screen bg-white pb-8 pt-[calc(2rem+env(safe-area-inset-top))] px-5 max-w-[36rem] mx-auto">
       {/* Nav */}
       <nav className="flex items-center gap-4 mb-10">
         <Link to="/feed" className="text-[0.7rem] text-zinc-400 no-underline tracking-[0.08em]">

@@ -59,3 +59,10 @@ test-results/
 
 # Misc
 .turbo/
+
+# Maestro test credentials
+.maestro/.env.local
+
+# Simulator/emulator env overrides
+frontend/.env.ios.local
+frontend/.env.android.local

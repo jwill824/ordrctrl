@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useInboxCount } from '@/hooks/useInboxCount';
 
@@ -30,11 +30,28 @@ export function AccountMenu() {
     }
   }
 
+  function navTo(path: string) {
+    setOpen(false);
+    navigate(path);
+  }
+
   const initial = user?.email?.[0]?.toUpperCase() ?? '?';
+
+  // onTouchEnd with preventDefault is the primary handler for WKWebView on iOS.
+  // The UIScrollView / overflow-hidden container stack can swallow click events;
+  // touchend fires before the browser synthesises mousedown/click, so it is reliable.
+  // onClick is kept as a fallback for desktop / non-touch environments.
+  function touch(callback: () => void) {
+    return (e: React.TouchEvent) => {
+      e.preventDefault();
+      callback();
+    };
+  }
 
   return (
     <div ref={menuRef} className="relative">
       <button
+        onTouchEnd={touch(() => setOpen((v) => !v))}
         onClick={() => setOpen((v) => !v)}
         className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
         aria-label="Account menu"
@@ -50,26 +67,50 @@ export function AccountMenu() {
             <p className="truncate text-sm font-medium text-gray-900">{user?.email}</p>
           </div>
           <nav className="py-1">
-            <Link to="/inbox" className="flex items-center justify-between px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+            {/* Use buttons + navigate() instead of <Link> so Maestro/WKWebView accessibility
+                activate() doesn't trigger a full-page navigation (which disconnects Maestro).
+                onTouchEnd is primary; onClick is fallback for non-touch. */}
+            <button
+              type="button"
+              onTouchEnd={touch(() => navTo('/inbox'))}
+              onClick={() => navTo('/inbox')}
+              className="flex items-center justify-between w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 bg-transparent border-0 cursor-pointer"
+            >
               <span>Inbox</span>
               {inboxCount > 0 && (
                 <span className="ml-2 min-w-[1.25rem] h-5 bg-black text-white text-[0.6rem] font-bold rounded-full flex items-center justify-center px-1">
                   {inboxCount > 99 ? '99+' : inboxCount}
                 </span>
               )}
-            </Link>
-            <Link to="/settings/integrations" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+            </button>
+            <button
+              type="button"
+              onTouchEnd={touch(() => navTo('/settings/integrations'))}
+              onClick={() => navTo('/settings/integrations')}
+              className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 bg-transparent border-0 cursor-pointer"
+            >
               Integrations
-            </Link>
-            <Link to="/settings/feed" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+            </button>
+            <button
+              type="button"
+              onTouchEnd={touch(() => navTo('/settings/feed'))}
+              onClick={() => navTo('/settings/feed')}
+              className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 bg-transparent border-0 cursor-pointer"
+            >
               Feed preferences
-            </Link>
-            <Link to="/feed?showDismissed=true" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+            </button>
+            <button
+              type="button"
+              onTouchEnd={touch(() => navTo('/feed?showDismissed=true'))}
+              onClick={() => navTo('/feed?showDismissed=true')}
+              className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 bg-transparent border-0 cursor-pointer"
+            >
               Dismissed items
-            </Link>
+            </button>
           </nav>
           <div className="border-t border-gray-100 py-1">
             <button
+              onTouchEnd={touch(handleSignOut)}
               onClick={handleSignOut}
               className="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-50"
             >

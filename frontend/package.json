@@ -10,7 +10,9 @@
     "lint": "eslint src --ext ts,tsx",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "dev:android": "vite --mode android --host",
+    "dev:ios": "vite --mode ios --host"
   },
   "dependencies": {
     "@capacitor/android": "^8.2.0",
