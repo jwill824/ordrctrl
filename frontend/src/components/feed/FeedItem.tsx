@@ -83,28 +83,44 @@ export function FeedItemRow({ item, onComplete, onUncomplete, onDismiss, onResto
 
   return (
     <div className={`group flex items-start gap-3 py-[0.875rem] border-b border-zinc-100 ${item.completed ? 'opacity-50' : ''}`}>
-      {/* Checkbox */}
+      {/* Checkbox — 44pt hit target (iOS HIG min); inner span carries the visual */}
       <button
         type="button"
         aria-label={item.completed ? 'Reopen task' : 'Mark complete'}
-        onClick={() => {
+        onTouchEnd={(e) => {
+          // In iOS WKWebView with a CSS overflow-scroll container, the UIScrollView
+          // can intercept touch events and prevent 'click' from firing. Handle
+          // activation on touchend instead; preventDefault suppresses the duplicate click.
+          e.preventDefault();
           if (item.completed) {
             onUncomplete?.(item.id);
           } else {
             onComplete(item.id);
           }
         }}
-        className={`w-[1.125rem] h-[1.125rem] border flex-shrink-0 mt-0.5 flex items-center justify-center p-0 ${
-          item.completed
-            ? 'border-zinc-400 bg-zinc-400 cursor-pointer hover:bg-zinc-300 hover:border-zinc-300'
-            : 'border-zinc-300 bg-white cursor-pointer'
-        }`}
+        onClick={() => {
+          // Fallback for mouse/keyboard (touch is handled by onTouchEnd)
+          if (item.completed) {
+            onUncomplete?.(item.id);
+          } else {
+            onComplete(item.id);
+          }
+        }}
+        className="w-[2.75rem] h-[2.75rem] flex-shrink-0 flex items-center justify-center cursor-pointer bg-white touch-manipulation"
       >
-        {item.completed && (
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="white">
-            <path d="M1.5 5L4 7.5 8.5 2" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        )}
+        <span
+          className={`w-[1.125rem] h-[1.125rem] border pointer-events-none flex items-center justify-center ${
+            item.completed
+              ? 'border-zinc-400 bg-zinc-400'
+              : 'border-zinc-300 bg-white'
+          }`}
+        >
+          {item.completed && (
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="white">
+              <path d="M1.5 5L4 7.5 8.5 2" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          )}
+        </span>
       </button>
 
       {/* Content */}

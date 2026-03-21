@@ -85,7 +85,7 @@ export function LoginForm() {
       {/* Email / password form */}
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
-          <label htmlFor="email" className="block text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-zinc-400 mb-1.5">Email</label>
+          <label htmlFor="email" aria-hidden="true" className="block text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-zinc-400 mb-1.5">Email</label>
           <input
             id="email"
             type="email"
@@ -93,6 +93,8 @@ export function LoginForm() {
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="email"
+            aria-label="Email"
+            enterKeyHint="next"
             className={`w-full border ${error ? 'border-red-500' : 'border-zinc-300'} bg-white py-2.5 px-3 text-[0.9rem] text-black outline-none transition-colors focus:border-black placeholder:text-zinc-400`}
             placeholder="you@example.com"
           />
@@ -100,7 +102,7 @@ export function LoginForm() {
 
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label htmlFor="password" className="block text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-zinc-400">Password</label>
+            <label htmlFor="password" aria-hidden="true" className="block text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-zinc-400">Password</label>
             <Link to="/forgot-password" className="text-xs text-zinc-400 no-underline hover:text-black transition-colors">
               Forgot password?
             </Link>
@@ -112,6 +114,7 @@ export function LoginForm() {
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete="current-password"
+            aria-label="Password"
             className={`w-full border ${error ? 'border-red-500' : 'border-zinc-300'} bg-white py-2.5 px-3 text-[0.9rem] text-black outline-none transition-colors focus:border-black placeholder:text-zinc-400`}
           />
         </div>

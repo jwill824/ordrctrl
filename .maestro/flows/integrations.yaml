@@ -26,9 +26,11 @@ onFlowComplete:
 
 # Open the account menu and navigate to integrations
 - tapOn:
-    id: "Account menu"
+    text: "Account menu"
+- waitForAnimationToEnd
 - tapOn:
     text: "Integrations"
+- waitForAnimationToEnd
 
 # Verify the integrations page loaded and all providers are visible
 - assertVisible:

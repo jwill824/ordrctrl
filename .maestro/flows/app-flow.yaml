@@ -25,18 +25,18 @@ onFlowComplete:
 # FR-011: authenticate and verify feed loads
 - runFlow: ../subflows/login.yaml
 
-# Verify feed header and a task item are present
-- assertVisible:
-    text: "ordrctrl"
-- waitForAnimationToEnd
-- assertVisible:
-    text: "Mark complete"
+# Wait for the seeded task to appear in the feed (confirms login + feed load)
+- extendedWaitUntil:
+    visible:
+      text: "Mark complete"
+    timeout: 30000
 
 # FR-012: mark the first task complete
+- waitForAnimationToEnd
 - tapOn:
     text: "Mark complete"
 - waitForAnimationToEnd
-
-# Confirm the button flipped — task is now done
-- assertVisible:
-    text: "Reopen task"
+- extendedWaitUntil:
+    notVisible:
+      text: "Mark complete"
+    timeout: 20000

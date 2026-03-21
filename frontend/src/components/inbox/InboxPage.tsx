@@ -22,9 +22,9 @@ export function InboxPage() {
   } = useInbox();
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="h-[100dvh] bg-white flex flex-col pt-[env(safe-area-inset-top)] overflow-hidden">
       {/* Top nav */}
-      <header className="border-b border-zinc-100 px-5 h-12 flex items-center justify-between sticky top-0 bg-white z-10">
+      <header className="border-b border-zinc-100 px-5 h-12 flex items-center justify-between flex-shrink-0 bg-white z-10">
         <span className="text-[0.65rem] font-bold tracking-[0.28em] uppercase text-black">
           ordrctrl
         </span>
@@ -37,7 +37,8 @@ export function InboxPage() {
       </header>
 
       {/* Main content */}
-      <main className="flex-1 max-w-[40rem] w-full mx-auto px-5 pt-6 pb-24">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden touch-pan-y">
+        <main className="max-w-[40rem] w-full mx-auto px-5 pt-6 pb-24">
         <div className="flex items-baseline gap-2 mb-6">
           <h1 className="text-base font-semibold text-zinc-900">Inbox</h1>
           {!loading && total > 0 && (
@@ -90,6 +91,7 @@ export function InboxPage() {
           </div>
         )}
       </main>
+      </div>
     </div>
   );
 }
