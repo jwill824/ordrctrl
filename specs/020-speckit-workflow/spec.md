@@ -141,6 +141,24 @@ During or after implementation, a developer steers the feature in a direction th
 
 ---
 
+### User Story 8 - Session Lifecycle Management (Priority: P2)
+
+When a developer starts a new spec, the workflow enforces that it begins in a fresh Copilot CLI session to prevent context bleed from a prior spec's conversation history. When a session starts on an existing speckit feature branch, the workflow automatically surfaces a context summary (spec name, current status, last committed phase) so the developer knows where they left off. Each speckit agent that can resume a workflow (plan, tasks, implement, analyze) explicitly loads all relevant context files at startup — constitution, stack.md, spec.md, and any existing phase artifacts — since only `copilot-instructions.md` is loaded automatically by the CLI. The session-logger hooks are guarded: they check prerequisites (logs directory, `.gitignore` entry) before writing, and emit a one-time setup reminder rather than silently failing or writing untracked files.
+
+**Why this priority**: Without session boundaries, context from a prior spec's plan or implementation bleeds into a new feature, leading to hallucinated file paths or incorrect assumptions. Without explicit context loading in resuming agents, the model may lack the constitution, stack constraints, or prior decisions needed to produce consistent artifacts.
+
+**Independent Test**: Start a fresh session, run `/speckit.specify` — verify a session boundary reminder appears. Close the session, reopen in the same branch, run `/speckit.plan` — verify the agent outputs a context summary showing the spec name and status before proceeding. Verify `logs/copilot/session.log` is not committed (present in `.gitignore`) and hook scripts emit a reminder if setup is incomplete.
+
+**Acceptance Scenarios**:
+
+1. **Given** a developer invokes `/speckit.specify` in a session that already has prior conversation history, **When** the phase begins, **Then** the agent surfaces a session boundary reminder recommending a fresh session for a new spec.
+2. **Given** a developer starts a new session on a speckit feature branch, **When** `sessionStart` fires, **Then** the hook logs and surfaces a context summary: active spec name, current status, and last committed phase.
+3. **Given** a developer resumes `/speckit.plan`, `/speckit.tasks`, `/speckit.implement`, or `/speckit.analyze` in a new session, **When** the agent starts, **Then** it explicitly reads constitution, stack.md, spec.md, and any existing phase artifacts before generating output.
+4. **Given** the session-logger hook fires and `logs/` is not in `.gitignore`, **When** the hook runs, **Then** it emits a one-time setup reminder and skips writing logs rather than creating untracked files.
+5. **Given** session-logger setup is complete (`logs/` in `.gitignore`, directory present), **When** any session lifecycle event fires, **Then** the hook writes structured JSON to `logs/copilot/session.log` without any warnings.
+
+---
+
 ### Edge Cases
 
 - What happens when GitHub MCP is unavailable during the specify phase — spec creation must not be blocked; triage guard is skipped with a warning.
@@ -152,6 +170,8 @@ During or after implementation, a developer steers the feature in a direction th
 - What happens when two issues could plausibly map to the same spec — the triage guard presents both candidates and the developer explicitly confirms which to link.
 - What happens when drift detection finds changes in a binary or non-text asset — drift detection is scoped to tracked spec artifacts (spec.md, plan.md, tasks.md) only.
 - What happens when the developer confirms a spec update but the artifact has conflicting changes — the workflow presents the diff and requires explicit resolution before committing.
+- What happens when a developer runs `/speckit.specify` in a resumed session — the agent warns about session contamination risk but does not hard-block if the developer confirms they want to proceed.
+- What happens when session-logger setup is partial (directory exists but logs/ not in .gitignore) — the hook emits a specific warning identifying the missing step and skips writing.
 
 ## Requirements *(mandatory)*
 
@@ -189,6 +209,9 @@ During or after implementation, a developer steers the feature in a direction th
 - **FR-030**: The `sessionEnd` hook MUST be updated to detect uncommitted speckit artifacts (spec.md, plan.md, tasks.md with unstaged or staged-but-uncommitted changes on a speckit branch) and emit a warning before the session closes.
 - **FR-031**: The `userPromptSubmitted` hook MUST be fixed to log the submitted prompt content (currently a copy-paste of `log-session-end.sh` — logs nothing useful) and extended to detect and log speckit phase command invocations for session-level audit trail.
 - **FR-032**: The `sessionStart` hook MUST be updated to detect if the current branch is a speckit feature branch, and if so, log the active spec name, current status from spec.md, and the last committed speckit phase.
+- **FR-033**: Each session-logger hook script MUST guard against prerequisites before writing: verify `logs/` is present in `.gitignore` and the `logs/copilot/` directory exists; emit a one-time actionable setup reminder and exit cleanly if either check fails.
+- **FR-034**: The `/speckit.specify` agent MUST include a session boundary reminder at startup — informing the developer that new specs should begin in a fresh session — and surface the reminder as a non-blocking prompt if the session appears to have prior speckit conversation history.
+- **FR-035**: Every speckit agent that resumes a workflow (`/speckit.plan`, `/speckit.tasks`, `/speckit.implement`, `/speckit.analyze`) MUST explicitly load the following context files at startup before generating any output: `.specify/memory/constitution.md`, `.specify/memory/stack.md` (if present), the current spec's `spec.md`, and any existing phase artifacts (`plan.md`, `tasks.md`). Only `copilot-instructions.md` is loaded automatically by the CLI; all other speckit context must be loaded explicitly.
 
 ### Key Entities
 
@@ -234,3 +257,6 @@ During or after implementation, a developer steers the feature in a direction th
 - Session-logger hooks are shell scripts fired by the Copilot CLI runtime and cannot influence model behavior; they serve only as observability and safety-net tooling. Hook improvements in FR-030–FR-032 are low-risk shell changes.
 - The `userPromptSubmitted` hook (`log-prompt.sh`) is currently a copy-paste of `log-session-end.sh` and logs nothing meaningful. FR-031 treats this as a bug fix as well as an enhancement.
 - Hooks operate at session boundaries; they cannot detect speckit phase transitions mid-session except via prompt text pattern matching in `userPromptSubmitted`.
+- `copilot-instructions.md` is the only file loaded automatically by the Copilot CLI into every session context. Constitution, stack.md, and spec artifacts are NOT automatically injected — speckit agents must read them explicitly (FR-035).
+- Session boundary enforcement (FR-034) is advisory, not hard-blocking: the CLI has no API to terminate a session mid-conversation; the agent can warn but not force a new session.
+- The session-logger hook setup (chmod +x, logs/ in .gitignore) is a one-time project-level task. Because the hooks.json uses a `bash` prefix for invocation, the execute bit may not be strictly required at runtime, but the `.gitignore` guard (FR-033) is critical to prevent session log data from being committed.
