@@ -172,6 +172,26 @@ When a developer starts a new spec, the workflow enforces that it begins in a fr
 - What happens when the developer confirms a spec update but the artifact has conflicting changes — the workflow presents the diff and requires explicit resolution before committing.
 - What happens when a developer runs `/speckit.specify` in a resumed session — the agent warns about session contamination risk but does not hard-block if the developer confirms they want to proceed.
 - What happens when session-logger setup is partial (directory exists but logs/ not in .gitignore) — the hook emits a specific warning identifying the missing step and skips writing.
+- What happens when the bootstrap script is run on a repo that already has some speckit artifacts — the script is idempotent and skips existing files without overwriting.
+- What happens when a user-level agent and a project-level agent share the same name — the project-level definition always wins (local-over-global override).
+
+---
+
+### User Story 9 - Portability and Cross-Repo Bootstrap (Priority: P3)
+
+A developer who has refined their speckit workflow in one project wants to use the same agents, skills, templates, and scripts globally — available in every repository without manual copying. They publish all generic, project-agnostic tooling (agents, skills, templates, scripts) to a standalone speckit repository and install it once into the Copilot CLI's user-level extensions directory. For each new project, a bootstrap script from the speckit repository scaffolds the project-specific layer: constitution stub, `stack.md` prompt, hooks setup, `logs/` added to `.gitignore`, and a `copilot-instructions.md` reference block. Project-specific context (constitution, stack.md, specs) always lives in the target repo and is never stored globally. Local project overrides always take precedence over user-level defaults.
+
+**Why this priority**: Once the workflow is trusted, copying agents and skills into every new repo manually is error-prone and prevents consistent updates. A single global install point with a per-project bootstrap separates versioned generic tooling from always-local project context. P3 because it depends on all prior stories being stable and validated.
+
+**Independent Test**: Create a blank repository with no `.github/` directory. Run the bootstrap script from the speckit repo. Verify that `/speckit.specify` and all skills are available without any files copied into `.github/`, that the constitution stub and `copilot-instructions.md` reference block were created, and that running the bootstrap script a second time changes nothing.
+
+**Acceptance Scenarios**:
+
+1. **Given** the speckit repo's agents and skills are installed in the user-level extensions directory, **When** a developer opens any repository in Copilot CLI, **Then** all `/speckit.*` commands and skills (`conventional-commit`, `context-map`, `github-issues`) are available without project-level `.github/` files.
+2. **Given** a new blank repository, **When** the developer runs the speckit bootstrap script, **Then** the project-specific scaffold is created: constitution stub, empty `stack.md`, hooks wired up, `logs/` in `.gitignore`, and a `copilot-instructions.md` pointer to the constitution.
+3. **Given** a speckit repo update ships a new agent version, **When** the developer updates the user-level extensions install, **Then** all repos immediately benefit with no per-project changes required.
+4. **Given** a project defines its own `.github/agents/speckit.specify.agent.md`, **When** `/speckit.specify` runs in that project, **Then** the project-level definition takes precedence over the user-level global one.
+5. **Given** the bootstrap script has already been run on a project, **When** it is run again, **Then** it skips all existing files without overwriting them and reports which artifacts were already present.
 
 ## Requirements *(mandatory)*
 
@@ -212,6 +232,10 @@ When a developer starts a new spec, the workflow enforces that it begins in a fr
 - **FR-033**: Each session-logger hook script MUST guard against prerequisites before writing: verify `logs/` is present in `.gitignore` and the `logs/copilot/` directory exists; emit a one-time actionable setup reminder and exit cleanly if either check fails.
 - **FR-034**: The `/speckit.specify` agent MUST include a session boundary reminder at startup — informing the developer that new specs should begin in a fresh session — and surface the reminder as a non-blocking prompt if the session appears to have prior speckit conversation history.
 - **FR-035**: Every speckit agent that resumes a workflow (`/speckit.plan`, `/speckit.tasks`, `/speckit.implement`, `/speckit.analyze`) MUST explicitly load the following context files at startup before generating any output: `.specify/memory/constitution.md`, `.specify/memory/stack.md` (if present), the current spec's `spec.md`, and any existing phase artifacts (`plan.md`, `tasks.md`). Only `copilot-instructions.md` is loaded automatically by the CLI; all other speckit context must be loaded explicitly.
+- **FR-036**: The speckit repository MUST separate generic tooling (agents, skills, templates, scripts) from project-specific context (constitution, stack.md, specs) so that generic artifacts can be installed globally and project context always lives in the target repo.
+- **FR-037**: A bootstrap script MUST be provided that, when run in a new repository, scaffolds the project-specific layer: creates a constitution stub at `.specify/memory/constitution.md`, creates an empty `.specify/memory/stack.md`, wires up session-logger hooks, adds `logs/` to `.gitignore`, and appends a speckit reference block to `copilot-instructions.md`.
+- **FR-038**: The bootstrap script MUST be idempotent — running it multiple times on the same repository MUST skip all already-present artifacts without overwriting them and MUST report which items were skipped.
+- **FR-039**: When a project defines a local agent or skill with the same name as a user-level global definition, the project-level definition MUST take precedence, enabling per-project overrides of the global speckit workflow.
 
 ### Key Entities
 
@@ -224,6 +248,9 @@ When a developer starts a new spec, the workflow enforces that it begins in a fr
 - **Drift Report**: The output of comparing spec artifacts (spec.md, plan.md, tasks.md) against their branch-creation state, identifying mismatches between what was specified and what was implemented.
 - **Context Map**: The output of the `context-map` skill — a structured table of files to modify, dependencies, related tests, and risk areas. Produced before planning and before each implementation task group.
 - **Session Audit Log**: The log written by the session-logger hooks to `logs/copilot/session.log`, capturing session start/end events, active speckit branch/phase, and prompt-level speckit command invocations.
+- **Speckit Repo**: A standalone repository containing all generic, project-agnostic speckit tooling (agents, skills, templates, scripts, bootstrap script). Installed once at the user-level extensions directory; updated independently of any project repo.
+- **Bootstrap Script**: A one-time idempotent setup script shipped in the speckit repo that scaffolds the project-specific speckit layer into a target repository (constitution stub, stack.md, hooks, .gitignore entry, copilot-instructions.md reference).
+- **User-Level Extensions**: The Copilot CLI's personal extensions directory where agents and skills installed globally are available across all repositories, with project-level definitions taking precedence when names conflict.
 
 ## Success Criteria *(mandatory)*
 
@@ -260,3 +287,6 @@ When a developer starts a new spec, the workflow enforces that it begins in a fr
 - `copilot-instructions.md` is the only file loaded automatically by the Copilot CLI into every session context. Constitution, stack.md, and spec artifacts are NOT automatically injected — speckit agents must read them explicitly (FR-035).
 - Session boundary enforcement (FR-034) is advisory, not hard-blocking: the CLI has no API to terminate a session mid-conversation; the agent can warn but not force a new session.
 - The session-logger hook setup (chmod +x, logs/ in .gitignore) is a one-time project-level task. Because the hooks.json uses a `bash` prefix for invocation, the execute bit may not be strictly required at runtime, but the `.gitignore` guard (FR-033) is critical to prevent session log data from being committed.
+- The Copilot CLI's local-over-global override behavior (FR-039) is a platform convention, not something this feature implements; the FR documents the expected behavior to rely on, not something to build.
+- The speckit repo is out of scope for implementation in this feature; FR-036–FR-039 define the portability contract so that the current implementation is structured to support extraction. The actual standalone repo creation is a future activity.
+- The exact location of the user-level Copilot CLI extensions directory is platform-dependent; the bootstrap script must handle this gracefully (document the path, fail with a clear error if not found).
