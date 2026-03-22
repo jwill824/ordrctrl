@@ -179,6 +179,9 @@ During or after implementation, a developer steers the feature in a direction th
 - **FR-020**: When drift is detected, the workflow MUST present the diff to the developer and prompt for confirmation before updating any artifact.
 - **FR-021**: When the developer confirms an artifact update due to drift, the workflow MUST revise the artifact to reflect the actual implementation direction and commit it using the `conventional-commit` skill.
 - **FR-022**: When plan.md or tasks.md contain unresolved items (never implemented, not deferred), the workflow MUST flag them during drift detection and prompt the developer to remove or defer them.
+- **FR-023**: The issue-triage invocation in `/speckit.specify` MUST be embedded directly in the `speckit.specify` agent definition (agent-to-agent call), not routed via an instructions file.
+- **FR-024**: The `.github/instructions/issue-triage.instructions.md` file MUST be removed; its routing trigger ("when user says triage, invoke issue-triage agent") MUST be consolidated into `copilot-instructions.md` as a single reference line.
+- **FR-025**: The "Constitution Principles (abridged)" section in `copilot-instructions.md` MUST be replaced with a single pointer to `.specify/memory/constitution.md`, eliminating the drift risk between the two files. A brief "Spec-Kit Workflow" reference MUST also be added to `copilot-instructions.md` pointing to the agent definitions.
 
 ### Key Entities
 
@@ -215,3 +218,5 @@ During or after implementation, a developer steers the feature in a direction th
 - `stack.md` is project-scoped, not per-feature; it is created once and shared across all features in the repository.
 - The `stack.md` template is versioned with a schema version field so future extensions (new standard fields) can be detected and incrementally prompted without full re-entry.
 - Drift detection uses `git diff <branch-creation-commit>..HEAD` scoped to spec artifact paths (spec.md, plan.md, tasks.md); it does not analyze source code semantics.
+- `copilot-instructions.md` and `constitution.md` serve different purposes and MUST coexist: `copilot-instructions.md` is the model's operational quick reference (commands, import paths, code patterns); the constitution is the governance document (principles, rationale, amendment procedure). The "abridged" principles section in `copilot-instructions.md` creates a drift risk and will be replaced with a pointer to the constitution as part of this feature.
+- `.github/instructions/issue-triage.instructions.md` with `applyTo: "**"` is a global context file that duplicates routing logic better placed in `copilot-instructions.md`. It has no role in agent-to-agent invocation and will be removed.
