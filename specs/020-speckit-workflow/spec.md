@@ -53,6 +53,8 @@ A developer progresses through any speckit phase (`/speckit.specify`, `/speckit.
 6. **Given** `/speckit.analyze` completes, **When** the phase ends, **Then** a conventional-commit-formatted commit is made with any updated artifacts and the advanced spec status.
 7. **Given** `/speckit.implement` completes all tasks, **When** the phase ends, **Then** a conventional-commit-formatted commit is made, the branch is pushed, and a PR is created referencing all linked GitHub issues.
 8. **Given** a phase produces no artifact changes, **When** the phase ends, **Then** no commit is created (duplicate empty commits are prevented).
+9. **Given** YOLO/auto-approve permissions are active and a speckit phase ends, **When** the `conventional-commit` skill is invoked, **Then** the skill still presents a pre-commit summary (list of staged files and generated commit message) and requires explicit developer confirmation before running `git commit` — auto-approve does not bypass this conversational prompt.
+10. **Given** the pre-commit summary is presented and the developer declines, **When** the decision is recorded, **Then** the commit is aborted, the phase is not marked complete, and the developer is informed they can re-run the phase or commit manually.
 
 ---
 
@@ -174,6 +176,7 @@ When a developer starts a new spec, the workflow enforces that it begins in a fr
 - What happens when session-logger setup is partial (directory exists but logs/ not in .gitignore) — the hook emits a specific warning identifying the missing step and skips writing.
 - What happens when the bootstrap script is run on a repo that already has some speckit artifacts — the script is idempotent and skips existing files without overwriting.
 - What happens when a user-level agent and a project-level agent share the same name — the project-level definition always wins (local-over-global override).
+- What happens when the developer declines the pre-commit summary — the commit is aborted, the phase is not marked complete, and the developer is prompted to re-run the phase or commit manually.
 
 ---
 
@@ -236,6 +239,7 @@ A developer who has refined their speckit workflow in one project wants to use t
 - **FR-037**: A bootstrap script MUST be provided that, when run in a new repository, scaffolds the project-specific layer: creates a constitution stub at `.specify/memory/constitution.md`, creates an empty `.specify/memory/stack.md`, wires up session-logger hooks, adds `logs/` to `.gitignore`, and appends a speckit reference block to `copilot-instructions.md`.
 - **FR-038**: The bootstrap script MUST be idempotent — running it multiple times on the same repository MUST skip all already-present artifacts without overwriting them and MUST report which items were skipped.
 - **FR-039**: When a project defines a local agent or skill with the same name as a user-level global definition, the project-level definition MUST take precedence, enabling per-project overrides of the global speckit workflow.
+- **FR-040**: Before executing any phase commit, the `conventional-commit` skill MUST present a pre-commit summary to the developer showing: (1) the list of files staged for commit, (2) the generated commit message with type, scope, and description. The commit MUST NOT proceed until the developer explicitly confirms. This guard applies regardless of session permission mode, including YOLO/auto-approve, because it is a conversational prompt, not a tool execution request.
 
 ### Key Entities
 
@@ -290,3 +294,4 @@ A developer who has refined their speckit workflow in one project wants to use t
 - The Copilot CLI's local-over-global override behavior (FR-039) is a platform convention, not something this feature implements; the FR documents the expected behavior to rely on, not something to build.
 - The speckit repo is out of scope for implementation in this feature; FR-036–FR-039 define the portability contract so that the current implementation is structured to support extraction. The actual standalone repo creation is a future activity.
 - The exact location of the user-level Copilot CLI extensions directory is platform-dependent; the bootstrap script must handle this gracefully (document the path, fail with a clear error if not found).
+- YOLO/auto-approve mode in the Copilot CLI bypasses tool execution permission prompts ("do you want to run this command?") but does NOT bypass conversational questions directed at the developer. The pre-commit summary in FR-040 is a conversational prompt and is therefore unaffected by YOLO mode.
