@@ -20,33 +20,39 @@
 
 ### User Story 1 - GitHub Issue Linkage During Specify (Priority: P1)
 
-A developer runs `/speckit.specify` and the workflow automatically verifies GitHub MCP connectivity, retrieves relevant open issues, and links the new feature branch to the corresponding issue. The spec file records the issue number. When the feature is eventually implemented, the PR is automatically created and linked to that issue.
+Before a developer runs `/speckit.specify`, the workflow first executes the issue-triage agent to surface open issue candidates, giving the developer a prioritized view of what to specify next. The developer may then confirm one or more issues (e.g., when related issues are consolidated into a single spec) to associate with the new feature. The spec file records all linked issue numbers. When the feature is eventually implemented, the PR is automatically created and linked to every associated issue.
 
-**Why this priority**: Issue traceability is foundational — every subsequent phase (plan, tasks, implement) benefits from knowing which issue a spec addresses. Without this, PRs and specs are disconnected from the backlog.
+**Why this priority**: Issue traceability is foundational — every subsequent phase (plan, tasks, implement) benefits from knowing which issue(s) a spec addresses. Consolidating related issues into one spec prevents duplicated work, and the triage guard ensures the developer is always working from a prioritized backlog view rather than guessing.
 
-**Independent Test**: Run `/speckit.specify` on a new feature description while a matching open GitHub issue exists. Verify the generated spec.md contains a GitHub Issue link and that the branch name is associated with the issue in GitHub.
+**Independent Test**: Run `/speckit.specify`. Verify the triage report appears first, confirm two related issues as consolidated, and verify spec.md contains a `GitHub Issue` field listing both issue numbers and URLs. Run `/speckit.implement` to completion and verify the PR references both issues.
 
 **Acceptance Scenarios**:
 
-1. **Given** GitHub MCP is configured and reachable, **When** `/speckit.specify` runs, **Then** the spec file includes a `GitHub Issue` field populated with the relevant issue number and URL.
-2. **Given** GitHub MCP is not reachable, **When** `/speckit.specify` runs, **Then** the workflow surfaces a clear warning and continues without blocking spec creation.
-3. **Given** a spec branch is created, **When** `/speckit.implement` completes all tasks, **Then** a PR is automatically opened with the relevant GitHub issue(s) attached.
+1. **Given** GitHub MCP is configured and reachable, **When** `/speckit.specify` is invoked, **Then** the issue-triage agent runs first and presents a prioritized list of open issues before spec creation begins.
+2. **Given** the triage report is shown, **When** the developer selects multiple issues to consolidate into one spec, **Then** spec.md `GitHub Issue` field lists all selected issue numbers and URLs.
+3. **Given** GitHub MCP is not reachable, **When** `/speckit.specify` runs, **Then** the workflow surfaces a clear warning, skips the triage guard, and continues without blocking spec creation.
+4. **Given** a spec branch is created with one or more linked issues, **When** `/speckit.implement` completes all tasks, **Then** a PR is automatically opened referencing all linked GitHub issues.
 
 ---
 
-### User Story 2 - Per-Phase Commits (Priority: P2)
+### User Story 2 - Per-Phase Commits with Conventional Commit Skill (Priority: P2)
 
-A developer progresses through speckit phases (`/speckit.specify`, `/speckit.plan`, `/speckit.tasks`, `/speckit.implement`). At the end of each phase, the workflow automatically commits all relevant artifact changes (spec.md, plan.md, tasks.md, checklists) to the feature branch with a conventional commit message.
+A developer progresses through any speckit phase (`/speckit.specify`, `/speckit.clarify`, `/speckit.plan`, `/speckit.tasks`, `/speckit.checklist`, `/speckit.implement`, `/speckit.analyze`). At the end of each phase, the workflow invokes the `conventional-commit` skill to generate a properly structured commit message, then commits all relevant artifact changes (spec.md, plan.md, tasks.md, checklists, memory files) to the feature branch. The constitution is also updated to document that the `conventional-commit` skill is required for all speckit-phase commits.
 
-**Why this priority**: Without automatic commits per phase, artifact history is lost and it's unclear what state the spec was in at each decision point. It also prevents accidental loss of work.
+**Why this priority**: Without automatic commits per phase, artifact history is lost and it's unclear what state the spec was in at each decision point. Using the conventional-commit skill ensures commit messages are consistently formatted and carry correct type/scope metadata, which enables changelog generation and traceability.
 
-**Independent Test**: Run `/speckit.plan` on a feature with a complete spec. Verify that a commit appears on the branch containing plan.md and any updated artifacts, with a message following Conventional Commits format.
+**Independent Test**: Run `/speckit.plan` on a feature with a complete spec. Verify that a commit appears on the branch containing plan.md and any updated artifacts, with a message conforming to Conventional Commits format (type, scope, description) as produced by the conventional-commit skill.
 
 **Acceptance Scenarios**:
 
-1. **Given** `/speckit.specify` completes successfully, **When** the phase ends, **Then** a commit is made on the feature branch containing the spec.md and checklist files.
-2. **Given** `/speckit.plan` completes, **When** the phase ends, **Then** a commit is made containing plan.md and any updated spec artifacts.
-3. **Given** `/speckit.implement` completes all tasks, **When** the phase ends, **Then** a commit is made, the branch is pushed, and a PR is created referencing the GitHub issue.
+1. **Given** `/speckit.specify` completes successfully, **When** the phase ends, **Then** the conventional-commit skill generates a commit message and a commit is made containing spec.md and checklist files.
+2. **Given** `/speckit.clarify` updates the spec with resolved answers, **When** the phase ends, **Then** a conventional-commit-formatted commit is made with the updated spec.md.
+3. **Given** `/speckit.plan` completes, **When** the phase ends, **Then** a conventional-commit-formatted commit is made containing plan.md and any updated spec artifacts.
+4. **Given** `/speckit.tasks` generates tasks.md, **When** the phase ends, **Then** a conventional-commit-formatted commit is made containing tasks.md.
+5. **Given** `/speckit.checklist` generates a checklist file, **When** the phase ends, **Then** a conventional-commit-formatted commit is made containing the checklist.
+6. **Given** `/speckit.analyze` completes, **When** the phase ends, **Then** a conventional-commit-formatted commit is made with any updated artifacts and the advanced spec status.
+7. **Given** `/speckit.implement` completes all tasks, **When** the phase ends, **Then** a conventional-commit-formatted commit is made, the branch is pushed, and a PR is created referencing all linked GitHub issues.
+8. **Given** a phase produces no artifact changes, **When** the phase ends, **Then** no commit is created (duplicate empty commits are prevented).
 
 ---
 
@@ -66,19 +72,22 @@ A developer completes the `/speckit.implement` phase. The workflow automatically
 
 ---
 
-### User Story 4 - Stack-Aware Agents (Priority: P3)
+### User Story 4 - Stack-Aware Agents with stack.md Template (Priority: P3)
 
-A developer runs any speckit command on a new project. The agents/skills detect or prompt for project stack information (packaging tool, linting tool, test library, version constraints, and key conventions) and persist this in the constitution or memory files. Subsequent speckit commands use this stack context to generate accurate tasks, commands, and recommendations without re-asking.
+A developer runs any speckit command on a new project. The workflow checks for a `stack.md` file in `.specify/memory/`. If absent, it offers two modes: **auto-detect** (the model inspects the repository and infers stack fields from project files) or **manual entry** (the developer fills in a prompted form based on a standard template). Either mode produces a fully populated `stack.md` that is committed to the repo. Subsequent speckit commands read `stack.md` to generate accurate tasks, commands, and recommendations without re-prompting. The `stack.md` template is designed to be extensible — new fields can be added to the template without breaking existing entries.
 
-**Why this priority**: Stack-unaware task generation produces incorrect commands (wrong test runner, wrong package manager). Capturing this once and reusing it improves all future speckit output quality.
+**Why this priority**: Stack-unaware task generation produces incorrect commands (wrong test runner, wrong package manager). A template-driven `stack.md` makes the stack profile visible, version-controllable, and easily extendable as the project evolves or new speckit capabilities are added.
 
-**Independent Test**: Run `/speckit.specify` on a fresh project where stack info is not yet captured. Verify the workflow prompts for packaging tool, test library, and linting tool, then stores the answers. Run `/speckit.tasks` and verify the generated tasks reference the correct tooling.
+**Independent Test**: Delete `stack.md` from `.specify/memory/`. Run `/speckit.specify`. Verify the workflow offers both auto-detect and manual entry modes. Select auto-detect; verify `stack.md` is created with all standard template fields populated. Run `/speckit.tasks` and verify the generated tasks reference the tooling recorded in `stack.md`.
 
 **Acceptance Scenarios**:
 
-1. **Given** no stack info exists in memory, **When** a speckit command runs, **Then** the agent prompts for packaging tool, test library, linting tool, and version constraints.
-2. **Given** stack info is already stored, **When** any speckit command runs, **Then** the agent uses the stored info without re-prompting.
-3. **Given** stack info changes (e.g., migration from npm to pnpm), **When** the constitution is updated, **Then** subsequent speckit commands reflect the updated stack.
+1. **Given** `stack.md` does not exist, **When** any speckit command runs, **Then** the workflow presents the developer with a choice: auto-detect stack or manually enter stack details.
+2. **Given** the developer selects auto-detect, **When** the model inspects the repository, **Then** `stack.md` is created with all standard template fields inferred from project files (e.g., package manager detected from lock file, test library detected from config or dependencies).
+3. **Given** the developer selects manual entry, **When** they complete the prompted form, **Then** `stack.md` is created with the developer-provided values filling all standard template fields.
+4. **Given** `stack.md` already exists, **When** any speckit command runs, **Then** the workflow reads the file and uses its values without prompting.
+5. **Given** new fields are added to the `stack.md` template (e.g., for a future speckit extension), **When** an existing `stack.md` is loaded, **Then** the workflow detects missing fields, prompts only for the new fields, and appends them without overwriting existing values.
+6. **Given** a stack field changes (e.g., migration from npm to pnpm), **When** `stack.md` is updated and committed, **Then** all subsequent speckit commands use the new values.
 
 ---
 
@@ -113,55 +122,96 @@ A developer introduces a paradigm shift (e.g., new architecture pattern, new too
 
 ---
 
+### User Story 7 - Spec Artifact Drift Detection and Auto-Update (Priority: P3)
+
+During or after implementation, a developer steers the feature in a direction that diverges from what was originally specified. The speckit workflow — at the end of the implement or analyze phase — diffs the feature branch artifacts (spec.md, plan.md, tasks.md) against what they contained at the point of branch creation. Where it detects a meaningful mismatch between the written spec and the actual code changes, it prompts the developer to confirm whether the spec should be updated to reflect reality. If confirmed, the affected artifact(s) are updated and committed.
+
+**Why this priority**: Specs and implementation routinely drift during development. Without a drift-detection pass, the spec becomes a historical artifact rather than a living document. Keeping spec.md, plan.md, and tasks.md synchronized with what was actually built ensures the analyze phase is meaningful and future maintainers understand the true intent of each feature.
+
+**Independent Test**: Create a feature branch with a spec. Implement a change that differs from the spec (e.g., add a capability not listed in functional requirements). Run `/speckit.analyze`. Verify the workflow reports the drift, presents the diff, and offers to update spec.md to include the new capability. Confirm the update and verify a commit is made containing the revised spec.md.
+
+**Acceptance Scenarios**:
+
+1. **Given** implementation code changes exist on the branch since branch creation, **When** `/speckit.analyze` runs, **Then** the workflow diffs spec.md, plan.md, and tasks.md against their state at branch-creation commit and reports any detected mismatches.
+2. **Given** a mismatch is detected (e.g., a requirement in spec.md was not implemented, or code was added beyond the spec scope), **When** the drift report is shown, **Then** the developer is prompted to confirm whether each artifact should be updated.
+3. **Given** the developer confirms an artifact update, **When** the update is applied, **Then** the artifact is revised to reflect the actual implementation direction and a conventional-commit-formatted commit is made.
+4. **Given** the developer declines an artifact update, **When** the decision is recorded, **Then** the mismatch is noted in the analysis output but the artifact is left unchanged.
+5. **Given** no drift is detected (implementation matches spec), **When** `/speckit.analyze` completes, **Then** no drift report is generated and the phase proceeds normally.
+6. **Given** plan.md or tasks.md contain items that were never addressed (skipped or descoped), **When** drift detection runs, **Then** those items are flagged as unresolved and the developer is prompted to either remove them or mark them as deferred.
+
+---
+
 ### Edge Cases
 
-- What happens when GitHub MCP is unavailable during the specify phase — spec creation must not be blocked.
-- What happens when the developer declines to provide stack information — workflow proceeds with defaults and marks stack fields as unset.
-- What happens when a spec branch already has a commit for the current phase — duplicate commit must not be created.
+- What happens when GitHub MCP is unavailable during the specify phase — spec creation must not be blocked; triage guard is skipped with a warning.
+- What happens when the developer selects multiple issues to consolidate and then deselects one mid-way — only confirmed issues are written to spec.md.
+- What happens when the developer declines to provide stack information or skips auto-detect — workflow proceeds with defaults and marks stack fields as unset in stack.md.
+- What happens when auto-detect cannot determine a stack field — that field is left blank in stack.md and flagged for manual entry on the next speckit run.
+- What happens when a spec branch already has a commit for the current phase — no duplicate commit is created; the workflow checks for unstaged changes before committing.
 - What happens when tasks.md has partially completed tasks when `/speckit.implement` is re-run — already-done tasks are skipped, status is not regressed.
-- What happens when two issues could plausibly map to the same spec — the workflow picks the closest match and notes the ambiguity in spec.md.
+- What happens when two issues could plausibly map to the same spec — the triage guard presents both candidates and the developer explicitly confirms which to link.
+- What happens when drift detection finds changes in a binary or non-text asset — drift detection is scoped to tracked spec artifacts (spec.md, plan.md, tasks.md) only.
+- What happens when the developer confirms a spec update but the artifact has conflicting changes — the workflow presents the diff and requires explicit resolution before committing.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: The workflow MUST verify GitHub MCP connectivity at the start of the `/speckit.specify` phase and report status to the developer.
-- **FR-002**: The workflow MUST retrieve open GitHub issues during `/speckit.specify` and populate the `GitHub Issue` field in spec.md with the best-matched issue.
-- **FR-003**: The workflow MUST commit all phase artifacts to the feature branch at the end of each speckit phase using a Conventional Commits message.
-- **FR-004**: The workflow MUST update the `Status` field in spec.md to `Implemented` when all tasks in tasks.md are complete.
-- **FR-005**: The workflow MUST update the `Status` field in spec.md to `Analyzed` when `/speckit.analyze` confirms consistency with no unresolved issues.
-- **FR-006**: The workflow MUST create a GitHub PR and attach relevant issue(s) when `/speckit.implement` completes and pushes the branch.
-- **FR-007**: The workflow MUST prompt for stack information (packaging tool, test library, linting tool, version constraints) when none is stored and persist the answers in the constitution or a memory file.
-- **FR-008**: The workflow MUST use stored stack information in all task and command generation without re-prompting.
-- **FR-009**: The workflow MUST maintain a memory file listing open GitHub issues that do not yet have a corresponding spec branch, refreshed on each specify phase run.
-- **FR-010**: The workflow MUST prompt the developer to review the constitution when a paradigm shift is detected, and synchronize dependent templates after an update.
-- **FR-011**: The workflow MUST add regression test execution as a step in the `/speckit.implement` phase to verify no existing functionality is broken.
-- **FR-012**: The workflow MUST update tasks.md with any additional tasks discovered during implementation and commit the update.
+- **FR-001**: The workflow MUST run the issue-triage agent before `/speckit.specify` begins when GitHub MCP is reachable, presenting a prioritized list of open issues for the developer to select from.
+- **FR-002**: The workflow MUST support selecting one or more GitHub issues to associate with a single spec, recording all linked issue numbers and URLs in spec.md's `GitHub Issue` field.
+- **FR-003**: The workflow MUST verify GitHub MCP connectivity at the start of the `/speckit.specify` phase and skip the triage guard with a warning when unavailable.
+- **FR-004**: The workflow MUST invoke the `conventional-commit` skill to generate commit messages at the end of every speckit phase that produces artifact changes (`/speckit.specify`, `/speckit.clarify`, `/speckit.plan`, `/speckit.tasks`, `/speckit.checklist`, `/speckit.implement`, `/speckit.analyze`).
+- **FR-005**: The workflow MUST NOT create a commit at the end of a phase if no artifact changes were made.
+- **FR-006**: The workflow MUST update the `Status` field in spec.md to `Implemented` when all tasks in tasks.md are complete.
+- **FR-007**: The workflow MUST update the `Status` field in spec.md to `Analyzed` when `/speckit.analyze` confirms consistency with no unresolved issues.
+- **FR-008**: The workflow MUST create a GitHub PR and attach all linked issue(s) from spec.md when `/speckit.implement` completes and pushes the branch.
+- **FR-009**: The workflow MUST check for a `stack.md` file in `.specify/memory/` at the start of any speckit command; if absent, present the developer with a choice between auto-detect and manual entry modes.
+- **FR-010**: In auto-detect mode, the workflow MUST inspect the repository and populate all standard `stack.md` template fields from project files, leaving blank only fields that cannot be inferred.
+- **FR-011**: In manual entry mode, the workflow MUST prompt the developer for each standard `stack.md` template field and write the provided values to `stack.md`.
+- **FR-012**: The `stack.md` template MUST define a versioned set of standard fields (package manager, test library, linting tool, language version constraints, build tool, project type) that can be extended by adding new fields without invalidating existing entries.
+- **FR-013**: The workflow MUST use values from `stack.md` in all task and command generation without re-prompting when the file is present and all required fields are populated.
+- **FR-014**: The workflow MUST maintain a memory file listing open GitHub issues not yet associated with a spec branch, refreshed on each `/speckit.specify` run.
+- **FR-015**: The workflow MUST prompt the developer to review the constitution when a paradigm shift is detected, and synchronize dependent templates after an update.
+- **FR-016**: The constitution MUST be updated to document that the `conventional-commit` skill is required for all speckit-phase commits.
+- **FR-017**: The workflow MUST add regression test execution as a step in the `/speckit.implement` phase; a failing test prevents the phase from being marked complete.
+- **FR-018**: The workflow MUST update tasks.md with any additional tasks discovered during implementation and commit the update.
+- **FR-019**: At the end of `/speckit.analyze` (or `/speckit.implement`), the workflow MUST diff spec.md, plan.md, and tasks.md against their state at branch-creation commit and report any detected mismatches between the written spec and actual changes.
+- **FR-020**: When drift is detected, the workflow MUST present the diff to the developer and prompt for confirmation before updating any artifact.
+- **FR-021**: When the developer confirms an artifact update due to drift, the workflow MUST revise the artifact to reflect the actual implementation direction and commit it using the `conventional-commit` skill.
+- **FR-022**: When plan.md or tasks.md contain unresolved items (never implemented, not deferred), the workflow MUST flag them during drift detection and prompt the developer to remove or defer them.
 
 ### Key Entities
 
-- **Constitution**: The project's authoritative source of standards, patterns, and conventions. Updated when paradigm shifts occur; drives template consistency.
+- **Constitution**: The project's authoritative source of standards, patterns, and conventions. Updated when paradigm shifts occur; drives template consistency. Documents the requirement to use the conventional-commit skill for all speckit-phase commits.
+- **stack.md**: A versioned memory file in `.specify/memory/` containing a standardized, extensible set of project stack fields (package manager, test library, linter, language version constraints, build tool, project type). Populated via auto-detect or manual entry; read by all speckit agents for task and command generation.
+- **Stack Template**: The canonical definition of all standard `stack.md` fields, versioned so new fields can be appended without invalidating existing entries. Lives alongside the other speckit templates.
 - **Memory File (GitHub Issues)**: A file in `.specify/memory/` that tracks open GitHub issues not yet associated with a spec. Refreshed during the specify phase.
-- **Stack Profile**: A persisted record of the project's tooling choices (package manager, test library, linter, version constraints). Stored in the constitution or a dedicated memory file.
-- **Phase Commit**: A git commit made at the end of each speckit phase capturing all artifact changes for that phase.
+- **Phase Commit**: A git commit made at the end of each speckit phase capturing all artifact changes for that phase, with message generated by the conventional-commit skill.
 - **Spec Status**: The lifecycle state of a spec (Draft → Planned → Tasked → In Progress → Implemented → Analyzed), automatically advanced by the workflow.
+- **Drift Report**: The output of comparing spec artifacts (spec.md, plan.md, tasks.md) against their branch-creation state, identifying mismatches between what was specified and what was implemented.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: 100% of spec.md files produced by `/speckit.specify` include a populated `GitHub Issue` field when a matching open issue exists.
-- **SC-002**: 100% of speckit phases that produce artifact changes result in a git commit on the feature branch before the phase ends.
-- **SC-003**: spec.md `Status` is automatically advanced to `Implemented` within the same session that `/speckit.implement` completes — no manual update required.
-- **SC-004**: Stack information is prompted for at most once per project; subsequent speckit commands across all features use the stored stack profile without re-prompting.
-- **SC-005**: The GitHub issues memory file is accurate within one speckit session — issues linked to a spec are removed, and new open issues appear, after each specify phase run.
-- **SC-006**: PRs created by the workflow are linked to their corresponding GitHub issue(s) 100% of the time when issue linkage data is available.
-- **SC-007**: Regression tests are executed as part of every `/speckit.implement` run; a failing test prevents the phase from being marked complete.
+- **SC-001**: 100% of `/speckit.specify` runs where GitHub MCP is reachable present the issue-triage report before spec creation begins.
+- **SC-002**: 100% of spec.md files include a `GitHub Issue` field with at least one linked issue when the developer confirms issue selection during specify.
+- **SC-003**: 100% of speckit phases that produce artifact changes result in a git commit on the feature branch generated by the conventional-commit skill before the phase ends.
+- **SC-004**: spec.md `Status` is automatically advanced to `Implemented` within the same session that `/speckit.implement` completes — no manual update required.
+- **SC-005**: `stack.md` is created on first speckit use of a project; subsequent speckit commands across all features require zero re-prompting for stack fields already present in the file.
+- **SC-006**: The GitHub issues memory file is accurate within one speckit session — issues linked to a spec are removed, and new open issues appear, after each specify phase run.
+- **SC-007**: PRs created by the workflow reference all linked GitHub issues from spec.md 100% of the time when issue linkage data is available.
+- **SC-008**: Regression tests are executed as part of every `/speckit.implement` run; a failing test prevents the phase from being marked complete.
+- **SC-009**: 100% of `/speckit.analyze` runs on a feature branch with code changes produce a drift report comparing spec artifacts against their branch-creation state.
+- **SC-010**: When the developer confirms a drift-based artifact update, the updated artifact is committed in the same session with no manual git steps required.
 
 ## Assumptions
 
-- GitHub MCP server is already configured in the developer's Copilot CLI environment; this feature adds verification and usage, not initial setup.
+- GitHub MCP server is already configured in the developer's Copilot CLI environment; this feature adds verification, triage integration, and usage, not initial setup.
+- The `conventional-commit` skill is available in the project's `.github/extensions/` or the user extensions directory and can be invoked by speckit agents.
 - The constitution file exists at `.specify/memory/constitution.md` and is the authoritative source for project standards.
 - The speckit scripts (`.specify/scripts/`) are bash-based and can be extended to include git commit and push operations.
 - "Paradigm shift" detection is heuristic — the workflow prompts for constitution review on significant dependency additions or pattern-level changes rather than detecting it automatically.
-- Stack information is project-scoped, not per-feature; it is captured once and shared across all features in the repository.
+- `stack.md` is project-scoped, not per-feature; it is created once and shared across all features in the repository.
+- The `stack.md` template is versioned with a schema version field so future extensions (new standard fields) can be detected and incrementally prompted without full re-entry.
+- Drift detection uses `git diff <branch-creation-commit>..HEAD` scoped to spec artifact paths (spec.md, plan.md, tasks.md); it does not analyze source code semantics.

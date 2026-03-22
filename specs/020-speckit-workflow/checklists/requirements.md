@@ -2,6 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-03-22
+**Updated**: 2026-03-22 (v2 — fine-tuning pass)
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -32,5 +33,7 @@
 ## Notes
 
 - All items pass. Spec is ready for `/speckit.clarify` or `/speckit.plan`.
-- Stack-aware agent behavior (FR-007/FR-008) is scoped to prompting and storage; the specific memory file format is left to planning.
-- "Paradigm shift" detection (FR-010) is intentionally heuristic — the spec documents this as an assumption rather than a precise trigger definition.
+- v2 changes: US1 now supports multiple issues + issue-triage guard; US2 now covers all 7 speckit phases and references the conventional-commit skill; US4 redesigned around stack.md template with auto-detect/manual-entry modes; US7 added for spec artifact drift detection.
+- The conventional-commit skill reference in FR-004/FR-016 is a workflow-level dependency — its availability should be verified during planning.
+- stack.md template versioning (FR-012) is intentionally left to planning/design for field definition; the spec defines the shape of the requirement only.
+- Drift detection (FR-019–FR-022) is scoped to tracked spec artifacts; source code semantic analysis is explicitly out of scope (see Assumptions).
