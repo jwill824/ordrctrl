@@ -31,6 +31,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    4. Read current spec's `spec.md`
    5. Read existing `plan.md` if present (for incremental updates)
    6. Output one-line summary: `Loaded: [spec name] | Status: [status] | Stack: [packaging tool]`
+   7. Invoke the `context-map` skill to produce a map of all files relevant to this feature before generating any design artifacts — use the resulting file list to ensure plan.md references accurate paths and dependencies.
 
 2. **Setup**: Run `.specify/scripts/bash/setup-plan.sh --json` from repo root and parse JSON for FEATURE_SPEC, IMPL_PLAN, SPECS_DIR, BRANCH. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
 

@@ -21,8 +21,8 @@ You **MUST** consider the user input before proceeding (if not empty).
       - `regression_tests.e2e_cmd` + `regression_tests.e2e_requires` → include only if UI changes
       - `packaging.install_cmd` → use for dependency install instructions in setup tasks
    4. Read current spec's `spec.md`, `plan.md`, `tasks.md`
-   5. Update spec.md `**Status**:` line → `Implementing`
-   6. Output one-line summary: `Loaded: [spec name] | Status: Implementing | Stack: [packaging tool]`
+   5. Update spec.md `**Status**:` line → `In Progress`
+   6. Output one-line summary: `Loaded: [spec name] | Status: In Progress | Stack: [packaging tool]`
 
 2. Run `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
 
@@ -121,6 +121,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - **Follow TDD approach**: Execute test tasks before their corresponding implementation tasks
    - **File-based coordination**: Tasks affecting the same files must run sequentially
    - **Validation checkpoints**: Verify each phase completion before proceeding
+   - **Context map before each task group**: Before editing any files in a task group, invoke the `context-map` skill to identify all files to modify, their dependencies, related tests, and risk areas for that group. Use the output to guide which files to open and in what order.
 
 7. Implementation execution rules:
    - **Setup first**: Initialize project structure, dependencies, configuration

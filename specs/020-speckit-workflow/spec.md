@@ -55,6 +55,7 @@ A developer progresses through any speckit phase (`/speckit.specify`, `/speckit.
 8. **Given** a phase produces no artifact changes, **When** the phase ends, **Then** no commit is created (duplicate empty commits are prevented).
 9. **Given** YOLO/auto-approve permissions are active and a speckit phase ends, **When** the `conventional-commit` skill is invoked, **Then** the skill still presents a pre-commit summary (list of staged files and generated commit message) and requires explicit developer confirmation before running `git commit` — auto-approve does not bypass this conversational prompt.
 10. **Given** the pre-commit summary is presented and the developer declines, **When** the decision is recorded, **Then** the commit is aborted, the phase is not marked complete, and the developer is informed they can re-run the phase or commit manually.
+11. **Given** the `/speckit.implement` agent determines during execution that a task requires sub-steps not captured in `tasks.md`, **When** those sub-steps are identified, **Then** `tasks.md` is updated with the new tasks and committed via the `conventional-commit` skill before implementation of that task group continues.
 
 ---
 

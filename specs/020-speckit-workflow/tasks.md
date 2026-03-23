@@ -89,7 +89,7 @@
 
 **Tasks**:
 
-- [x] T017 [US3] Update `.github/agents/speckit.implement.agent.md` — before Phase-End Commit Block (T016), add status advancement step: update spec.md `**Status**:` line from `Tasked` → `Implementing` at start, then → `Implemented` on completion; include status change in the phase-end commit
+- [x] T017 [US3] Update `.github/agents/speckit.implement.agent.md` — before Phase-End Commit Block (T016), add status advancement step: update spec.md `**Status**:` line from `Tasked` → `In Progress` at start, then → `Implemented` on completion; include status change in the phase-end commit
 - [x] T018 [P] [US3] Update `.github/agents/speckit.analyze.agent.md` — before Phase-End Commit Block (T015), add status advancement step: update spec.md `**Status**:` line → `Analyzed` on completion; include in phase-end commit
 
 ---
