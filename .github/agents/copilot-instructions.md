@@ -1,43 +1,10 @@
 # ordrctrl Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-03-04
+Auto-generated from all feature plans. Last updated: 2026-03-22
 
 ## Active Technologies
-- TypeScript 5.4 (backend: Node.js/Fastify; frontend: React/Next.js 14) + Fastify (backend API), React + Tailwind CSS (frontend), Prisma ORM (002-uncheck-completed)
-- PostgreSQL 16 (primary data), Redis 7 (session cache, BullMQ job queue) (002-uncheck-completed)
-- TypeScript 5.4 (backend + frontend) + Fastify 4, Prisma 5, BullMQ (backend); Next.js 14 + React 18 + Tailwind CSS (frontend); Zod (validation); Vitest + Supertest (tests) (003-selective-import)
-- PostgreSQL 16 (Prisma ORM) — two new columns on `Integration` table; Redis 7 for BullMQ sync queue (003-selective-import)
-- TypeScript 5.x / Node.js 20 LTS (backend); React 18 + TypeScript (frontend) + Fastify (HTTP server), Prisma (ORM + migrations), BullMQ (sync queue), node-fetch (CalDAV HTTP), zod (input validation), AES-256-GCM via `backend/src/lib/encryption.ts` (004-apple-basic-auth)
-- PostgreSQL via Prisma — one new field (`calendarEventWindowDays Int @default(30)`) on existing `Integration` model; one migration required (004-apple-basic-auth)
-- TypeScript (Node.js backend, React frontend) + Fastify (API), Prisma (ORM), Zod (validation), React Query (frontend state) (005-feed-dismissal)
-- TypeScript — backend Node.js, frontend Next.js 14 / React 18 + Prisma ORM, BullMQ, existing IntegrationAdapter interface (007-source-sync)
-- PostgreSQL via Prisma — one schema migration required (new field + enum) (007-source-sync)
-- TypeScript (Node.js 18, Next.js 14) + Prisma ORM, Express-style API routes (Next.js App Router + custom backend), React 18, BullMQ (sync scheduler) (008-clear-completed)
-- TypeScript (Node.js 20, Next.js 14) + Fastify (backend), Next.js + React 18 (frontend), Prisma ORM, BullMQ (sync queue), Vitest (tests) (009-multi-account)
-- PostgreSQL (via Prisma) (009-multi-account)
-- TypeScript 5 (backend Node.js 20, frontend Next.js 14) + Fastify 4, Prisma 5, React 18, Tailwind CSS, BullMQ, Redis (010-task-inbox)
-- PostgreSQL (via Prisma ORM) (010-task-inbox)
-- TypeScript 5 (backend Node.js 20, frontend Next.js 14.1.3) + Fastify 4, Prisma 5, React 18, Tailwind CSS, BullMQ, Redis (011-feed-ux-enhancements)
-- TypeScript 5.x (frontend + backend) + Next.js 14 App Router, React, Express, Prisma, BullMQ, Redis (012-app-polish-bugfix)
-- PostgreSQL (via Prisma), Redis (sync-status cache) (012-app-polish-bugfix)
-- TypeScript 5.x (backend Node 20 LTS + frontend Next.js 15 App Router) + Fastify (backend API), React 19, Prisma 5 ORM, PostgreSQL 16, Redis (013-task-content-enhancements)
-- PostgreSQL via Prisma (primary), Redis (short-lived sync cache metadata) (013-task-content-enhancements)
-- TypeScript 5.4.2 / React 18.2.0 / Node.js 18+ + Vite 5.1.4 (already installed), react-router-dom v6 (to add), Tailwind CSS 3.4.1 (014-vite-migration)
-- N/A — frontend only; all persistence is in the backend (014-vite-migration)
-- TypeScript 5.4 (frontend), Rust 1.75+ (Tauri shell), Swift/Kotlin (Capacitor native bridge — generated) (015-native-app-targets)
-- No new storage layer — session cookies persisted by native WebView OS cookie jar; `@capacitor/preferences` for lightweight native-only flags (e.g., last-seen notification timestamp) (015-native-app-targets)
-- Redis (existing) — new `oauth:state:{value}` key namespace with 5-min TTL (016-native-auth-fixes)
-- TypeScript 5.4 (frontend + backend), Rust 1.75+ (Tauri shell — unaffected) + Fastify 4, Prisma ORM, React 18, Vite 5, Vitest — all existing; no new dependencies (017-task-rename-polish)
-- PostgreSQL (existing `SyncOverride` table — adding one new enum value); no schema migrations beyond enum update (017-task-rename-polish)
-- TypeScript 5.4 (frontend), Node 20 (CI runners) (018-e2e-testing)
-- N/A (tests are read-only; no test data written to persistent storage) (018-e2e-testing)
-- TypeScript 5.4 / React 18.2 + React Router DOM v6, Capacitor 8 (iOS/Android), Tauri 2 (macOS/Windows), Vite, Vitest, Playwright (019-task-timeline-view)
-- No new storage — `FeedItem[]` from existing `useFeed` hook; view preference via existing `NativePrefs` pattern (`@capacitor/preferences` → `localStorage` fallback) (019-task-timeline-view)
-- New `frontend/src/utils/dateUtils.ts`: shared timezone-safe date helpers — `isAllDayDate`, `toLocalMidnight`, `formatRelativeDay`, `formatLocalTime`, `toLocalDateTimeInput`, `toLocalDateInput`; imported by `useTimeline`, `FeedItemRow`, `EditTaskModal` (019-task-timeline-view)
-- All-day calendar events use UTC noon sentinel (`T12:00:00.000Z`). Use `isAllDayDate()` to detect; use `toLocalMidnight()` for bucket/day comparison — do NOT call `setHours(0,0,0,0)` directly on dates from external sources. For display, use `formatLocalTime()` (returns `""` for all-day) and `toLocalDateInput()` / `toLocalDateTimeInput()` for form inputs (019-task-timeline-view)
-- Apple Calendar events may have `dueAt: null`; always use `dueAt ?? startAt` as the date key for bucketing and display (019-task-timeline-view)
 
-- TypeScript 5.x (frontend + backend) + Next.js 14 (frontend), Fastify 4 (backend API), Prisma (ORM), (001-mvp-core)
+- Node.js (TypeScript) — pnpm monorepo; hook scripts in Bash + Copilot CLI agent/skill/hook system; GitHub MCP; `gh` CLI fallback; `jq` (Bash hooks); `git` (020-speckit-workflow)
 
 ## Project Structure
 
@@ -52,13 +19,11 @@ npm test && npm run lint
 
 ## Code Style
 
-TypeScript 5.x (frontend + backend): Follow standard conventions
+Node.js (TypeScript) — pnpm monorepo; hook scripts in Bash: Follow standard conventions
 
 ## Recent Changes
-- 019-task-timeline-view: Added timeline view components, useTimeline hook, dateUtils.ts (toLocalMidnight/isAllDayDate/formatLocalTime), Apple Calendar dueAt fix, UTC-midnight all-day display fixes
-- 018-e2e-testing: Added TypeScript 5.4 (frontend), Node 20 (CI runners)
-- 017-task-rename-polish: Added TypeScript 5.4 (frontend + backend), Rust 1.75+ (Tauri shell — unaffected) + Fastify 4, Prisma ORM, React 18, Vite 5, Vitest — all existing; no new dependencies
 
+- 020-speckit-workflow: Added Node.js (TypeScript) — pnpm monorepo; hook scripts in Bash + Copilot CLI agent/skill/hook system; GitHub MCP; `gh` CLI fallback; `jq` (Bash hooks); `git`
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
