@@ -1,18 +1,26 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: (none) → 1.0.0 (initial ratification)
-Modified principles: N/A — initial document
+Version change: 1.0.0 → 1.1.0 (spec-kit workflow governance + stack tracking)
+Modified principles: N/A — no existing principles changed
 Added sections:
-  - Core Principles (I–V)
-  - Architecture & Platform
-  - Development Workflow
-  - Governance
-Removed sections: N/A
+  - Core Principles: VI. Spec-Kit Workflow (NON-NEGOTIABLE)
+  - Development Workflow: stack.md reference + regression test mandate
+  - Governance: Paradigm Shift Triggers subsection
+Added files:
+  - .specify/memory/stack.md         ✅ created (project tooling reference)
+  - .specify/memory/issues-backlog.md ✅ created (GitHub issues → spec mapping)
 Templates reviewed:
   - .specify/templates/plan-template.md  ✅ aligned (Constitution Check gate present)
-  - .specify/templates/spec-template.md  ✅ aligned (no constitution-specific sections required)
-  - .specify/templates/tasks-template.md ✅ aligned (security hardening + integration tasks covered)
+  - .specify/templates/spec-template.md  ✅ updated (GitHub Issue field + Status lifecycle)
+  - .specify/templates/tasks-template.md ✅ aligned (regression test tasks covered)
+Agents reviewed:
+  - speckit.specify.agent.md   ✅ updated (GitHub MCP check, issue linking, stack, commit)
+  - speckit.plan.agent.md      ✅ updated (stack.md reference, commit)
+  - speckit.tasks.agent.md     ✅ updated (stack.md reference, commit)
+  - speckit.implement.agent.md ✅ updated (regression tests, spec status, PR creation, commit)
+  - speckit.analyze.agent.md   ✅ updated (spec status update, commit)
+  - speckit.constitution.agent.md ✅ updated (paradigm shift triggers, stack.md sync)
 Deferred TODOs:
   - Tech stack selection: intentionally deferred pending proof-of-concept evaluation.
 -->
@@ -98,6 +106,41 @@ deferred until there is sufficient evidence to make them well.
 **Rationale**: Premature architectural decisions create lock-in and debt. ordrctrl is early-stage;
 optionality is more valuable than consistency with a decision that may prove wrong.
 
+### VI. Spec-Kit Workflow (NON-NEGOTIABLE)
+
+All features MUST follow the spec-kit lifecycle in order:
+**Specify → Plan → Tasks → Implement → Analyze**
+
+- `/speckit.specify`: Draft spec.md, link GitHub issue, commit `docs(spec): initialize NNN-feature-name`
+- `/speckit.plan`: Generate plan.md + design artifacts, commit `docs(plan): add plan for NNN-feature-name`
+- `/speckit.tasks`: Generate tasks.md, commit `docs(tasks): generate tasks for NNN-feature-name`
+- `/speckit.implement`: Execute tasks, run regression tests after each phase, update spec status,
+  commit per phase, push branch, open PR referencing linked GitHub issues
+- `/speckit.analyze`: Cross-artifact consistency check, update spec status, commit report
+
+The `spec.md` **Status** field MUST be updated at each phase gate:
+`Draft → Planned → Tasked → In Progress → Implemented → Analyzed`
+
+GitHub issues MUST be:
+1. Linked in `spec.md` header as `**GitHub Issue**: #N`
+2. Tracked in `.specify/memory/issues-backlog.md`
+3. Referenced in the PR body with `Closes #N` syntax
+
+Regression tests MUST be run after every implementation phase. A phase MUST NOT be committed if
+tests fail. Stack-specific test commands are defined in `.specify/memory/stack.md`.
+
+Every speckit phase MUST end with a `conventional-commit` skill invocation. Phase commits follow
+the format `docs(<phase>): <description> (#<issue>)` where `<phase>` is the speckit phase name
+(e.g., `spec`, `plan`, `tasks`, `implement`, `analyze`).
+
+Project tooling (packaging, linting, test library, version constraints) MUST be documented in
+`.specify/memory/stack.md` and kept current. All spec-kit agents MUST read `stack.md` before
+generating technical plans or tasks.
+
+**Rationale**: Spec traceability from GitHub issue to merged PR is the audit trail for every
+feature. Without enforced phase commits, status tracking, and test gates, the workflow degrades
+silently. Stack documentation prevents agents from hallucinating commands or tool names.
+
 ## Architecture & Platform
 
 ordrctrl is a web and mobile application providing a consolidated view of tasks, emails, and
@@ -128,7 +171,13 @@ TODO(TECH_STACK): Finalize language, framework, and database choices after proof
 - Security-sensitive changes (token handling, auth flows, data retention) MUST receive explicit
   review attention before approval.
 - Commit messages SHOULD follow Conventional Commits format
-  (`feat:`, `fix:`, `docs:`, `chore:`, etc.).
+  (`feat:`, `fix:`, `docs:`, `chore:`, etc.) — see `.specify/memory/stack.md` for spec-kit
+  phase-specific commit message formats.
+- **Regression tests MUST run after every implementation phase** before committing. Failures
+  block the commit.
+- Project tooling and commands are documented in `.specify/memory/stack.md`. This file is the
+  authoritative reference for packaging tool, version constraints, linting, and test commands.
+- GitHub issues MUST be tracked in `.specify/memory/issues-backlog.md` and closed via PRs.
 
 ## Governance
 
@@ -149,4 +198,23 @@ conflicts with the constitution, the constitution wins or must be formally amend
 **Compliance**: All pull request reviews MUST verify compliance with this constitution.
 Complexity violations must be justified; unjustified complexity MUST block merge.
 
-**Version**: 1.0.0 | **Ratified**: 2026-03-05 | **Last Amended**: 2026-03-05
+### Paradigm Shift Triggers
+
+The constitution MUST be reviewed and potentially amended (run `/speckit.constitution`) when
+any of the following occur:
+
+- A new primary programming language, runtime, or framework is adopted
+- The authentication/authorization model changes fundamentally (e.g., sessions → JWT)
+- The deployment or infrastructure strategy changes significantly
+- A new integration pattern is mandated (e.g., REST → GraphQL, polling → webhooks)
+- The test strategy changes (e.g., new test framework, adopting strict TDD)
+- The packaging tool changes (e.g., npm → pnpm, pip → uv)
+- A new platform target is added (e.g., desktop app, CLI, browser extension)
+- The data persistence layer changes (e.g., new ORM, new database engine)
+
+When a paradigm shift occurs:
+1. Run `/speckit.constitution` to amend the constitution **before** creating any new spec
+2. Update `.specify/memory/stack.md` with new tooling information
+3. Propagate changes to affected templates and agent files per the amendment procedure
+
+**Version**: 1.1.0 | **Ratified**: 2026-03-05 | **Last Amended**: 2026-03-22

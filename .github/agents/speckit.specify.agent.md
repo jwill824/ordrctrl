@@ -20,6 +20,10 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Outline
 
+> ⚠️ **New session recommended**: This agent should run in a new Copilot CLI session. If you
+> have prior conversation history from a different task, start a new session before proceeding to
+> ensure clean context loading. (Non-blocking — continue if already in a fresh session.)
+
 The text the user typed after `/speckit.specify` in the triggering message **is** the feature description. Assume you always have it available in this conversation even if `$ARGUMENTS` appears literally below. Do not ask the user to repeat it unless they provided an empty command.
 
 Given that feature description, do this:
@@ -68,7 +72,56 @@ Given that feature description, do this:
    - The JSON output will contain BRANCH_NAME and SPEC_FILE paths
    - For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot")
 
-3. Load `.specify/templates/spec-template.md` to understand required sections.
+3. **GitHub Issue Triage & Backlog Refresh**:
+
+   a. **Check GitHub MCP connectivity**: Attempt to list open GitHub issues via the `github-issues`
+      skill or MCP tool. This is a connectivity probe only.
+
+   b. **If MCP is reachable**:
+      - Invoke the `issue-triage` agent to fetch current open issues and allow developer to select
+        related issue(s) for this feature
+      - Overwrite `.specify/memory/issues-backlog.md` with a current snapshot of open issues,
+        appending a `last_refreshed: YYYY-MM-DDTHH:MM:SSZ` timestamp at the top
+      - Write all selected issue numbers to the `spec.md` `GitHub Issue` front-matter field as a
+        comma-separated list: `#N, #N`
+
+   c. **If MCP is unreachable**:
+      - Warn: "⚠️  GitHub MCP not reachable — cannot auto-link issues. Enter issue number(s)
+        manually (e.g., `#31, #32`) or leave blank."
+      - Read existing `.specify/memory/issues-backlog.md` if present and note its age
+        (`last_refreshed` timestamp)
+      - Accept any manually entered issue numbers for the `GitHub Issue` field
+
+4. **Stack Check**:
+
+   a. Check if `.specify/memory/stack.md` exists:
+      - **If absent**: Read `.specify/templates/stack-template.md`; present two options:
+        1. **"Auto-detect from repo"** — inspect lock files (`pnpm-lock.yaml`, `yarn.lock`,
+           `package-lock.json`), `package.json` scripts, config files (`eslint.config.*`,
+           `tsconfig.json`, `docker-compose.yml`, `prisma/schema.prisma`) to populate all
+           auto-detectable fields; prompt developer only for non-detectable fields
+        2. **"Manual entry"** — prompt developer for each required field in section order
+        - Write the populated `stack.md` using template field order with `schema_version: "1.0"`
+      - **If present but `schema_version` < template version**: Prompt only for missing fields
+        (never overwrite existing fields); append missing fields and update `schema_version`
+      - **If present and up-to-date**: No action needed — proceed
+
+5. **Paradigm Shift Detection**: Before writing spec.md, scan the feature description and any
+   collected spec content for signals of stack or workflow changes:
+   - New primary language, framework, or runtime
+   - Authentication model change (e.g., sessions → JWT)
+   - New test framework or ORM
+   - New deployment/infrastructure strategy
+   - New integration pattern (REST → GraphQL, polling → webhooks)
+
+   If any signals are detected, present this prompt before proceeding:
+   > "⚠️  This spec may require updating `.specify/templates/stack-template.md` or
+   > `.specify/memory/constitution.md` — review before proceeding. Continue? (yes/no)"
+
+   On **NO**: halt and instruct developer to run `/speckit.constitution` first.
+   On **YES**: proceed with spec writing, noting the paradigm shift in the spec's Assumptions section.
+
+6. Load `.specify/templates/spec-template.md` to understand required sections.
 
 4. Follow this execution flow:
 
@@ -96,9 +149,9 @@ Given that feature description, do this:
     7. Identify Key Entities (if data involved)
     8. Return: SUCCESS (spec ready for planning)
 
-5. Write the specification to SPEC_FILE using the template structure, replacing placeholders with concrete details derived from the feature description (arguments) while preserving section order and headings.
+7. Write the specification to SPEC_FILE using the template structure, replacing placeholders with concrete details derived from the feature description (arguments) while preserving section order and headings.
 
-6. **Specification Quality Validation**: After writing the initial spec, validate it against quality criteria:
+8. **Specification Quality Validation**: After writing the initial spec, validate it against quality criteria:
 
    a. **Create Spec Quality Checklist**: Generate a checklist file at `FEATURE_DIR/checklists/requirements.md` using the checklist template structure with these validation items:
 
@@ -190,7 +243,26 @@ Given that feature description, do this:
 
    d. **Update Checklist**: After each validation iteration, update the checklist file with current pass/fail status
 
-7. Report completion with branch name, spec file path, checklist results, and readiness for the next phase (`/speckit.clarify` or `/speckit.plan`).
+9. **Issue Traceability Comments**: After spec.md is written and committed, for each issue number
+   in the `GitHub Issue` field:
+   - Invoke the `github-issues` skill to post a traceability comment on the issue containing:
+     - Branch name
+     - Spec title
+     - Link to `spec.md` in the repository
+   - Example comment: "📋 Spec initialized: [NNN-feature-name](link/to/spec.md) on branch `NNN-feature-name`"
+
+10. **Phase-End Commit**:
+
+    1. Run `git status --short` scoped to `specs/$BRANCH/` to check for changes
+    2. If no changes: report "No changes to commit" and skip
+    3. If changes exist: invoke the `conventional-commit` skill with:
+       - type: `docs`
+       - scope: `spec`
+       - description: `initialize NNN-feature-name spec`
+       - footer: issue numbers (e.g., `Refs: #31`)
+    4. Await developer confirmation before committing (per `conventional-commit` skill workflow)
+
+11. Report completion with branch name, spec file path, checklist results, and readiness for the next phase (`/speckit.clarify` or `/speckit.plan`).
 
 **NOTE:** The script creates and checks out the new branch and initializes the spec file before writing.
 

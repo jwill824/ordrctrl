@@ -293,3 +293,15 @@ Sample items:
 - Correct: Validation of requirement quality
 - Wrong: "Does it do X?"
 - Correct: "Is X clearly specified?"
+
+
+## Phase-End Commit
+
+1. Run `git status --short` scoped to `specs/$BRANCH/` to check for changes
+2. If no changes: report "No changes to commit" and skip
+3. If changes exist: invoke the `conventional-commit` skill with:
+   - type: `docs`
+   - scope: `checklist`
+   - description: `add [domain] checklist for NNN-feature-name`
+   - footer: issue numbers from spec.md `GitHub Issue` field (e.g., `Refs: #31`)
+4. Await developer confirmation before committing (per `conventional-commit` skill workflow)

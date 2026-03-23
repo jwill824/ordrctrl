@@ -12,7 +12,19 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Outline
 
-1. Run `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
+1. **Context Loading** (run at startup before any output):
+   1. Read `.specify/memory/constitution.md`
+   2. Read `.specify/memory/stack.md` — if absent, warn: "⚠️  stack.md missing — regression test commands will fall back to defaults; run `/speckit.specify` to initialize stack context"
+   3. If stack.md is present, extract for use throughout implementation:
+      - `regression_tests.lint_cmd` → use for post-phase lint validation
+      - `regression_tests.test_cmd` → use for post-phase test validation
+      - `regression_tests.e2e_cmd` + `regression_tests.e2e_requires` → include only if UI changes
+      - `packaging.install_cmd` → use for dependency install instructions in setup tasks
+   4. Read current spec's `spec.md`, `plan.md`, `tasks.md`
+   5. Update spec.md `**Status**:` line → `Implementing`
+   6. Output one-line summary: `Loaded: [spec name] | Status: Implementing | Stack: [packaging tool]`
+
+2. Run `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
 
 2. **Check checklists status** (if FEATURE_DIR/checklists/ exists):
    - Scan all checklist files in the checklists/ directory
@@ -167,5 +179,40 @@ You **MUST** consider the user input before proceeding (if not empty).
     - Do not add spec annotations to sections that were not touched
     - If a central doc does not exist yet and is needed, create it
     - If no central docs need updating (e.g. the spec was a pure refactor with no public-facing changes), skip this step and note that in the completion summary
+
+11. **Status Advancement & PR Creation**:
+
+    After all tasks are complete and central docs are updated:
+
+    a. Update spec.md `**Status**:` line → `Implemented`
+
+    b. Invoke the `github-issues` skill to create a Pull Request:
+       - PR title: `feat(NNN): implement NNN-feature-name`
+       - PR body: Include `Closes #N` for every issue number in the spec.md `GitHub Issue` field
+       - PR description: Brief summary of what was implemented, linking to the spec
+       - Example body:
+         ```
+         Implements [NNN-feature-name](specs/NNN-feature-name/spec.md).
+
+         Closes #N
+         Closes #M
+         ```
+
+    c. For each linked issue, post the PR URL as a comment:
+       - Comment: "🚀 PR created: [PR title](PR URL) — implementation complete"
+
+12. **Phase-End Commit**:
+
+    1. Run `git status --short` scoped to `specs/$BRANCH/` to check for changes
+    2. If no changes to spec artifacts: report "No spec changes to commit" and skip
+    3. If changes exist (status update, tasks marked complete): invoke the `conventional-commit`
+       skill with:
+       - type: `docs`
+       - scope: `implement`
+       - description: `mark NNN-feature-name implemented`
+       - footer: issue numbers (e.g., `Closes: #31`)
+    4. Await developer confirmation before committing (per `conventional-commit` skill workflow)
+    5. Note: Task-level commits (feat/fix/chore for each implementation task group) are separate
+       from this spec-level commit — each task group should already have its own commit
 
 Note: This command assumes a complete task breakdown exists in tasks.md. If tasks are incomplete or missing, suggest running `/speckit.tasks` first to regenerate the task list.

@@ -2,7 +2,7 @@
 
 **Feature Branch**: `020-speckit-workflow`  
 **Created**: 2026-03-22  
-**Status**: Tasked  
+**Status**: Implemented  
 **GitHub Issue**: [#31](https://github.com/jwill824/ordrctrl/issues/31)  
 **Input**: Update our spec-kit workflow to integrate with GitHub, enforce constitution hygiene, add stack-awareness to agents/skills, and improve commit/PR automation across all speckit phases.
 
