@@ -21,7 +21,18 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Outline
 
-1. **Setup**: Run `.specify/scripts/bash/check-prerequisites.sh --json` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
+1. **Context Loading** (run at startup before any output):
+   1. Read `.specify/memory/constitution.md`
+   2. Read `.specify/memory/stack.md` — if absent, warn: "⚠️  stack.md missing — run `/speckit.specify` first to initialize stack context"
+   3. If stack.md is present, extract `regression_tests` section values:
+      - `lint_cmd` → use this exact command in regression test tasks (not hardcoded `pnpm lint`)
+      - `test_cmd` → use this exact command in regression test tasks (not hardcoded `pnpm test`)
+      - `e2e_cmd` + `e2e_requires` → include in tasks only if UI changes are in scope
+   4. Read current spec's `spec.md` and `plan.md`
+   5. Read existing `tasks.md` if present (for incremental regeneration)
+   6. Output one-line summary: `Loaded: [spec name] | Status: [status] | Stack: [packaging tool]`
+
+2. **Setup**: Run `.specify/scripts/bash/check-prerequisites.sh --json` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
 
 2. **Load design documents**: Read from FEATURE_DIR:
    - **Required**: plan.md (tech stack, libraries, structure), spec.md (user stories with priorities)
@@ -135,3 +146,14 @@ Every task MUST strictly follow this format:
   - Within each story: Tests (if requested) → Models → Services → Endpoints → Integration
   - Each phase should be a complete, independently testable increment
 - **Final Phase**: Polish & Cross-Cutting Concerns
+
+## Phase-End Commit
+
+1. Run `git status --short` scoped to `specs/$BRANCH/` to check for changes
+2. If no changes: report "No changes to commit" and skip
+3. If changes exist: invoke the `conventional-commit` skill with:
+   - type: `docs`
+   - scope: `tasks`
+   - description: `generate task breakdown for NNN-feature-name`
+   - footer: issue numbers from spec.md `GitHub Issue` field (e.g., `Refs: #31`)
+4. Await developer confirmation before committing (per `conventional-commit` skill workflow)

@@ -3,7 +3,18 @@
 **Feature Branch**: `[###-feature-name]`  
 **Created**: [DATE]  
 **Status**: Draft  
+**GitHub Issue**: N/A  
 **Input**: User description: "$ARGUMENTS"
+
+<!--
+  Status lifecycle: Draft → Planned → Tasked → In Progress → Implemented → Analyzed
+  - Draft:       spec.md written (/speckit.specify)
+  - Planned:     plan.md + design artifacts complete (/speckit.plan)
+  - Tasked:      tasks.md generated (/speckit.tasks)
+  - In Progress: implementation started (/speckit.implement)
+  - Implemented: all tasks complete, tests pass, PR open (/speckit.implement)
+  - Analyzed:    cross-artifact consistency confirmed (/speckit.analyze)
+-->
 
 ## User Scenarios & Testing *(mandatory)*
 

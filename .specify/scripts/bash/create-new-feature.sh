@@ -5,6 +5,7 @@ set -e
 JSON_MODE=false
 SHORT_NAME=""
 BRANCH_NUMBER=""
+ISSUE_NUMBER=""
 ARGS=()
 i=1
 while [ $i -le $# ]; do
@@ -40,18 +41,34 @@ while [ $i -le $# ]; do
             fi
             BRANCH_NUMBER="$next_arg"
             ;;
+        --issue)
+            if [ $((i + 1)) -gt $# ]; then
+                echo 'Error: --issue requires a value' >&2
+                exit 1
+            fi
+            i=$((i + 1))
+            next_arg="${!i}"
+            if [[ "$next_arg" == --* ]]; then
+                echo 'Error: --issue requires a value' >&2
+                exit 1
+            fi
+            # Strip leading # if present (e.g., --issue "#31" → "31")
+            ISSUE_NUMBER="${next_arg#\#}"
+            ;;
         --help|-h) 
-            echo "Usage: $0 [--json] [--short-name <name>] [--number N] <feature_description>"
+            echo "Usage: $0 [--json] [--short-name <name>] [--number N] [--issue N] <feature_description>"
             echo ""
             echo "Options:"
             echo "  --json              Output in JSON format"
             echo "  --short-name <name> Provide a custom short name (2-4 words) for the branch"
             echo "  --number N          Specify branch number manually (overrides auto-detection)"
+            echo "  --issue N           Link a GitHub issue number (appended to branch name as -ghN)"
             echo "  --help, -h          Show this help message"
             echo ""
             echo "Examples:"
             echo "  $0 'Add user authentication system' --short-name 'user-auth'"
             echo "  $0 'Implement OAuth2 integration for API' --number 5"
+            echo "  $0 'Fix payment timeout' --issue 42"
             exit 0
             ;;
         *) 
@@ -241,6 +258,11 @@ else
     BRANCH_SUFFIX=$(generate_branch_name "$FEATURE_DESCRIPTION")
 fi
 
+# Append GitHub issue number to branch suffix if provided
+if [ -n "$ISSUE_NUMBER" ]; then
+    BRANCH_SUFFIX="${BRANCH_SUFFIX}-gh${ISSUE_NUMBER}"
+fi
+
 # Determine branch number
 if [ -z "$BRANCH_NUMBER" ]; then
     if [ "$HAS_GIT" = true ]; then
@@ -304,10 +326,11 @@ if [ -f "$TEMPLATE" ]; then cp "$TEMPLATE" "$SPEC_FILE"; else touch "$SPEC_FILE"
 export SPECIFY_FEATURE="$BRANCH_NAME"
 
 if $JSON_MODE; then
-    printf '{"BRANCH_NAME":"%s","SPEC_FILE":"%s","FEATURE_NUM":"%s"}\n' "$BRANCH_NAME" "$SPEC_FILE" "$FEATURE_NUM"
+    printf '{"BRANCH_NAME":"%s","SPEC_FILE":"%s","FEATURE_NUM":"%s","ISSUE_NUMBER":"%s"}\n' "$BRANCH_NAME" "$SPEC_FILE" "$FEATURE_NUM" "$ISSUE_NUMBER"
 else
     echo "BRANCH_NAME: $BRANCH_NAME"
     echo "SPEC_FILE: $SPEC_FILE"
     echo "FEATURE_NUM: $FEATURE_NUM"
+    [ -n "$ISSUE_NUMBER" ] && echo "ISSUE_NUMBER: $ISSUE_NUMBER"
     echo "SPECIFY_FEATURE environment variable set to: $BRANCH_NAME"
 fi

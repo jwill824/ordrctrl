@@ -22,7 +22,14 @@ Note: This clarification workflow is expected to run (and be completed) BEFORE i
 
 Execution steps:
 
-1. Run `.specify/scripts/bash/check-prerequisites.sh --json --paths-only` from repo root **once** (combined `--json --paths-only` mode / `-Json -PathsOnly`). Parse minimal JSON payload fields:
+1. **Context Loading** (run at startup before any output):
+   1. Read `.specify/memory/constitution.md`
+   2. Read `.specify/memory/stack.md` — if absent, warn: "⚠️  stack.md missing — run `/speckit.specify` first to initialize stack context"
+   3. Read current spec's `spec.md`
+   4. Read any existing phase artifacts (`plan.md`) if present
+   5. Output one-line summary: `Loaded: [spec name] | Status: [status] | Stack: [packaging tool]`
+
+2. Run `.specify/scripts/bash/check-prerequisites.sh --json --paths-only` from repo root **once** (combined `--json --paths-only` mode / `-Json -PathsOnly`). Parse minimal JSON payload fields:
    - `FEATURE_DIR`
    - `FEATURE_SPEC`
    - (Optionally capture `IMPL_PLAN`, `TASKS` for future chained flows.)
@@ -167,6 +174,25 @@ Execution steps:
    - Coverage summary table listing each taxonomy category with Status: Resolved (was Partial/Missing and addressed), Deferred (exceeds question quota or better suited for planning), Clear (already sufficient), Outstanding (still Partial/Missing but low impact).
    - If any Outstanding or Deferred remain, recommend whether to proceed to `/speckit.plan` or run `/speckit.clarify` again later post-plan.
    - Suggested next command.
+
+9. **Paradigm Shift Check**: If any clarification answers reveal changes to core architecture
+   (project type, ORM, packaging tool, authentication model, test framework), surface this before
+   the phase-end commit:
+   > "⚠️  Clarification answers indicate a potential stack or architecture change. `.specify/memory/stack.md`
+   > and/or `.specify/templates/stack-template.md` may need updating. Flag this before proceeding? (yes/skip)"
+   - On **yes**: note the items in the spec's Assumptions section and add a TODO for the developer
+   - On **skip**: continue to phase-end commit
+
+10. **Phase-End Commit**:
+
+    1. Run `git status --short` scoped to `specs/$BRANCH/` to check for changes
+    2. If no changes: report "No changes to commit" and skip
+    3. If changes exist: invoke the `conventional-commit` skill with:
+       - type: `docs`
+       - scope: `clarify`
+       - description: `update NNN-feature-name spec with clarifications`
+       - footer: issue numbers from spec.md `GitHub Issue` field (e.g., `Refs: #31`)
+    4. Await developer confirmation before committing (per `conventional-commit` skill workflow)
 
 Behavior rules:
 

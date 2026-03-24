@@ -22,7 +22,17 @@ Identify inconsistencies, duplications, ambiguities, and underspecified items ac
 
 ## Execution Steps
 
-### 1. Initialize Analysis Context
+### 1. Context Loading (run at startup before any output)
+
+1. Read `.specify/memory/constitution.md`
+2. Read `.specify/memory/stack.md` — if absent, warn: "⚠️  stack.md missing — stack-specific command validation will be skipped"
+3. If stack.md is present, extract `regression_tests` section to use for command validation:
+   - `lint_cmd`, `test_cmd`, `e2e_cmd` — verify these exact commands appear in tasks.md regression steps
+   - If tasks.md uses different (hardcoded) commands, flag as a finding in the analysis report
+4. Read current spec's `spec.md`, `plan.md`, `tasks.md`
+5. Output one-line summary: `Loaded: [spec name] | Status: [status] | Stack: [packaging tool]`
+
+### 2. Initialize Analysis Context
 
 Run `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks` once from repo root and parse JSON for FEATURE_DIR and AVAILABLE_DOCS. Derive absolute paths:
 
@@ -158,9 +168,59 @@ At end of report, output a concise Next Actions block:
 - If only LOW/MEDIUM: User may proceed, but provide improvement suggestions
 - Provide explicit command suggestions: e.g., "Run /speckit.specify with refinement", "Run /speckit.plan to adjust architecture", "Manually edit tasks.md to add coverage for 'performance-metrics'"
 
-### 8. Offer Remediation
+### 8. Drift Detection
+
+Before advancing spec status, detect whether the implementation diverged from the original plan:
+
+1. **Find branch-creation commit** (approximate base):
+   ```bash
+   BASE_COMMIT=$(git log --oneline --reverse HEAD | head -1 | cut -d' ' -f1)
+   ```
+
+2. **Compare spec artifacts against base**:
+   ```bash
+   BRANCH=$(git rev-parse --abbrev-ref HEAD)
+   git diff $BASE_COMMIT..HEAD -- specs/$BRANCH/spec.md specs/$BRANCH/plan.md specs/$BRANCH/tasks.md
+   ```
+
+3. **If diff is empty**: Report "No spec artifact drift detected — artifacts match initial plan."
+
+4. **If diff is non-empty**: For each changed artifact, show a structured summary:
+   - Sections added / removed / changed (by heading)
+   - Prompt: "Update [artifact] to reflect implementation changes? (yes/skip)"
+   - On **yes**: Assist developer in editing the artifact (note: analyze is otherwise read-only,
+     but user-approved drift corrections are the exception)
+   - On **skip**: Continue to next artifact
+
+5. **Unresolved task check**: Scan `tasks.md` for unchecked items (`- [ ]`):
+   ```bash
+   grep -n "^- \[ \]" specs/$BRANCH/tasks.md
+   ```
+   Cross-reference unchecked tasks with `git log --oneline` for task-related commits.
+   Flag any tasks with no corresponding commit as:
+   > "⚠️  Task [TID] has no corresponding commit — possibly unimplemented or not formally
+   > deferred. Confirm status before marking spec Analyzed."
+
+### 9. Status Advancement
+
+After drift detection and analysis report are complete:
+- Update `spec.md` `**Status**:` line → `Analyzed`
+- Include this status change in the phase-end commit
+
+### 10. Offer Remediation
 
 Ask the user: "Would you like me to suggest concrete remediation edits for the top N issues?" (Do NOT apply them automatically.)
+
+## Phase-End Commit
+
+1. Run `git status --short` scoped to `specs/$BRANCH/` to check for changes
+2. If no changes: report "No changes to commit" and skip
+3. If changes exist (analysis report + status advancement): invoke the `conventional-commit` skill with:
+   - type: `docs`
+   - scope: `analyze`
+   - description: `add consistency report for NNN-feature-name`
+   - footer: issue numbers from spec.md `GitHub Issue` field (e.g., `Refs: #31`)
+4. Await developer confirmation before committing (per `conventional-commit` skill workflow)
 
 ## Operating Principles
 
@@ -173,7 +233,7 @@ Ask the user: "Would you like me to suggest concrete remediation edits for the t
 
 ### Analysis Guidelines
 
-- **NEVER modify files** (this is read-only analysis)
+- **NEVER modify files** (this is read-only analysis, except user-approved drift corrections)
 - **NEVER hallucinate missing sections** (if absent, report them accurately)
 - **Prioritize constitution violations** (these are always CRITICAL)
 - **Use examples over exhaustive rules** (cite specific instances, not generic patterns)
