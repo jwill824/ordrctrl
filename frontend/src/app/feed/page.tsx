@@ -136,7 +136,7 @@ function FeedPageContent() {
                   key={mode}
                   type="button"
                   onClick={() => handleModeChange(mode)}
-                  className={`px-3 py-1 capitalize border-0 cursor-pointer transition-colors ${
+                  className={`px-3 py-1.5 capitalize border-0 cursor-pointer transition-colors ${
                     viewMode === mode
                       ? 'bg-black text-white'
                       : 'bg-transparent text-zinc-500 hover:text-black'
@@ -203,7 +203,7 @@ function FeedPageContent() {
       <div className={`flex-1 overflow-y-auto ${viewMode === 'week' ? 'overflow-x-auto' : 'overflow-x-hidden'} touch-pan-y`}>
         {/* Weekly view renders full-width outside the narrow main wrapper */}
         {!showDismissed && !loading && viewMode === 'week' && (
-          <div className="px-3 pt-4 pb-28">
+          <div className="px-3 pt-4 pb-[calc(7rem+env(safe-area-inset-bottom))]">
             <WeeklyPlannerView
               weekDays={weekDays}
               dayMap={dayMap}
@@ -215,7 +215,7 @@ function FeedPageContent() {
             />
           </div>
         )}
-        {viewMode !== 'week' && <main className="max-w-[40rem] w-full mx-auto px-5 pt-4 pb-28">
+        {viewMode !== 'week' && <main className="max-w-[40rem] w-full mx-auto px-5 pt-4 pb-[calc(7rem+env(safe-area-inset-bottom))]">
         {error && (
           <div className="border-l-2 border-red-500 py-1 pl-3 text-[0.8rem] text-red-600 mb-4">
             {error}

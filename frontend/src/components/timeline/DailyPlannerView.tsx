@@ -49,7 +49,7 @@ export function DailyPlannerView({
           <button
             type="button"
             onClick={() => onSourceFilterChange(null)}
-            className={`text-[0.65rem] font-bold uppercase tracking-[0.08em] px-2 py-0.5 border transition-colors ${
+            className={`text-[0.65rem] font-bold uppercase tracking-[0.08em] px-2 py-1 border transition-colors ${
               !sourceFilter
                 ? 'border-black bg-black text-white'
                 : 'border-zinc-200 bg-white text-zinc-500 hover:border-zinc-400'
@@ -62,7 +62,7 @@ export function DailyPlannerView({
               key={src}
               type="button"
               onClick={() => onSourceFilterChange(src)}
-              className={`text-[0.65rem] font-bold uppercase tracking-[0.08em] px-2 py-0.5 border transition-colors ${
+              className={`text-[0.65rem] font-bold uppercase tracking-[0.08em] px-2 py-1 border transition-colors ${
                 sourceFilter === src
                   ? 'border-black bg-black text-white'
                   : 'border-zinc-200 bg-white text-zinc-500 hover:border-zinc-400'

@@ -53,7 +53,7 @@ function DismissButton({ onDismiss }: { onDismiss: () => void }) {
         e.stopPropagation();
         onDismiss();
       }}
-      className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity flex-shrink-0 w-6 h-6 flex items-center justify-center text-zinc-300 hover:text-zinc-500 bg-transparent border-0 p-0 cursor-pointer"
+      className="focus:opacity-100 transition-opacity flex-shrink-0 w-6 h-6 flex items-center justify-center text-zinc-300 hover:text-zinc-500 bg-transparent border-0 p-0 cursor-pointer"
     >
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
         <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>

@@ -49,7 +49,7 @@ export function WeeklyPlannerView({
           <button
             type="button"
             onClick={() => onSourceFilterChange(null)}
-            className={`text-[0.65rem] font-bold uppercase tracking-[0.08em] px-2 py-0.5 border transition-colors ${
+            className={`text-[0.65rem] font-bold uppercase tracking-[0.08em] px-2 py-1 border transition-colors ${
               !sourceFilter
                 ? 'border-black bg-black text-white'
                 : 'border-zinc-200 bg-white text-zinc-500 hover:border-zinc-400'
@@ -62,7 +62,7 @@ export function WeeklyPlannerView({
               key={src}
               type="button"
               onClick={() => onSourceFilterChange(src)}
-              className={`text-[0.65rem] font-bold uppercase tracking-[0.08em] px-2 py-0.5 border transition-colors ${
+              className={`text-[0.65rem] font-bold uppercase tracking-[0.08em] px-2 py-1 border transition-colors ${
                 sourceFilter === src
                   ? 'border-black bg-black text-white'
                   : 'border-zinc-200 bg-white text-zinc-500 hover:border-zinc-400'
@@ -97,7 +97,7 @@ export function WeeklyPlannerView({
               <button
                 type="button"
                 onClick={() => onDayTap(day)}
-                className={`w-full text-center py-1 text-[0.65rem] leading-tight ${
+                className={`w-full text-center py-2 text-[0.65rem] leading-tight ${
                   today ? 'font-bold underline text-black' : 'text-zinc-500'
                 }`}
               >
@@ -116,7 +116,7 @@ export function WeeklyPlannerView({
                     className="absolute left-0 right-0 border-t border-zinc-100"
                     style={{ top: h * WEEKLY_HOUR_HEIGHT }}
                   >
-                    <span className="absolute left-0.5 top-[-0.55rem] text-[0.5rem] text-zinc-300 leading-none select-none">
+                    <span className="absolute left-0.5 top-[-0.55rem] text-[0.6rem] text-zinc-300 leading-none select-none">
                       {h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`}
                     </span>
                   </div>
