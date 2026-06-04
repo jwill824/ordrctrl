@@ -18,7 +18,9 @@ import { FeedEmptyState } from '@/components/feed/FeedEmptyState';
 import { AddTaskForm } from '@/components/tasks/AddTaskForm';
 import { EditTaskModal } from '@/components/tasks/EditTaskModal';
 import { AccountMenu } from '@/components/AccountMenu';
-import { TimelineView, DailyPlannerView } from '@/components/timeline';
+import { TimelineView, DailyPlannerView, WeeklyPlannerView } from '@/components/timeline';
+import { useWeeklyPlanner } from '@/hooks/useWeeklyPlanner';
+import { getWeekStart } from '@/utils/dateUtils';
 import type { FeedItem } from '@/services/feed.service';
 import type { TimelineViewMode } from '@/types/timeline';
 
@@ -65,8 +67,23 @@ function FeedPageContent() {
   // ── Timeline groups (T005) ────────────────────────────────────────────────
   const timelineGroups = useTimeline({ items, sourceFilter });
 
+  // ── Weekly planner state ──────────────────────────────────────────────────
+  const [plannerDate, setPlannerDate] = useState(() => new Date());
+  const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
+
+  const { dayMap, weekDays } = useWeeklyPlanner({ items, weekStart, sourceFilter });
+
+  const handleDayTap = (date: Date) => {
+    setPlannerDate(date);
+    handleModeChange('planner');
+  };
+
   // ── Planner timeline (T04) ────────────────────────────────────────────────
-  const { scheduled, unscheduled, now } = usePlannerTimeline({ items, sourceFilter });
+  const { scheduled, unscheduled, now } = usePlannerTimeline({
+    items,
+    sourceFilter,
+    targetDate: viewMode === 'planner' ? plannerDate : undefined,
+  });
 
   // ── Offline detection (T013) ──────────────────────────────────────────────
   const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
@@ -105,7 +122,7 @@ function FeedPageContent() {
           {/* Segmented control — Feed / Timeline / Planner */}
           {!showDismissed && (
             <div className="flex items-center rounded-full border border-zinc-200 overflow-hidden text-[0.65rem] font-semibold">
-              {(['feed', 'timeline', 'planner', 'list'] as TimelineViewMode[]).map((mode) => (
+              {(['feed', 'timeline', 'planner', 'list', 'week'] as TimelineViewMode[]).map((mode) => (
                 <button
                   key={mode}
                   type="button"
@@ -174,8 +191,22 @@ function FeedPageContent() {
       </header>
 
       {/* Main content */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden touch-pan-y">
-        <main className="max-w-[40rem] w-full mx-auto px-5 pt-4 pb-28">
+      <div className={`flex-1 overflow-y-auto ${viewMode === 'week' ? 'overflow-x-auto' : 'overflow-x-hidden'} touch-pan-y`}>
+        {/* Weekly view renders full-width outside the narrow main wrapper */}
+        {!showDismissed && !loading && viewMode === 'week' && (
+          <div className="px-3 pt-4 pb-28">
+            <WeeklyPlannerView
+              weekDays={weekDays}
+              dayMap={dayMap}
+              plannerDate={plannerDate}
+              onDayTap={handleDayTap}
+              sourceFilter={sourceFilter}
+              availableSources={availableSources}
+              onSourceFilterChange={setSourceFilter}
+            />
+          </div>
+        )}
+        {viewMode !== 'week' && <main className="max-w-[40rem] w-full mx-auto px-5 pt-4 pb-28">
         {error && (
           <div className="border-l-2 border-red-500 py-1 pl-3 text-[0.8rem] text-red-600 mb-4">
             {error}
@@ -313,7 +344,7 @@ function FeedPageContent() {
             <CompletedSection items={completed} onUncomplete={uncompleteItem} onClear={clearCompleted} />
           </>
         )}
-      </main>
+      </main>}
       </div>
 
       {/* FAB — Add task (normal feed only) */}
