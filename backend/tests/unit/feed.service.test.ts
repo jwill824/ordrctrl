@@ -465,6 +465,31 @@ describe('buildFeed() — dismissed items excluded', () => {
   });
 });
 
+// T03 — Native task startAt sorting
+describe('FeedService — native task startAt sorting', () => {
+  it('native task with startAt sorts correctly among dated items', () => {
+    const items: MockFeedItem[] = [
+      { id: 'event', source: 'Apple Calendar', itemType: 'event', title: 'All-hands', dueAt: null, startAt: '2026-06-05T10:00:00Z', endAt: null, completed: false, completedAt: null, isDuplicateSuspect: false },
+      { id: 'native-scheduled', source: 'ordrctrl', itemType: 'task', title: 'Stand-up', dueAt: null, startAt: '2026-06-05T09:00:00Z', endAt: '2026-06-05T09:30:00Z', completed: false, completedAt: null, isDuplicateSuspect: false },
+      { id: 'gmail-task', source: 'Gmail', itemType: 'task', title: 'Review PR', dueAt: '2026-06-05T11:00:00Z', startAt: null, endAt: null, completed: false, completedAt: null, isDuplicateSuspect: false },
+    ];
+
+    const sorted = sortFeedItems(items);
+    expect(sorted.map((i) => i.id)).toEqual(['native-scheduled', 'event', 'gmail-task']);
+  });
+
+  it('native task without startAt or dueAt falls into undated bucket', () => {
+    const items: MockFeedItem[] = [
+      { id: 'dated', source: 'Gmail', itemType: 'task', title: 'Dated', dueAt: '2026-06-05T09:00:00Z', startAt: null, endAt: null, completed: false, completedAt: null, isDuplicateSuspect: false },
+      { id: 'native-undated', source: 'ordrctrl', itemType: 'task', title: 'No time at all', dueAt: null, startAt: null, endAt: null, completed: false, completedAt: null, isDuplicateSuspect: false },
+    ];
+
+    const sorted = sortFeedItems(items);
+    expect(sorted[0].id).toBe('dated');
+    expect(sorted[1].id).toBe('native-undated');
+  });
+});
+
 // T006 — Unit tests for clearCompletedItems()
 import { clearCompletedItems } from '../../src/feed/feed.service.js';
 
