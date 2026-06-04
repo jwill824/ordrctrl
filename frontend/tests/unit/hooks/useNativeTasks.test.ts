@@ -32,7 +32,7 @@ describe('useNativeTasks', () => {
       await result.current.create('New task', '2025-08-01');
     });
 
-    expect(tasksService.createTask).toHaveBeenCalledWith('New task', '2025-08-01');
+    expect(tasksService.createTask).toHaveBeenCalledWith('New task', '2025-08-01', undefined, undefined);
     expect(onRefresh).toHaveBeenCalledOnce();
   });
 
@@ -45,7 +45,7 @@ describe('useNativeTasks', () => {
       await result.current.create('No due date');
     });
 
-    expect(tasksService.createTask).toHaveBeenCalledWith('No due date', undefined);
+    expect(tasksService.createTask).toHaveBeenCalledWith('No due date', undefined, undefined, undefined);
     expect(onRefresh).toHaveBeenCalledOnce();
   });
 

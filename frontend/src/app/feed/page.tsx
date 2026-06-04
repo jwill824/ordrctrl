@@ -16,6 +16,7 @@ import { CompletedSection } from '@/components/feed/CompletedSection';
 import { IntegrationErrorBanner } from '@/components/feed/IntegrationErrorBanner';
 import { FeedEmptyState } from '@/components/feed/FeedEmptyState';
 import { AddTaskForm } from '@/components/tasks/AddTaskForm';
+import { QuickCreateSheet } from '@/components/tasks/QuickCreateSheet';
 import { EditTaskModal } from '@/components/tasks/EditTaskModal';
 import { AccountMenu } from '@/components/AccountMenu';
 import { TimelineView, DailyPlannerView, WeeklyPlannerView } from '@/components/timeline';
@@ -34,6 +35,7 @@ function FeedPageContent() {
     permanentDeleteItem, setUserDueAt, setDescriptionOverride, setTitleOverride,
     undoToast, clearUndoToast,
     clearCompleted, clearedCount, clearClearedToast,
+    createScheduledTask,
   } = useFeed({ showDismissed });
   const { create, update, remove } = useNativeTasks(reloadFeed);
   const { inboxCount } = useInboxCount();
@@ -94,7 +96,14 @@ function FeedPageContent() {
     .at(-1) ?? null;
 
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showQuickCreate, setShowQuickCreate] = useState(false);
   const [editingTask, setEditingTask] = useState<FeedItem | null>(null);
+
+  const quickCreateDefaultStartAt = (() => {
+    const d = new Date();
+    d.setMinutes(Math.round(d.getMinutes() / 15) * 15, 0, 0);
+    return d.toISOString();
+  })();
 
   const hasIntegrations = Object.values(syncStatus).some(
     (s) => s.status === 'connected' || s.status === 'error'
@@ -347,11 +356,11 @@ function FeedPageContent() {
       </main>}
       </div>
 
-      {/* FAB — Add task (normal feed only) */}
-      {!showDismissed && !showAddForm && (
+      {/* FAB — Add task */}
+      {!showDismissed && !showAddForm && !showQuickCreate && (
         <button
           type="button"
-          onClick={() => setShowAddForm(true)}
+          onClick={() => viewMode === 'planner' ? setShowQuickCreate(true) : setShowAddForm(true)}
           aria-label="Add task"
           className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-6 w-12 h-12 bg-black border-0 cursor-pointer flex items-center justify-center shadow-lg z-20"
         >
@@ -359,6 +368,19 @@ function FeedPageContent() {
             <path d="M9 3v12M3 9h12"/>
           </svg>
         </button>
+      )}
+
+      {/* Quick-create sheet — planner mode only */}
+      {showQuickCreate && viewMode === 'planner' && (
+        <QuickCreateSheet
+          defaultStartAt={quickCreateDefaultStartAt}
+          defaultDuration={30}
+          onSubmit={async (title, startAt, duration) => {
+            await createScheduledTask(title, startAt, duration);
+            setShowQuickCreate(false);
+          }}
+          onCancel={() => setShowQuickCreate(false)}
+        />
       )}
 
       {/* Edit task modal */}
