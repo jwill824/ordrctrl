@@ -8,19 +8,25 @@ export interface NativeTask {
   itemType: 'task';
   title: string;
   dueAt: string | null;
-  startAt: null;
-  endAt: null;
+  startAt: string | null;
+  endAt: string | null;
+  duration: number | null;
   completed: boolean;
   completedAt: string | null;
   isDuplicateSuspect: false;
 }
 
-export async function createTask(title: string, dueAt?: string | null): Promise<NativeTask> {
+export async function createTask(
+  title: string,
+  dueAt?: string | null,
+  startAt?: string | null,
+  duration?: number | null
+): Promise<NativeTask> {
   const res = await fetch(`${API_URL}/api/tasks`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ title, dueAt: dueAt ?? null }),
+    body: JSON.stringify({ title, dueAt: dueAt ?? null, startAt: startAt ?? null, duration: duration ?? null }),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
@@ -31,7 +37,7 @@ export async function createTask(title: string, dueAt?: string | null): Promise<
 
 export async function updateTask(
   id: string,
-  fields: { title?: string; dueAt?: string | null }
+  fields: { title?: string; dueAt?: string | null; startAt?: string | null; duration?: number | null }
 ): Promise<NativeTask> {
   // Strip the "native:" prefix
   const rawId = id.replace('native:', '');

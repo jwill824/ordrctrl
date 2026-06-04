@@ -4,7 +4,7 @@ import { prisma } from '../lib/db.js';
 export interface UserSettings {
   autoClearEnabled: boolean;
   autoClearWindowDays: number;
-  feedViewMode?: 'feed' | 'timeline';
+  feedViewMode?: 'feed' | 'timeline' | 'planner';
 }
 
 const DEFAULTS: UserSettings = {
