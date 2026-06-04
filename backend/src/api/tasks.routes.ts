@@ -24,11 +24,15 @@ function requireAuth(request: FastifyRequest, reply: FastifyReply): string | nul
 const createTaskSchema = z.object({
   title: z.string().min(1).max(500),
   dueAt: z.string().datetime().optional().nullable(),
+  startAt: z.string().datetime().optional().nullable(),
+  duration: z.number().int().min(1).optional().nullable(),
 });
 
 const updateTaskSchema = z.object({
   title: z.string().min(1).max(500).optional(),
   dueAt: z.string().datetime().optional().nullable(),
+  startAt: z.string().datetime().optional().nullable(),
+  duration: z.number().int().min(1).optional().nullable(),
 });
 
 export async function registerTaskRoutes(app: FastifyInstance): Promise<void> {
@@ -45,10 +49,12 @@ export async function registerTaskRoutes(app: FastifyInstance): Promise<void> {
       });
     }
 
-    const { title, dueAt } = result.data;
+    const { title, dueAt, startAt, duration } = result.data;
     const task = await createTask(userId, {
       title,
       dueAt: dueAt ? new Date(dueAt) : null,
+      startAt: startAt ? new Date(startAt) : null,
+      duration: duration ?? null,
     });
 
     return reply.status(201).send(task);
@@ -71,12 +77,14 @@ export async function registerTaskRoutes(app: FastifyInstance): Promise<void> {
         });
       }
 
-      const { title, dueAt } = result.data;
+      const { title, dueAt, startAt, duration } = result.data;
 
       try {
         const task = await updateTask(userId, id, {
           ...(title !== undefined && { title }),
           ...(dueAt !== undefined && { dueAt: dueAt ? new Date(dueAt) : null }),
+          ...(startAt !== undefined && { startAt: startAt ? new Date(startAt) : null }),
+          ...(duration !== undefined && { duration: duration ?? null }),
         });
         return reply.send(task);
       } catch (err) {

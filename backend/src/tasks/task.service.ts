@@ -6,11 +6,15 @@ import { prisma } from '../lib/db.js';
 export interface CreateTaskInput {
   title: string;
   dueAt?: Date | null;
+  startAt?: Date | null;
+  duration?: number | null;
 }
 
 export interface UpdateTaskInput {
   title?: string;
   dueAt?: Date | null;
+  startAt?: Date | null;
+  duration?: number | null;
 }
 
 export interface NativeTaskResult {
@@ -19,8 +23,9 @@ export interface NativeTaskResult {
   itemType: 'task';
   title: string;
   dueAt: string | null;
-  startAt: null;
-  endAt: null;
+  startAt: string | null;
+  duration: number | null;
+  endAt: string | null;
   completed: boolean;
   completedAt: string | null;
   isDuplicateSuspect: false;
@@ -30,6 +35,8 @@ function toFeedItem(task: {
   id: string;
   title: string;
   dueAt: Date | null;
+  startAt: Date | null;
+  duration: number | null;
   completed: boolean;
   completedAt: Date | null;
 }): NativeTaskResult {
@@ -39,8 +46,11 @@ function toFeedItem(task: {
     itemType: 'task',
     title: task.title,
     dueAt: task.dueAt?.toISOString() ?? null,
-    startAt: null,
-    endAt: null,
+    startAt: task.startAt?.toISOString() ?? null,
+    duration: task.duration ?? null,
+    endAt: task.startAt && task.duration
+      ? new Date(task.startAt.getTime() + task.duration * 60000).toISOString()
+      : null,
     completed: task.completed,
     completedAt: task.completedAt?.toISOString() ?? null,
     isDuplicateSuspect: false,
@@ -56,6 +66,8 @@ export async function createTask(
       userId,
       title: input.title,
       dueAt: input.dueAt ?? null,
+      startAt: input.startAt ?? null,
+      duration: input.duration ?? null,
     },
   });
   return toFeedItem(task);
@@ -78,6 +90,8 @@ export async function updateTask(
     data: {
       ...(input.title !== undefined && { title: input.title }),
       ...(input.dueAt !== undefined && { dueAt: input.dueAt }),
+      ...(input.startAt !== undefined && { startAt: input.startAt }),
+      ...(input.duration !== undefined && { duration: input.duration }),
     },
   });
   return toFeedItem(task);

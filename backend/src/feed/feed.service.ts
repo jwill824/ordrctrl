@@ -139,8 +139,10 @@ export async function buildFeed(
     originalTitle: null,
     hasTitleOverride: false,
     dueAt: task.dueAt?.toISOString() ?? null,
-    startAt: null,
-    endAt: null,
+    startAt: task.startAt?.toISOString() ?? null,
+    endAt: task.startAt && task.duration
+      ? new Date(task.startAt.getTime() + task.duration * 60000).toISOString()
+      : null,
     completed: task.completed,
     completedAt: task.completedAt?.toISOString() ?? null,
     isDuplicateSuspect: false,
@@ -736,8 +738,10 @@ export async function buildDismissedFeed(userId: string): Promise<{ items: FeedI
     originalTitle: null,
     hasTitleOverride: false,
     dueAt: task.dueAt?.toISOString() ?? null,
-    startAt: null,
-    endAt: null,
+    startAt: task.startAt?.toISOString() ?? null,
+    endAt: task.startAt && task.duration
+      ? new Date(task.startAt.getTime() + task.duration * 60000).toISOString()
+      : null,
     completed: task.completed,
     completedAt: task.completedAt?.toISOString() ?? null,
     isDuplicateSuspect: false,
