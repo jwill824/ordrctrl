@@ -6,3 +6,5 @@ export { TimelineGroup } from './TimelineGroup';
 export { TimelineView } from './TimelineView';
 export { TimelineSwipeContainer } from './TimelineSwipeContainer';
 export { DailyPlannerView } from './DailyPlannerView';
+export { PlannerTimeBlock } from './PlannerTimeBlock';
+export { WeeklyPlannerView } from './WeeklyPlannerView';
