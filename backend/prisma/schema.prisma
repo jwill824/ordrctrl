@@ -138,6 +138,8 @@ model NativeTask {
   userId      String
   title       String    @db.VarChar(500)
   dueAt       DateTime?
+  startAt     DateTime?
+  duration    Int?
   completed   Boolean   @default(false)
   completedAt DateTime?
   dismissed   Boolean   @default(false)
@@ -148,6 +150,7 @@ model NativeTask {
 
   @@index([userId])
   @@index([userId, completed])
+  @@index([userId, startAt])
 }
 
 model SyncOverride {
