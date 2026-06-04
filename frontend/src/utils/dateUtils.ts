@@ -99,6 +99,28 @@ export function formatRelativeDay(iso: string, now: Date): string {
 }
 
 /**
+ * Returns the Monday 00:00:00 of the ISO week containing `date` (local time).
+ */
+export function getWeekStart(date: Date): Date {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  // getDay() returns 0=Sun, 1=Mon, ..., 6=Sat; ISO week starts Monday
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return d;
+}
+
+/**
+ * Returns a new Date offset by n calendar days from `date`.
+ */
+export function addDays(date: Date, n: number): Date {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
+}
+
+/**
  * Format a time portion from an ISO string using the local timezone.
  * Returns empty string for all-day events (no time to display).
  *
