@@ -7,6 +7,121 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id                  String         @id @default(uuid())
+  email               String         @unique
+  passwordHash        String?
+  authProvider        AuthProvider
+  providerAccountId   String?
+  emailVerified       Boolean        @default(false)
+  emailVerifyToken    String?
+  passwordResetToken  String?
+  passwordResetExpiry DateTime?
+  loginAttempts       Int            @default(0)
+  lockedUntil         DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  settings            Json?
+  integrations        Integration[]
+  nativeTasks         NativeTask[]
+  syncOverrides       SyncOverride[]
+
+  @@index([email])
+}
+
+model Integration {
+  id                      String               @id @default(uuid())
+  userId                  String
+  serviceId               ServiceId
+  status                  IntegrationStatus    @default(connected)
+  encryptedAccessToken    String
+  encryptedRefreshToken   String?
+  tokenExpiresAt          DateTime?
+  gmailSyncMode           GmailSyncMode?
+  lastSyncAt              DateTime?
+  lastSyncError           String?
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+  importEverything        Boolean              @default(true)
+  selectedSubSourceIds    String[]             @default([])
+  calendarEventWindowDays Int                  @default(30)
+  accountIdentifier       String
+  label                   String?
+  paused                  Boolean              @default(false)
+  gmailCompletionMode     GmailCompletionMode?
+  user                    User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  syncCacheItems          SyncCacheItem[]
+
+  @@unique([userId, serviceId, accountIdentifier])
+  @@index([userId])
+  @@index([status])
+}
+
+model SyncCacheItem {
+  id                  String         @id @default(uuid())
+  integrationId       String
+  userId              String
+  itemType            ItemType
+  externalId          String
+  title               String
+  dueAt               DateTime?
+  startAt             DateTime?
+  endAt               DateTime?
+  completedInOrdrctrl Boolean        @default(false)
+  completedAt         DateTime?
+  syncedAt            DateTime       @default(now())
+  expiresAt           DateTime
+  rawPayload          Json
+  completedAtSource   Boolean        @default(false)
+  pendingInbox        Boolean        @default(false)
+  userDueAt           DateTime?
+  body                String?
+  url                 String?
+  integration         Integration    @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  syncOverrides       SyncOverride[]
+
+  @@unique([integrationId, externalId])
+  @@index([userId])
+  @@index([userId, completedInOrdrctrl])
+  @@index([integrationId, completedAtSource])
+  @@index([expiresAt])
+  @@index([userId, pendingInbox])
+}
+
+model NativeTask {
+  id          String    @id @default(uuid())
+  userId      String
+  title       String    @db.VarChar(500)
+  dueAt       DateTime?
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  dismissed   Boolean   @default(false)
+  duration    Int?
+  startAt     DateTime?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, completed])
+  @@index([userId, startAt])
+}
+
+model SyncOverride {
+  id              String        @id @default(uuid())
+  userId          String
+  syncCacheItemId String
+  overrideType    OverrideType
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  value           String?
+  syncCacheItem   SyncCacheItem @relation(fields: [syncCacheItemId], references: [id], onDelete: Cascade)
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([syncCacheItemId, overrideType])
+  @@index([userId])
+}
+
 enum AuthProvider {
   email
   google
@@ -47,124 +162,4 @@ enum OverrideType {
   DISMISSED
   DESCRIPTION_OVERRIDE
   TITLE_OVERRIDE
-}
-
-model User {
-  id                  String    @id @default(uuid())
-  email               String    @unique
-  passwordHash        String?
-  authProvider        AuthProvider
-  providerAccountId   String?
-  emailVerified       Boolean   @default(false)
-  emailVerifyToken    String?
-  passwordResetToken  String?
-  passwordResetExpiry DateTime?
-  loginAttempts       Int       @default(0)
-  lockedUntil         DateTime?
-  settings            Json?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-
-  integrations  Integration[]
-  nativeTasks   NativeTask[]
-  syncOverrides SyncOverride[]
-
-  @@index([email])
-}
-
-model Integration {
-  id                    String            @id @default(uuid())
-  userId                String
-  serviceId             ServiceId
-  accountIdentifier     String
-  label                 String?
-  paused                Boolean           @default(false)
-  status                IntegrationStatus @default(connected)
-  encryptedAccessToken  String
-  encryptedRefreshToken String?
-  tokenExpiresAt        DateTime?
-  gmailSyncMode             GmailSyncMode?
-  gmailCompletionMode       GmailCompletionMode?
-  calendarEventWindowDays   Int            @default(30)
-  importEverything          Boolean        @default(true)
-  selectedSubSourceIds  String[]       @default([])
-  lastSyncAt            DateTime?
-  lastSyncError         String?
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
-
-  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  syncCacheItems SyncCacheItem[]
-
-  @@unique([userId, serviceId, accountIdentifier])
-  @@index([userId])
-  @@index([status])
-}
-
-model SyncCacheItem {
-  id                   String    @id @default(uuid())
-  integrationId        String
-  userId               String
-  itemType             ItemType
-  externalId           String
-  title                String
-  dueAt                DateTime?
-  startAt              DateTime?
-  endAt                DateTime?
-  completedInOrdrctrl  Boolean   @default(false)
-  completedAt          DateTime?
-  completedAtSource    Boolean   @default(false)
-  pendingInbox         Boolean   @default(false)
-  userDueAt            DateTime?
-  body                 String?
-  url                  String?
-  syncedAt             DateTime  @default(now())
-  expiresAt            DateTime
-  rawPayload           Json
-
-  integration Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
-  syncOverrides SyncOverride[]
-
-  @@unique([integrationId, externalId])
-  @@index([userId])
-  @@index([userId, completedInOrdrctrl])
-  @@index([integrationId, completedAtSource])
-  @@index([expiresAt])
-  @@index([userId, pendingInbox])
-}
-
-model NativeTask {
-  id          String    @id @default(uuid())
-  userId      String
-  title       String    @db.VarChar(500)
-  dueAt       DateTime?
-  startAt     DateTime?
-  duration    Int?
-  completed   Boolean   @default(false)
-  completedAt DateTime?
-  dismissed   Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([userId, completed])
-  @@index([userId, startAt])
-}
-
-model SyncOverride {
-  id              String       @id @default(uuid())
-  userId          String
-  syncCacheItemId String
-  overrideType    OverrideType
-  value           String?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  syncCacheItem SyncCacheItem @relation(fields: [syncCacheItemId], references: [id], onDelete: Cascade)
-
-  @@unique([syncCacheItemId, overrideType])
-  @@index([userId])
 }

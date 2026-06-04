@@ -5,8 +5,8 @@ import * as tasksService from '@/services/tasks.service';
 
 export function useNativeTasks(onRefresh: () => Promise<void>) {
   const create = useCallback(
-    async (title: string, dueAt?: string | null) => {
-      await tasksService.createTask(title, dueAt);
+    async (title: string, dueAt?: string | null, startAt?: string | null, duration?: number | null) => {
+      await tasksService.createTask(title, dueAt, startAt, duration);
       await onRefresh();
     },
     [onRefresh]

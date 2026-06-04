@@ -80,5 +80,6 @@ declare module '@fastify/session' {
   interface FastifySessionObject {
     userId?: string;
     gmailSyncMode?: string;
+    oauthState?: string;
   }
 }
