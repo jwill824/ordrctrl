@@ -6,7 +6,7 @@ import type { FeedItem } from '@/services/feed.service';
  * Which view the feed page is showing.
  * Persisted in UserSettings.feedViewMode.
  */
-export type TimelineViewMode = 'feed' | 'timeline' | 'planner';
+export type TimelineViewMode = 'feed' | 'timeline' | 'planner' | 'list';
 
 /**
  * Temporal bucket a feed item falls into.
