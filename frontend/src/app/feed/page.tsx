@@ -91,6 +91,7 @@ function FeedPageContent() {
   // Split active items into dated and undated sections (feed view)
   const datedItems = items.filter((i) => i.dueAt !== null);
   const undatedItems = items.filter((i) => i.dueAt === null);
+  const nativeItems = useMemo(() => items.filter((i) => i.id.startsWith('native:')), [items]);
 
   return (
     <div className="h-[100dvh] bg-white flex flex-col pt-[env(safe-area-inset-top)] overflow-hidden">
@@ -104,7 +105,7 @@ function FeedPageContent() {
           {/* Segmented control — Feed / Timeline / Planner */}
           {!showDismissed && (
             <div className="flex items-center rounded-full border border-zinc-200 overflow-hidden text-[0.65rem] font-semibold">
-              {(['feed', 'timeline', 'planner'] as TimelineViewMode[]).map((mode) => (
+              {(['feed', 'timeline', 'planner', 'list'] as TimelineViewMode[]).map((mode) => (
                 <button
                   key={mode}
                   type="button"
@@ -277,6 +278,17 @@ function FeedPageContent() {
                 />
               );
 
+              const listJsx = (
+                <FeedSection
+                  label="Tasks"
+                  items={nativeItems}
+                  emptyMessage="No tasks yet."
+                  onComplete={completeItem}
+                  onDismiss={dismissItem}
+                  onEdit={handleItemClick}
+                />
+              );
+
               if (viewMode === 'planner') {
                 return (
                   <DailyPlannerView
@@ -292,6 +304,8 @@ function FeedPageContent() {
                   />
                 );
               }
+
+              if (viewMode === 'list') return listJsx;
 
               return viewMode === 'timeline' ? timelineJsx : feedJsx;
             })()}
