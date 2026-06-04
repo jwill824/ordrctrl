@@ -6,6 +6,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import * as feedService from '@/services/feed.service';
 import type { FeedItem, FeedResponse } from '@/services/feed.service';
 import { NotificationService } from '@/plugins/notifications';
+import { createTask } from '@/services/tasks.service';
+import { nativeTaskToFeedItem } from '@/utils/feedItemUtils';
 
 export interface UndoToast {
   itemId: string;
@@ -35,6 +37,7 @@ interface UseFeedReturn {
   clearCompleted: () => Promise<void>;
   clearedCount: number | null;
   clearClearedToast: () => void;
+  createScheduledTask: (title: string, startAt: string, duration: number) => Promise<void>;
 }
 
 interface UseFeedOptions {
@@ -416,6 +419,51 @@ export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
     [reloadFeed]
   );
 
+  const createScheduledTask = useCallback(
+    async (title: string, startAt: string, duration: number) => {
+      const tempId = `optimistic:${Date.now()}`;
+      const endAt = new Date(new Date(startAt).getTime() + duration * 60_000).toISOString();
+      const optimisticItem: FeedItem = {
+        id: tempId,
+        source: 'ordrctrl',
+        serviceId: 'ordrctrl',
+        itemType: 'task',
+        title,
+        originalTitle: null,
+        hasTitleOverride: false,
+        dueAt: null,
+        startAt,
+        endAt,
+        completed: false,
+        completedAt: null,
+        isDuplicateSuspect: false,
+        dismissed: false,
+        hasUserDueAt: false,
+        originalBody: null,
+        description: null,
+        hasDescriptionOverride: false,
+        descriptionOverride: null,
+        descriptionUpdatedAt: null,
+        sourceUrl: null,
+      };
+
+      setData((prev) => ({ ...prev, items: [optimisticItem, ...prev.items] }));
+
+      try {
+        const task = await createTask(title, null, startAt, duration);
+        const realItem = nativeTaskToFeedItem(task);
+        setData((prev) => ({
+          ...prev,
+          items: [realItem, ...prev.items.filter((i) => i.id !== tempId)],
+        }));
+      } catch (err) {
+        setData((prev) => ({ ...prev, items: prev.items.filter((i) => i.id !== tempId) }));
+        throw err;
+      }
+    },
+    []
+  );
+
   return {
     items: data.items,
     completed: data.completed,
@@ -438,5 +486,6 @@ export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
     clearCompleted,
     clearedCount,
     clearClearedToast,
+    createScheduledTask,
   };
 }
