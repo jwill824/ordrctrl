@@ -124,21 +124,21 @@ This file is the explicit capability and coverage contract for milestone v1.1.
 
 | REQ-ID | Description | Phase | Status |
 |--------|-------------|-------|--------|
-| LAYOUT-01 | Block height proportional to duration | — | Pending |
-| LAYOUT-02 | Block position correct time offset | — | Pending |
-| LAYOUT-03 | Auto-scroll to current time on open | — | Pending |
-| DRAG-01 | Drag block to change startAt | — | Pending |
-| DRAG-02 | Drag bottom edge to resize duration | — | Pending |
-| DRAG-03 | Persist drag/resize on release | — | Pending |
-| DRAG-04 | Pointer events for touch + mouse | — | Pending |
-| EDIT-01 | Tap block opens pre-filled edit sheet | — | Pending |
-| EDIT-02 | Edit sheet saves optimistically | — | Pending |
-| QC-01 | Scroll-wheel time picker | — | Pending |
-| QC-02 | Duration stepper control | — | Pending |
-| WEEK-01 | Prev/next week navigation | — | Pending |
-| WEEK-02 | Today button in weekly view | — | Pending |
-| NAV-01 | 3-tab bottom navigation | — | Pending |
-| NAV-02 | Planner tab with Day/Week toggle | — | Pending |
-| NAV-03 | Inbox tab as task staging area | — | Pending |
-| NAV-04 | Integrations tab | — | Pending |
-| NAV-05 | Sidebar nav on desktop viewport | — | Pending |
+| LAYOUT-01 | Block height proportional to duration | Phase 08 | Pending |
+| LAYOUT-02 | Block position correct time offset | Phase 08 | Pending |
+| LAYOUT-03 | Auto-scroll to current time on open | Phase 08 | Pending |
+| DRAG-01 | Drag block to change startAt | Phase 09 | Pending |
+| DRAG-02 | Drag bottom edge to resize duration | Phase 09 | Pending |
+| DRAG-03 | Persist drag/resize on release | Phase 09 | Pending |
+| DRAG-04 | Pointer events for touch + mouse | Phase 09 | Pending |
+| EDIT-01 | Tap block opens pre-filled edit sheet | Phase 10 | Pending |
+| EDIT-02 | Edit sheet saves optimistically | Phase 10 | Pending |
+| QC-01 | Scroll-wheel time picker | Phase 10 | Pending |
+| QC-02 | Duration stepper control | Phase 10 | Pending |
+| WEEK-01 | Prev/next week navigation | Phase 11 | Pending |
+| WEEK-02 | Today button in weekly view | Phase 11 | Pending |
+| NAV-01 | 3-tab bottom navigation | Phase 07 | Pending |
+| NAV-02 | Planner tab with Day/Week toggle | Phase 07 | Pending |
+| NAV-03 | Inbox tab as task staging area | Phase 07 | Pending |
+| NAV-04 | Integrations tab | Phase 07 | Pending |
+| NAV-05 | Sidebar nav on desktop viewport | Phase 07 | Pending |

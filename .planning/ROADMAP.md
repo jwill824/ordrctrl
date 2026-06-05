@@ -3,6 +3,7 @@
 ## Milestones
 
 - ✅ **v1.0 Timeline Visual Planner** — Phases 01–06 (shipped 2026-06-05)
+- 🚧 **v1.1 Timeline & Planner UX Polish** — Phases 07–11 (in progress)
 
 ## Phases
 
@@ -20,9 +21,77 @@ See: `.planning/milestones/v1.0-ROADMAP.md`
 
 </details>
 
+## 🚧 v1.1 Timeline & Planner UX Polish
+
+- [ ] **Phase 07: Navigation Restructure** — Replace 5-tab segmented control with 3-tab bottom nav (Planner | Inbox | Integrations) and responsive sidebar on desktop
+- [ ] **Phase 08: Timeline Layout Correctness** — Fix block height proportionality, time-axis positioning, and auto-scroll to current time on open
+- [ ] **Phase 09: Drag to Reschedule** — Drag blocks to change startAt, drag bottom edge to resize duration, with pointer-event unification and backend persist
+- [ ] **Phase 10: Tap to Edit + Quick-Create UX** — Tap-to-edit bottom sheet, scroll-wheel time picker, duration stepper
+- [ ] **Phase 11: Weekly View Navigation** — Prev/next week controls and Today button in the weekly planner view
+
+## Phase Details
+
+### Phase 07: Navigation Restructure
+**Goal**: Users navigate the app via a native-feeling 3-tab structure that scales from mobile bottom bar to desktop sidebar
+**Depends on**: Nothing (restructures existing shell)
+**Requirements**: NAV-01, NAV-02, NAV-03, NAV-04, NAV-05
+**Success Criteria** (what must be TRUE):
+  1. On mobile, a bottom tab bar with three tabs (Planner, Inbox, Integrations) replaces the old segmented control as primary navigation
+  2. Planner tab shows the daily timeline by default, with a Day / Week toggle inside the tab header
+  3. Inbox tab shows unscheduled native tasks and integration items, and lets the user add a date to push any item into the Planner
+  4. Integrations tab shows connected accounts (Gmail, Microsoft, Apple Calendar) and their sync status
+  5. On desktop (≥768px) the bottom tabs are replaced by a left sidebar with the same three destinations
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 08: Timeline Layout Correctness
+**Goal**: The daily timeline accurately represents every task's duration and time position as a spatial fact
+**Depends on**: Phase 07
+**Requirements**: LAYOUT-01, LAYOUT-02, LAYOUT-03
+**Success Criteria** (what must be TRUE):
+  1. A 30-minute task block is visibly half the height of a 1-hour task block on the same timeline
+  2. A task scheduled at 9:00 AM appears at the 9 AM mark on the time axis — not offset, not approximate
+  3. Opening the planner scrolls the viewport automatically to center the current time without any user gesture
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 09: Drag to Reschedule
+**Goal**: Users can reschedule and resize tasks directly on the timeline by dragging, on both mobile and desktop
+**Depends on**: Phase 08
+**Requirements**: DRAG-01, DRAG-02, DRAG-03, DRAG-04
+**Success Criteria** (what must be TRUE):
+  1. Dragging a task block vertically repositions it on the timeline with 15-minute snap intervals visible during the drag
+  2. Dragging the bottom edge of a block extends or shrinks its duration in 15-minute increments
+  3. Releasing a drag or resize updates the timeline instantly (optimistic) and saves to the backend; a server error reverts the block to its original position
+  4. Both interactions work identically via touch on mobile (Capacitor) and mouse on desktop (Tauri) through unified pointer event handlers
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 10: Tap to Edit + Quick-Create UX
+**Goal**: Users can edit any scheduled task inline and create tasks with a polished mobile-native time and duration input
+**Depends on**: Phase 09
+**Requirements**: EDIT-01, EDIT-02, QC-01, QC-02
+**Success Criteria** (what must be TRUE):
+  1. A short tap on a task block (not initiated as a drag) opens a bottom sheet pre-filled with that task's title, start time, and duration
+  2. Saving from the edit sheet updates the task in the timeline immediately and syncs to the backend, reverting on failure
+  3. Time input in both the create and edit sheets presents a scroll-wheel picker (hour column and minute column) rather than a text field
+  4. Duration input shows a stepper control with + and − buttons in 15-minute increments and a live label of the selected duration
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 11: Weekly View Navigation
+**Goal**: Users can navigate the weekly planner to any week — past or future — and return to today in one tap
+**Depends on**: Phase 07
+**Requirements**: WEEK-01, WEEK-02
+**Success Criteria** (what must be TRUE):
+  1. The weekly view has visible prev and next controls; tapping each moves the view back or forward by exactly one week
+  2. A "Today" button is always visible in the weekly view and returns the user to the current week from any offset in a single tap
+**Plans**: TBD
+**UI hint**: yes
+
 ## Progress
 
-| Phase | Milestone | Plans | Status | Completed |
+| Phase | Milestone | Plans Complete | Status | Completed |
 |---|---|---|---|---|
 | 01: Schedulable Task Backend | v1.0 | 3/3 | Complete | 2026-06-04 |
 | 02: Daily Timeline View | v1.0 | 5/5 | Complete | 2026-06-04 |
@@ -30,3 +99,8 @@ See: `.planning/milestones/v1.0-ROADMAP.md`
 | 04: Weekly Horizontal-Scroll View | v1.0 | 5/5 | Complete | 2026-06-04 |
 | 05: Quick-Create on Timeline | v1.0 | 4/4 | Complete | 2026-06-04 |
 | 06: Polish and Cross-Platform Verification | v1.0 | 2/2 | Complete | 2026-06-04 |
+| 07: Navigation Restructure | v1.1 | 0/TBD | Not started | — |
+| 08: Timeline Layout Correctness | v1.1 | 0/TBD | Not started | — |
+| 09: Drag to Reschedule | v1.1 | 0/TBD | Not started | — |
+| 10: Tap to Edit + Quick-Create UX | v1.1 | 0/TBD | Not started | — |
+| 11: Weekly View Navigation | v1.1 | 0/TBD | Not started | — |
