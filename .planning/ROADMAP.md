@@ -23,7 +23,7 @@ See: `.planning/milestones/v1.0-ROADMAP.md`
 
 ## 🚧 v1.1 Timeline & Planner UX Polish
 
-- [ ] **Phase 07: Navigation Restructure** — Replace 5-tab segmented control with 3-tab bottom nav (Planner | Inbox | Integrations) and responsive sidebar on desktop
+- [x] **Phase 07: Navigation Restructure** — Replace 5-tab segmented control with 3-tab bottom nav (Planner | Inbox | Integrations) and responsive sidebar on desktop
 - [ ] **Phase 08: Timeline Layout Correctness** — Fix block height proportionality, time-axis positioning, and auto-scroll to current time on open
 - [ ] **Phase 09: Drag to Reschedule** — Drag blocks to change startAt, drag bottom edge to resize duration, with pointer-event unification and backend persist
 - [ ] **Phase 10: Tap to Edit + Quick-Create UX** — Tap-to-edit bottom sheet, scroll-wheel time picker, duration stepper
@@ -99,7 +99,7 @@ See: `.planning/milestones/v1.0-ROADMAP.md`
 | 04: Weekly Horizontal-Scroll View | v1.0 | 5/5 | Complete | 2026-06-04 |
 | 05: Quick-Create on Timeline | v1.0 | 4/4 | Complete | 2026-06-04 |
 | 06: Polish and Cross-Platform Verification | v1.0 | 2/2 | Complete | 2026-06-04 |
-| 07: Navigation Restructure | v1.1 | 0/TBD | Not started | — |
+| 07: Navigation Restructure | v1.1 | 2/2 | Complete | 2026-06-05 |
 | 08: Timeline Layout Correctness | v1.1 | 0/TBD | Not started | — |
 | 09: Drag to Reschedule | v1.1 | 0/TBD | Not started | — |
 | 10: Tap to Edit + Quick-Create UX | v1.1 | 0/TBD | Not started | — |
