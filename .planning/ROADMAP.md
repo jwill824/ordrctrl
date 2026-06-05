@@ -24,10 +24,11 @@ See: `.planning/milestones/v1.0-ROADMAP.md`
 ## 🚧 v1.1 Timeline & Planner UX Polish
 
 - [x] **Phase 07: Navigation Restructure** — Replace 5-tab segmented control with 3-tab bottom nav (Planner | Inbox | Integrations) and responsive sidebar on desktop
-- [ ] **Phase 08: Timeline Layout Correctness** — Fix block height proportionality, time-axis positioning, and auto-scroll to current time on open
+- [x] **Phase 08: Timeline Layout Correctness** — Fix block height proportionality, time-axis positioning, and auto-scroll to current time on open
 - [ ] **Phase 09: Drag to Reschedule** — Drag blocks to change startAt, drag bottom edge to resize duration, with pointer-event unification and backend persist
 - [ ] **Phase 10: Tap to Edit + Quick-Create UX** — Tap-to-edit bottom sheet, scroll-wheel time picker, duration stepper
 - [ ] **Phase 11: Weekly View Navigation** — Prev/next week controls and Today button in the weekly planner view
+- [ ] **Phase 12: Timeline Visual Polish** — Structured-style per-task color coding, task icons, block elevation, and smooth animations
 
 ## Phase Details
 
@@ -89,6 +90,19 @@ See: `.planning/milestones/v1.0-ROADMAP.md`
 **Plans**: TBD
 **UI hint**: yes
 
+### Phase 12: Timeline Visual Polish
+**Goal**: Timeline blocks feel visually alive and distinct — Structured-style color coding, task icons, elevation, and motion
+**Depends on**: Phase 08
+**Requirements**: VIS-01, VIS-02, VIS-03, VIS-04, VIS-05
+**Success Criteria** (what must be TRUE):
+  1. Each task has an associated color; blocks render with a semi-transparent fill and a solid left accent in that color
+  2. A task's color can be set from a palette in the edit/create sheet; a default color is assigned on creation
+  3. Task blocks optionally display an emoji/icon prefix before the title
+  4. Blocks have a subtle drop shadow that elevates them off the timeline grid
+  5. Block position and height changes (from drag or save) animate smoothly with a short CSS transition
+**Plans**: TBD
+**UI hint**: yes
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -100,7 +114,8 @@ See: `.planning/milestones/v1.0-ROADMAP.md`
 | 05: Quick-Create on Timeline | v1.0 | 4/4 | Complete | 2026-06-04 |
 | 06: Polish and Cross-Platform Verification | v1.0 | 2/2 | Complete | 2026-06-04 |
 | 07: Navigation Restructure | v1.1 | 2/2 | Complete | 2026-06-05 |
-| 08: Timeline Layout Correctness | v1.1 | 0/TBD | Not started | — |
+| 08: Timeline Layout Correctness | v1.1 | 1/1 | Complete | 2026-06-05 |
 | 09: Drag to Reschedule | v1.1 | 0/TBD | Not started | — |
 | 10: Tap to Edit + Quick-Create UX | v1.1 | 0/TBD | Not started | — |
 | 11: Weekly View Navigation | v1.1 | 0/TBD | Not started | — |
+| 12: Timeline Visual Polish | v1.1 | 0/TBD | Not started | — |

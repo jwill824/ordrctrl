@@ -67,6 +67,33 @@ This file is the explicit capability and coverage contract for milestone v1.1.
   - Why it matters: Duration is always a small set of values (15, 30, 45, 60 min…) — a stepper is more efficient than a text field or dropdown
   - Source: user
 
+### VIS — Timeline Visual Polish
+
+- [ ] **VIS-01** — Each task block renders with a semi-transparent fill and a 3px left accent in the task's assigned color
+  - Class: primary-user-loop
+  - Why it matters: Color-coded blocks are the primary visual differentiator of Structured — they let users scan the day at a glance and recognize task categories without reading titles
+  - Source: user
+
+- [ ] **VIS-02** — Each task has a `color` field (hex string); users can set it from a color palette in the create/edit sheet; new tasks receive a default color
+  - Class: core-capability
+  - Why it matters: Colors must be persistent and user-controlled — a random per-render color would be noise, not signal
+  - Source: user
+
+- [ ] **VIS-03** — Task blocks optionally display an emoji or short icon prefix before the title when the task has an `icon` field set
+  - Class: secondary
+  - Why it matters: Icons reinforce category at a glance, matching the Structured pattern of glanceable visual density
+  - Source: user
+
+- [ ] **VIS-04** — Task blocks have a subtle drop shadow (e.g. `shadow-sm`) that visually elevates them above the timeline grid
+  - Class: secondary
+  - Why it matters: Elevation separates foreground (tasks) from background (grid lines), reducing visual noise
+  - Source: user
+
+- [ ] **VIS-05** — Block position and height changes animate with a 150ms ease CSS transition so drag snaps and edits feel fluid rather than instant
+  - Class: secondary
+  - Why it matters: Smooth motion is a key Structured quality — abrupt jumps break immersion and make the UI feel unpolished
+  - Source: user
+
 ### WEEK — Weekly View Navigation
 
 - [ ] **WEEK-01** — Weekly view has prev/next navigation controls to move between weeks
@@ -137,6 +164,11 @@ This file is the explicit capability and coverage contract for milestone v1.1.
 | QC-02 | Duration stepper control | Phase 10 | Pending |
 | WEEK-01 | Prev/next week navigation | Phase 11 | Pending |
 | WEEK-02 | Today button in weekly view | Phase 11 | Pending |
+| VIS-01 | Color-coded block fill + left accent | Phase 12 | Pending |
+| VIS-02 | Task color field + palette picker | Phase 12 | Pending |
+| VIS-03 | Emoji/icon prefix on blocks | Phase 12 | Pending |
+| VIS-04 | Drop shadow on task blocks | Phase 12 | Pending |
+| VIS-05 | 150ms CSS transition on block changes | Phase 12 | Pending |
 | NAV-01 | 3-tab bottom navigation | Phase 07 | Pending |
 | NAV-02 | Planner tab with Day/Week toggle | Phase 07 | Pending |
 | NAV-03 | Inbox tab as task staging area | Phase 07 | Pending |

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Timeline & Planner UX Polish
 status: in_progress
-last_updated: "2026-06-05T15:02:00Z"
+last_updated: "2026-06-05T16:45:00Z"
 last_activity: 2026-06-05
 progress:
-  total_phases: 5
-  completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
-  percent: 20
+  total_phases: 6
+  completed_phases: 2
+  total_plans: 3
+  completed_plans: 3
+  percent: 33
 ---
 
 # Project State
@@ -19,13 +19,14 @@ progress:
 
 See: .planning/PROJECT.md
 
-**Current focus:** Phase 08 — Timeline Layout Correctness (next up)
+**Current focus:** Phase 09 — Drag to Reschedule (next up)
 
 ## Current Position
 
 Phase: 07 — Navigation Restructure ✅ COMPLETE
-Phase: 08 — Timeline Layout Correctness (not started)
-Last activity: 2026-06-05 — Phase 07 human-verified and approved
+Phase: 08 — Timeline Layout Correctness ✅ COMPLETE
+Phase: 09 — Drag to Reschedule (not started)
+Last activity: 2026-06-05 — Phase 08 human-verified and approved
 
 ## Accumulated Context
 
@@ -35,7 +36,9 @@ Migrated from GSD-2. Review PROJECT.md for key decisions.
 
 07-01: AppShell with BottomTabBar (mobile) + Sidebar (desktop) — nested routes wired in App.tsx; 3 tabs: Planner (/feed), Inbox (/inbox), Integrations (/settings/integrations).
 
-07-02: Narrowed FeedPage viewMode to PlannerViewMode (planner|week); legacy feed/timeline/list values default to planner. Day/Week pill toggle replaces 5-mode segmented control. FAB/toast offsets use calc(5rem+safe-area) md:bottom-6 to clear 56px tab bar.
+08-01: PX_PER_HOUR raised to 80 (from 64) in timelineConstants.ts. DailyPlannerView imports from constants. 30-min tasks without endAt now scheduled with 30-min default in usePlannerTimeline. Block styling updated to bg-blue-50 / border-blue-500 for contrast.
+
+08-02: Phase 12 (Timeline Visual Polish) added to roadmap for Structured-style per-task colors, icons, and block elevation.
 
 ### Known Gaps (planned in later phases)
 
