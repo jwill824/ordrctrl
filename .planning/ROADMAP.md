@@ -25,7 +25,7 @@ See: `.planning/milestones/v1.0-ROADMAP.md`
 
 - [x] **Phase 07: Navigation Restructure** — Replace 5-tab segmented control with 3-tab bottom nav (Planner | Inbox | Integrations) and responsive sidebar on desktop
 - [x] **Phase 08: Timeline Layout Correctness** — Fix block height proportionality, time-axis positioning, and auto-scroll to current time on open
-- [ ] **Phase 09: Drag to Reschedule** — Drag blocks to change startAt, drag bottom edge to resize duration, with pointer-event unification and backend persist
+- [x] **Phase 09: Drag to Reschedule** — Drag blocks to change startAt, drag bottom edge to resize duration, with pointer-event unification and backend persist
 - [ ] **Phase 10: Tap to Edit + Quick-Create UX** — Tap-to-edit bottom sheet, scroll-wheel time picker, duration stepper
 - [ ] **Phase 11: Weekly View Navigation** — Prev/next week controls and Today button in the weekly planner view
 - [ ] **Phase 12: Timeline Visual Polish** — Structured-style per-task color coding, task icons, block elevation, and smooth animations
@@ -68,9 +68,9 @@ See: `.planning/milestones/v1.0-ROADMAP.md`
   4. Both interactions work identically via touch on mobile (Capacitor) and mouse on desktop (Tauri) through unified pointer event handlers
 **Plans**: 5 plans
 Plans:
-- [ ] 09-01-PLAN.md — Write RED tests for useDragToReschedule and DraggableTimeBlock; update DailyPlannerView Test G
-- [ ] 09-02-PLAN.md — Add timelineConstants, expand useNativeTasks.update, implement useDragToReschedule hook (GREEN)
-- [ ] 09-03-PLAN.md — Implement DraggableTimeBlock component with all 6 drag states and resize handle (GREEN)
+- [x] 09-01-PLAN.md — Write RED tests for useDragToReschedule and DraggableTimeBlock; update DailyPlannerView Test G
+- [x] 09-02-PLAN.md — Add timelineConstants, expand useNativeTasks.update, implement useDragToReschedule hook (GREEN)
+- [x] 09-03-PLAN.md — Implement DraggableTimeBlock component with all 6 drag states and resize handle (GREEN)
 - [ ] 09-04-PLAN.md — Wire DailyPlannerView + feed/page.tsx integration (handleReschedule, handleResize, touchAction toggle)
 - [ ] 09-05-PLAN.md — Human verify: drag-move, drag-resize, revert animation, tap disambiguation, sync-item no-op
 **UI hint**: yes
@@ -135,7 +135,7 @@ Plans:
 | 06: Polish and Cross-Platform Verification | v1.0 | 2/2 | Complete | 2026-06-04 |
 | 07: Navigation Restructure | v1.1 | 2/2 | Complete | 2026-06-05 |
 | 08: Timeline Layout Correctness | v1.1 | 1/1 | Complete | 2026-06-05 |
-| 09: Drag to Reschedule | v1.1 | 0/TBD | Not started | — |
+| 09: Drag to Reschedule | v1.1 | 5/5 | Complete | — |
 | 10: Tap to Edit + Quick-Create UX | v1.1 | 0/TBD | Not started | — |
 | 11: Weekly View Navigation | v1.1 | 0/TBD | Not started | — |
 | 12: Timeline Visual Polish | v1.1 | 0/TBD | Not started | — |
