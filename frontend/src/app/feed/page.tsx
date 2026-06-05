@@ -6,9 +6,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Suspense } from 'react';
 import { useFeed } from '@/hooks/useFeed';
-import { useTimeline } from '@/hooks/useTimeline';
 import { useNativeTasks } from '@/hooks/useNativeTasks';
-import { useInboxCount } from '@/hooks/useInboxCount';
 import { getUserSettings, updateUserSettings } from '@/services/user.service';
 import { usePlannerTimeline } from '@/hooks/usePlannerTimeline';
 import { FeedSection } from '@/components/feed/FeedSection';
@@ -18,12 +16,13 @@ import { FeedEmptyState } from '@/components/feed/FeedEmptyState';
 import { AddTaskForm } from '@/components/tasks/AddTaskForm';
 import { QuickCreateSheet } from '@/components/tasks/QuickCreateSheet';
 import { EditTaskModal } from '@/components/tasks/EditTaskModal';
-import { AccountMenu } from '@/components/AccountMenu';
-import { TimelineView, DailyPlannerView, WeeklyPlannerView } from '@/components/timeline';
+import { DailyPlannerView, WeeklyPlannerView } from '@/components/timeline';
 import { useWeeklyPlanner } from '@/hooks/useWeeklyPlanner';
 import { getWeekStart } from '@/utils/dateUtils';
 import type { FeedItem } from '@/services/feed.service';
 import type { TimelineViewMode } from '@/types/timeline';
+
+type PlannerViewMode = Extract<TimelineViewMode, 'planner' | 'week'>;
 
 function FeedPageContent() {
   const [searchParams] = useSearchParams();
@@ -31,16 +30,15 @@ function FeedPageContent() {
 
   const {
     items, completed, syncStatus, loading, refreshing, error,
-    refresh, reloadFeed, completeItem, uncompleteItem, dismissItem, restoreItem,
+    reloadFeed, completeItem, uncompleteItem, dismissItem, restoreItem,
     permanentDeleteItem, setUserDueAt, setDescriptionOverride, setTitleOverride,
     undoToast, clearUndoToast,
     clearCompleted, clearedCount, clearClearedToast,
     createScheduledTask,
   } = useFeed({ showDismissed });
   const { create, update, remove } = useNativeTasks(reloadFeed);
-  const { inboxCount } = useInboxCount();
   // ── View mode (T010) ──────────────────────────────────────────────────────
-  const [viewMode, setViewMode] = useState<TimelineViewMode>('feed');
+  const [viewMode, setViewMode] = useState<PlannerViewMode>('planner');
   const settingsLoadedRef = useRef(false);
 
   useEffect(() => {
@@ -48,12 +46,14 @@ function FeedPageContent() {
     settingsLoadedRef.current = true;
     getUserSettings()
       .then((s) => {
-        if (s.feedViewMode) setViewMode(s.feedViewMode);
+        const stored = s.feedViewMode;
+        if (stored === 'planner' || stored === 'week') setViewMode(stored);
+        // handles legacy 'feed'/'timeline'/'list' values — defaults to 'planner'
       })
-      .catch(() => {/* silently default to 'feed' */});
+      .catch(() => {/* silently default to 'planner' */});
   }, []);
 
-  const handleModeChange = (mode: TimelineViewMode) => {
+  const handleModeChange = (mode: PlannerViewMode) => {
     setViewMode(mode);
     updateUserSettings({ feedViewMode: mode }).catch(() => {/* best-effort */});
   };
@@ -65,9 +65,6 @@ function FeedPageContent() {
     const ids = new Set(items.map((i) => i.serviceId));
     return Array.from(ids).sort();
   }, [items]);
-
-  // ── Timeline groups (T005) ────────────────────────────────────────────────
-  const timelineGroups = useTimeline({ items, sourceFilter });
 
   // ── Weekly planner state ──────────────────────────────────────────────────
   const [plannerDate, setPlannerDate] = useState(() => new Date());
@@ -86,14 +83,6 @@ function FeedPageContent() {
     sourceFilter,
     targetDate: viewMode === 'planner' ? plannerDate : undefined,
   });
-
-  // ── Offline detection (T013) ──────────────────────────────────────────────
-  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
-  const lastSyncAt = Object.values(syncStatus)
-    .map((s) => s.lastSyncAt)
-    .filter(Boolean)
-    .sort()
-    .at(-1) ?? null;
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [showQuickCreate, setShowQuickCreate] = useState(false);
@@ -114,96 +103,31 @@ function FeedPageContent() {
     setEditingTask(item);
   };
 
-  // Split active items into dated and undated sections (feed view)
-  const datedItems = items.filter((i) => i.dueAt !== null);
-  const undatedItems = items.filter((i) => i.dueAt === null);
-  const nativeItems = useMemo(() => items.filter((i) => i.id.startsWith('native:')), [items]);
-
   return (
-    <div className="h-[100dvh] bg-white flex flex-col pt-[env(safe-area-inset-top)] overflow-hidden">
-      {/* Top nav */}
-      <header className="border-b border-zinc-100 px-5 h-12 flex items-center justify-between flex-shrink-0 bg-white z-10">
-        <span className="text-[0.65rem] font-bold tracking-[0.28em] uppercase text-black">
-          ordrctrl
-        </span>
-
-        <div className="flex items-center gap-3">
-          {/* Segmented control — Feed / Timeline / Planner */}
-          {!showDismissed && (
-            <div className="flex items-center rounded-full border border-zinc-200 overflow-hidden text-[0.65rem] font-semibold">
-              {(['feed', 'timeline', 'planner', 'list', 'week'] as TimelineViewMode[]).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => handleModeChange(mode)}
-                  className={`px-3 py-1.5 capitalize border-0 cursor-pointer transition-colors ${
-                    viewMode === mode
-                      ? 'bg-black text-white'
-                      : 'bg-transparent text-zinc-500 hover:text-black'
-                  }`}
-                >
-                  {mode.charAt(0).toUpperCase() + mode.slice(1)}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {inboxCount > 0 ? (
-            <Link to="/inbox"
-              aria-label={`Inbox — ${inboxCount} item${inboxCount !== 1 ? 's' : ''}`}
-              className="relative bg-transparent border-0 p-1 flex items-center cursor-pointer text-zinc-500 no-underline"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M4 4h16v12H4z" />
-                <path d="M4 16l4-4h8l4 4" />
-              </svg>
-              <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-black text-white text-[0.5rem] font-bold rounded-full flex items-center justify-center leading-none">
-                {inboxCount > 9 ? '9+' : inboxCount}
-              </span>
-            </Link>
-          ) : (
+    <>
+      {/* Day/Week sub-header toggle */}
+      {!showDismissed && (
+        <div className="flex items-center justify-center h-11 border-b border-zinc-100 flex-shrink-0 bg-white">
+          <div className="flex items-center rounded-full border border-zinc-200 overflow-hidden text-[0.65rem] font-semibold">
             <button
               type="button"
-              onClick={refresh}
-              disabled={refreshing}
-              aria-label="Refresh feed"
-              className="relative bg-transparent border-0 p-1 flex items-center cursor-pointer text-zinc-500 disabled:cursor-default"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={refreshing ? 'animate-spin' : ''}
-              >
-                <path d="M13.5 2.5A7 7 0 1 0 14.5 9"/>
-                <path d="M14.5 2.5v4h-4"/>
-              </svg>
-            </button>
-          )}
-
-          <AccountMenu />
+              className={`px-4 py-1.5 border-0 cursor-pointer transition-colors ${viewMode === 'planner' ? 'bg-black text-white' : 'bg-transparent text-zinc-500 hover:text-black'}`}
+              onClick={() => setViewMode('planner')}
+            >Day</button>
+            <button
+              type="button"
+              className={`px-4 py-1.5 border-0 cursor-pointer transition-colors ${viewMode === 'week' ? 'bg-black text-white' : 'bg-transparent text-zinc-500 hover:text-black'}`}
+              onClick={() => setViewMode('week')}
+            >Week</button>
+          </div>
         </div>
-      </header>
+      )}
 
       {/* Main content */}
       <div className={`flex-1 overflow-y-auto ${viewMode === 'week' ? 'overflow-x-auto' : 'overflow-x-hidden'} touch-pan-y`}>
         {/* Weekly view renders full-width outside the narrow main wrapper */}
         {!showDismissed && !loading && viewMode === 'week' && (
-          <div className="px-3 pt-4 pb-[calc(7rem+env(safe-area-inset-bottom))]">
+          <div className="px-3 pt-4 pb-4">
             <WeeklyPlannerView
               weekDays={weekDays}
               dayMap={dayMap}
@@ -215,7 +139,7 @@ function FeedPageContent() {
             />
           </div>
         )}
-        {viewMode !== 'week' && <main className="max-w-[40rem] w-full mx-auto px-5 pt-4 pb-[calc(7rem+env(safe-area-inset-bottom))]">
+        {viewMode !== 'week' && <main className="max-w-[40rem] w-full mx-auto px-5 pt-4 pb-4">
         {error && (
           <div className="border-l-2 border-red-500 py-1 pl-3 text-[0.8rem] text-red-600 mb-4">
             {error}
@@ -277,78 +201,24 @@ function FeedPageContent() {
           />
         )}
 
-        {/* Normal feed view */}
+        {/* Normal planner view */}
         {!showDismissed && !loading && (
           <>
             {isEmpty && <FeedEmptyState hasIntegrations={hasIntegrations} />}
 
-            {items.length > 0 && (() => {
-              // Shared feed JSX
-              const feedJsx = (
-                <>
-                  <FeedSection
-                    label="Upcoming"
-                    items={datedItems}
-                    onComplete={completeItem}
-                    onDismiss={dismissItem}
-                    onEdit={handleItemClick}
-                  />
-                  <FeedSection
-                    label="No Date"
-                    items={undatedItems}
-                    onComplete={completeItem}
-                    onDismiss={dismissItem}
-                    onEdit={handleItemClick}
-                  />
-                </>
-              );
-
-              // Shared timeline JSX
-              const timelineJsx = (
-                <TimelineView
-                  groups={timelineGroups}
-                  onComplete={completeItem}
-                  onDismiss={dismissItem}
-                  onEdit={handleItemClick}
-                  isOffline={isOffline}
-                  lastSyncAt={lastSyncAt}
-                  sourceFilter={sourceFilter}
-                  availableSources={availableSources}
-                  onSourceFilterChange={setSourceFilter}
-                />
-              );
-
-              const listJsx = (
-                <FeedSection
-                  label="Tasks"
-                  items={nativeItems}
-                  emptyMessage="No tasks yet."
-                  onComplete={completeItem}
-                  onDismiss={dismissItem}
-                  onEdit={handleItemClick}
-                />
-              );
-
-              if (viewMode === 'planner') {
-                return (
-                  <DailyPlannerView
-                    scheduled={scheduled}
-                    unscheduled={unscheduled}
-                    now={now}
-                    onComplete={completeItem}
-                    onDismiss={dismissItem}
-                    onEdit={handleItemClick}
-                    sourceFilter={sourceFilter}
-                    availableSources={availableSources}
-                    onSourceFilterChange={setSourceFilter}
-                  />
-                );
-              }
-
-              if (viewMode === 'list') return listJsx;
-
-              return viewMode === 'timeline' ? timelineJsx : feedJsx;
-            })()}
+            {items.length > 0 && (
+              <DailyPlannerView
+                scheduled={scheduled}
+                unscheduled={unscheduled}
+                now={now}
+                onComplete={completeItem}
+                onDismiss={dismissItem}
+                onEdit={handleItemClick}
+                sourceFilter={sourceFilter}
+                availableSources={availableSources}
+                onSourceFilterChange={setSourceFilter}
+              />
+            )}
 
             <CompletedSection items={completed} onUncomplete={uncompleteItem} onClear={clearCompleted} />
           </>
@@ -447,7 +317,7 @@ function FeedPageContent() {
           </button>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
