@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A multi-source task aggregation and visual planning app built with React 18 + Vite + Tailwind, deployed via Capacitor (mobile) and Tauri (desktop). Currently pulls tasks and events from Gmail, Microsoft To Do, and Apple Calendar alongside native task creation. The feed page shows a bucketed list (Overdue/Today/This Week/Later/Unscheduled) but lacks a time-axis visual planner.
+A multi-source task aggregation and visual planning app built with React 18 + Vite + Tailwind, deployed via Capacitor (mobile) and Tauri (desktop). Pulls tasks and events from Gmail, Microsoft To Do, and Apple Calendar alongside native task creation. The feed page offers a bucketed list view (Overdue/Today/This Week/Later/Unscheduled) **and** a time-axis visual planner with daily and weekly timeline views, quick-create, and a segmented view toggle.
 
 ## Core Value
 
@@ -15,12 +15,12 @@ An ADHD-friendly visual time planner where your day is a spatial, navigable time
 
 ## Current State
 
-- Backend: Fastify + Prisma + PostgreSQL with auth (session-based + OAuth), task CRUD, sync scheduler, feed/inbox services
-- Frontend: React 18 + Vite + Tailwind with Capacitor (iOS/Android) and Tauri (desktop) targets
+**Shipped: v1.0 (2026-06-05)**
+
+- Backend: Fastify + Prisma + PostgreSQL with auth, task CRUD (startAt/duration/endAt), sync scheduler, feed/inbox services — 254 passing backend tests
+- Frontend: React 18 + Vite + Tailwind, 5-tab segmented control (Feed / Timeline / Planner / List / Week), DailyPlannerView, WeeklyPlannerView, QuickCreateSheet — 145 passing frontend tests
 - Integrations: Gmail, Microsoft Tasks, Apple Calendar adapters with sync cache
-- Feed page: Grouped list view (Overdue/Today/This Week/Later/Unscheduled) with basic timeline hook
-- Native tasks: Title, description, dueAt, priority, status — no startAt or duration yet
-- CI: GitHub Actions for lint/build/test, native build workflow for Capacitor/Tauri
+- Capacitor (iOS/Android) + Tauri (desktop) targets — verified at mobile (430×932) and desktop (1280×800) viewports
 
 ## Architecture / Key Patterns
 
@@ -33,8 +33,8 @@ An ADHD-friendly visual time planner where your day is a spatial, navigable time
 
 ## Capability Contract
 
-See `.gsd/REQUIREMENTS.md` for the explicit capability contract, requirement status, and coverage mapping.
+See `.planning/REQUIREMENTS.md` for the explicit capability contract, requirement status, and coverage mapping.
 
 ## Milestone Sequence
 
-- [ ] M001: Timeline Visual Planner — ADHD-friendly visual time planner with daily/weekly views, schedulable native tasks, quick-create, and consistent UI theme
+- [x] v1.0: Timeline Visual Planner — ADHD-friendly visual time planner with daily/weekly views, schedulable native tasks, quick-create, and consistent UI theme *(shipped 2026-06-05)*
