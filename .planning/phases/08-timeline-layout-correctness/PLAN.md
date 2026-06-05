@@ -91,12 +91,16 @@ Output:
     - Test D (LAYOUT-02a): Render PlannerTimeBlock with a task whose local start time is 09:00. The rendered div's style.top resolves to "720px" (9 × 80).
     - Test E (LAYOUT-02b): Render PlannerTimeBlock with a task whose local start time is 09:30. The rendered div's style.top resolves to "760px" (9.5 × 80).
     - Test F (constants): PX_PER_HOUR === 80 and BLOCK_MIN_HEIGHT === 24 and TIMELINE_HEIGHT === 1920.
+    - Test G (LAYOUT-03): Mock `Element.prototype.scrollIntoView = vi.fn()` before rendering
+      DailyPlannerView with a non-empty items array. After mount, assert `scrollIntoView` was
+      called with `{ block: 'center' }`.
   </behavior>
   <action>
     Create `frontend/tests/unit/components/DailyPlannerView.test.tsx`.
 
-    Imports: `describe`, `it`, `expect` from vitest; `render` from @testing-library/react;
+    Imports: `describe`, `it`, `expect`, `vi`, `beforeEach` from vitest; `render` from @testing-library/react;
     `PlannerTimeBlock` from `@/components/timeline/PlannerTimeBlock`;
+    `DailyPlannerView` from `@/components/timeline/DailyPlannerView`;
     `PX_PER_HOUR`, `BLOCK_MIN_HEIGHT`, `TIMELINE_HEIGHT` from
     `@/components/timeline/timelineConstants` (this import causes the RED failure — file doesn't
     exist yet).
@@ -109,14 +113,20 @@ Output:
       `durationMinutes`, `completed: false`. No other fields needed — PlannerTimeBlock only reads
       these five.
 
-    For each render test: call `render(<PlannerTimeBlock item={item} hourHeight={PX_PER_HOUR} />)`,
+    For Tests A–E: call `render(<PlannerTimeBlock item={item} hourHeight={PX_PER_HOUR} />)`,
     grab `container.firstElementChild as HTMLElement`, and assert `element.style.height` /
     `element.style.top` using `toBe('40px')` etc.
 
-    Constants test (Test F): import and assert directly — no rendering required.
+    For Test F: import and assert constants directly — no rendering required.
 
-    Do NOT add `vi.mock` for any module; PlannerTimeBlock has no side effects to isolate.
-    Do NOT add `MemoryRouter` wrapper; PlannerTimeBlock is not a route component.
+    For Test G (LAYOUT-03):
+    - `beforeEach(() => { vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(vi.fn()); })`
+    - Mock any data hooks DailyPlannerView uses (e.g. mock `@/hooks/usePlannerTimeline` to return
+      one item so the ref has something to target)
+    - `render(<DailyPlannerView ... />)` wrapped in MemoryRouter if needed
+    - Assert `expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({ block: 'center' })`
+
+    Do NOT add extra `vi.mock` calls for Tests A–F; PlannerTimeBlock has no side effects to isolate.
     Match the `describe / it` pattern used in `frontend/tests/unit/components/BottomTabBar.test.tsx`.
   </action>
   <verify>
@@ -174,12 +184,14 @@ Output:
   </action>
   <verify>
     <automated>cd frontend &amp;&amp; pnpm vitest run tests/unit/components/DailyPlannerView.test.tsx 2>&amp;1 | tail -20</automated>
+    <automated>cd frontend &amp;&amp; pnpm vitest run 2>&amp;1 | tail -10</automated>
   </verify>
   <done>
-    All six tests pass. `grep -n 'HOUR_HEIGHT\|font-bold' frontend/src/components/timeline/DailyPlannerView.tsx`
+    All seven tests pass (Tests A–G). `grep -n 'HOUR_HEIGHT\|font-bold' frontend/src/components/timeline/DailyPlannerView.tsx`
     returns no matches. `grep -n 'PX_PER_HOUR' frontend/src/components/timeline/DailyPlannerView.tsx`
     shows at least five matches (nowTop, axis height, marker top, hourHeight prop, CSS var).
     `grep 'BLOCK_MIN_HEIGHT' frontend/src/components/timeline/PlannerTimeBlock.tsx` matches.
+    Full vitest suite exits 0 — no regressions.
   </done>
 </task>
 
