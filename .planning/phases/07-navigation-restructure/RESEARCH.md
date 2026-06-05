@@ -542,20 +542,20 @@ no new auth paths, no new user inputs.
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **AccountMenu `inboxCount` prop threading**
    - What we know: AccountMenu currently calls `useInboxCount()` independently.
    - What's unclear: Whether to refactor AccountMenu to accept `inboxCount` as a prop
      (requires touching the AccountMenu API) or tolerate 2 pollers (AppShell + AccountMenu).
-   - Recommendation: Tolerate 2 pollers for now (both poll every 15 min, low overhead).
+   - RESOLVED: Tolerate 2 pollers for now (both poll every 15 min, low overhead).
      The inbox icon in the feed header is removed entirely, so the count goes from 2 callers
      to 2 callers (AppShell + AccountMenu) — net neutral.
 
 2. **`/settings/feed` route not in the tab bar**
    - What we know: `/settings/feed` is a protected route but not one of the 3 tabs.
    - What's unclear: Should it render inside AppShell (with bottom nav) or standalone?
-   - Recommendation: Leave `/settings/feed` outside the nested AppShell route. It renders
+   - RESOLVED: Leave `/settings/feed` outside the nested AppShell route. It renders
      standalone as today. Users access it from AccountMenu. Out of scope for this phase.
 
 3. **`TimelineViewMode` type narrowing**
@@ -564,9 +564,10 @@ no new auth paths, no new user inputs.
      is stored in `UserSettings.feedViewMode`.
    - What's unclear: Whether to add a `PlannerViewMode = 'planner' | 'week'` alias or
      simply constrain the feed page's local `useState` type annotation.
-   - Recommendation: Add a local type alias in `feed/page.tsx` only:
-     `type PlannerViewMode = 'planner' | 'week';` and use it for the local `viewMode` state.
-     Leave `TimelineViewMode` unchanged in `types/timeline.ts` to avoid touching hooks.
+   - RESOLVED: Add a local type alias in `feed/page.tsx` only:
+     `type PlannerViewMode = Extract<TimelineViewMode, 'planner' | 'week'>` and use it
+     for the local `viewMode` state. Leave `TimelineViewMode` unchanged in `types/timeline.ts`
+     to avoid touching hooks.
 
 ---
 

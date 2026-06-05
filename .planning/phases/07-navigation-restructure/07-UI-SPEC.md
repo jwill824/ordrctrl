@@ -329,7 +329,9 @@ flex items-center gap-2 py-1.5 border-t border-zinc-100 first:border-t-0
 
 **Transition:** No animated transition at the breakpoint. The layout switch is instantaneous (CSS responsive classes only, no JS media query listener needed).
 
-**FAB (floating action button):** Preserved on Planner tab only. Position: `fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-6` on mobile. On desktop (≥768px): `fixed bottom-6 right-6` (no bottom nav to clear).
+**FAB (floating action button):** Preserved on Planner tab only. Position: `fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] md:bottom-6 right-6` on mobile. On desktop (≥768px): `md:bottom-6` (no bottom nav to clear).
+
+_Note: Initial spec had 1.5rem; corrected to 5rem per RESEARCH.md Risk 1 — tab bar clearance requires 56px (3.5rem) + 24px gap = ~5rem._
 
 ---
 
