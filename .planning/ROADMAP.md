@@ -66,7 +66,13 @@ See: `.planning/milestones/v1.0-ROADMAP.md`
   2. Dragging the bottom edge of a block extends or shrinks its duration in 15-minute increments
   3. Releasing a drag or resize updates the timeline instantly (optimistic) and saves to the backend; a server error reverts the block to its original position
   4. Both interactions work identically via touch on mobile (Capacitor) and mouse on desktop (Tauri) through unified pointer event handlers
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 09-01-PLAN.md — Write RED tests for useDragToReschedule and DraggableTimeBlock; update DailyPlannerView Test G
+- [ ] 09-02-PLAN.md — Add timelineConstants, expand useNativeTasks.update, implement useDragToReschedule hook (GREEN)
+- [ ] 09-03-PLAN.md — Implement DraggableTimeBlock component with all 6 drag states and resize handle (GREEN)
+- [ ] 09-04-PLAN.md — Wire DailyPlannerView + feed/page.tsx integration (handleReschedule, handleResize, touchAction toggle)
+- [ ] 09-05-PLAN.md — Human verify: drag-move, drag-resize, revert animation, tap disambiguation, sync-item no-op
 **UI hint**: yes
 
 ### Phase 10: Tap to Edit + Quick-Create UX
