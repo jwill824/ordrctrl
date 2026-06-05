@@ -133,7 +133,34 @@ This file is the explicit capability and coverage contract for milestone v1.1.
   - Why it matters: Bottom tabs are native to mobile but look awkward on wide desktop layouts in Tauri — a sidebar is the standard desktop navigation pattern
   - Source: user
 
-## Future Requirements
+### CANVAS — Unified TimelineCanvas
+
+- [ ] **CANVAS-01** — A single `TimelineCanvas` component replaces both `DailyPlannerView` and `WeeklyPlannerView`; the Day/Week toggle passes a `columns` prop (1 or 7) — no component swap
+  - Class: core-capability
+  - Why it matters: Two separate components with their own pixel constants drift apart over time; a unified canvas guarantees visual and behavioral consistency across both modes
+  - Source: user
+
+- [ ] **CANVAS-02** — The time axis (hour labels) is always pinned to the left side, shared across all columns in both Day and Week modes
+  - Class: core-capability
+  - Why it matters: A shared axis is what makes the canvas feel like one coherent space rather than two separate views placed side by side
+  - Source: user
+
+- [ ] **CANVAS-03** — In week mode, each day column has a header with weekday abbreviation and date; the current day's column is highlighted (distinct background or border accent)
+  - Class: primary-user-loop
+  - Why it matters: Without a clear "today" indicator, the week view is spatially confusing — users need to instantly know where they are in the week
+  - Source: user
+
+- [ ] **CANVAS-04** — Task blocks in narrow week columns truncate title text and hide the time label when the block height falls below 28px
+  - Class: core-capability
+  - Why it matters: Week columns are 1/7th the width — blocks must degrade gracefully rather than overflow or clip awkwardly
+  - Source: inferred
+
+- [ ] **CANVAS-05** — Toggling between Day and Week modes transitions the column layout with a 200ms ease animation
+  - Class: secondary
+  - Why it matters: An animated transition communicates that Day and Week are the same canvas at different zoom levels — not two separate screens
+  - Source: user
+
+
 
 - Drag task from Inbox onto the timeline to schedule it
 - Haptic feedback on drag snap (Capacitor only)
@@ -169,6 +196,11 @@ This file is the explicit capability and coverage contract for milestone v1.1.
 | VIS-03 | Emoji/icon prefix on blocks | Phase 12 | Pending |
 | VIS-04 | Drop shadow on task blocks | Phase 12 | Pending |
 | VIS-05 | 150ms CSS transition on block changes | Phase 12 | Pending |
+| CANVAS-01 | Single TimelineCanvas replaces both views | Phase 13 | Pending |
+| CANVAS-02 | Shared time axis across all columns | Phase 13 | Pending |
+| CANVAS-03 | Week column headers + today highlight | Phase 13 | Pending |
+| CANVAS-04 | Block label degradation in narrow columns | Phase 13 | Pending |
+| CANVAS-05 | 200ms Day/Week column transition | Phase 13 | Pending |
 | NAV-01 | 3-tab bottom navigation | Phase 07 | Pending |
 | NAV-02 | Planner tab with Day/Week toggle | Phase 07 | Pending |
 | NAV-03 | Inbox tab as task staging area | Phase 07 | Pending |

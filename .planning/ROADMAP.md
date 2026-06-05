@@ -29,6 +29,7 @@ See: `.planning/milestones/v1.0-ROADMAP.md`
 - [ ] **Phase 10: Tap to Edit + Quick-Create UX** — Tap-to-edit bottom sheet, scroll-wheel time picker, duration stepper
 - [ ] **Phase 11: Weekly View Navigation** — Prev/next week controls and Today button in the weekly planner view
 - [ ] **Phase 12: Timeline Visual Polish** — Structured-style per-task color coding, task icons, block elevation, and smooth animations
+- [ ] **Phase 13: Unified TimelineCanvas** — Merge daily and weekly views into a single shared-axis canvas; Day/Week toggle changes column count rather than component; distinct ordrctrl visual identity per column
 
 ## Phase Details
 
@@ -103,6 +104,19 @@ See: `.planning/milestones/v1.0-ROADMAP.md`
 **Plans**: TBD
 **UI hint**: yes
 
+### Phase 13: Unified TimelineCanvas
+**Goal**: Day and Week views become one component — same time axis, same block logic, different column count — with a distinctive ordrctrl visual identity
+**Depends on**: Phase 11, Phase 12
+**Requirements**: CANVAS-01, CANVAS-02, CANVAS-03, CANVAS-04, CANVAS-05
+**Success Criteria** (what must be TRUE):
+  1. A single `TimelineCanvas` component replaces `DailyPlannerView` and `WeeklyPlannerView`; Day/Week toggle changes a `columns` prop (1 vs 7), not the rendered component
+  2. The shared time axis (hour labels) is always on the left regardless of column count
+  3. In week mode, each day column has a distinct header showing the weekday abbreviation and date; the current day's column is visually highlighted
+  4. Task blocks in narrow week columns gracefully degrade: title truncates, time label hides below a minimum block height
+  5. Toggling between Day and Week modes animates the column layout (expand/collapse) with a 200ms transition
+**Plans**: TBD
+**UI hint**: yes
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -119,3 +133,4 @@ See: `.planning/milestones/v1.0-ROADMAP.md`
 | 10: Tap to Edit + Quick-Create UX | v1.1 | 0/TBD | Not started | — |
 | 11: Weekly View Navigation | v1.1 | 0/TBD | Not started | — |
 | 12: Timeline Visual Polish | v1.1 | 0/TBD | Not started | — |
+| 13: Unified TimelineCanvas | v1.1 | 0/TBD | Not started | — |
