@@ -111,6 +111,8 @@ describe('DailyPlannerView — auto-scroll (LAYOUT-03)', () => {
         unscheduled={[]}
         now={new Date(2026, 5, 5, 9, 0, 0)}
         onComplete={() => {}}
+        onReschedule={vi.fn()}
+        onResize={vi.fn()}
       />
     );
     expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({ block: 'center' });
