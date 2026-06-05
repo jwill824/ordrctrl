@@ -2,7 +2,7 @@
 // T010 — view mode toggle / swipe integration
 // T017 — source filter state
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Suspense } from 'react';
 import { useFeed } from '@/hooks/useFeed';
@@ -37,8 +37,20 @@ function FeedPageContent() {
     createScheduledTask,
   } = useFeed({ showDismissed });
   const { create, update, remove } = useNativeTasks(reloadFeed);
+
+  const handleReschedule = useCallback(async (taskId: string, newStartAt: string) => {
+    if (!taskId.startsWith('native:')) return; // sync items not updatable via tasks API
+    await update(taskId, { startAt: newStartAt });
+  }, [update]);
+
+  const handleResize = useCallback(async (taskId: string, newDurationMinutes: number) => {
+    if (!taskId.startsWith('native:')) return; // sync items not updatable via tasks API
+    await update(taskId, { duration: newDurationMinutes });
+  }, [update]);
+
   // ── View mode (T010) ──────────────────────────────────────────────────────
   const [viewMode, setViewMode] = useState<PlannerViewMode>('planner');
+  const [isDragActive, setIsDragActive] = useState(false);
   const settingsLoadedRef = useRef(false);
 
   useEffect(() => {
@@ -124,7 +136,9 @@ function FeedPageContent() {
       )}
 
       {/* Main content */}
-      <div className={`flex-1 overflow-y-auto ${viewMode === 'week' ? 'overflow-x-auto' : 'overflow-x-hidden'} touch-pan-y`}>
+      <div className={`flex-1 overflow-y-auto ${viewMode === 'week' ? 'overflow-x-auto' : 'overflow-x-hidden'} touch-pan-y`}
+        style={{ touchAction: isDragActive ? 'none' : undefined }}
+      >
         {/* Weekly view renders full-width outside the narrow main wrapper */}
         {!showDismissed && !loading && viewMode === 'week' && (
           <div className="px-3 pt-4 pb-4">
@@ -217,6 +231,9 @@ function FeedPageContent() {
                 sourceFilter={sourceFilter}
                 availableSources={availableSources}
                 onSourceFilterChange={setSourceFilter}
+                onReschedule={handleReschedule}
+                onResize={handleResize}
+                onDragActiveChange={setIsDragActive}
               />
             )}
 
