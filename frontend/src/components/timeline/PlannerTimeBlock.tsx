@@ -2,6 +2,7 @@
 
 import type { PlannerItem } from '@/hooks/usePlannerTimeline';
 import { formatLocalTime } from '@/utils/dateUtils';
+import { BLOCK_MIN_HEIGHT } from './timelineConstants';
 
 interface PlannerTimeBlockProps {
   item: PlannerItem;
@@ -13,7 +14,7 @@ export function PlannerTimeBlock({ item, hourHeight, compact = false }: PlannerT
   const start = new Date(item.startAt!);
   const totalMinutes = start.getHours() * 60 + start.getMinutes();
   const top = (totalMinutes / 60) * hourHeight;
-  const height = Math.max((item.durationMinutes / 60) * hourHeight, 24);
+  const height = Math.max((item.durationMinutes / 60) * hourHeight, BLOCK_MIN_HEIGHT);
 
   return (
     <div

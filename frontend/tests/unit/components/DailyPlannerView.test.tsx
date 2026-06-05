@@ -93,6 +93,8 @@ describe('timelineConstants', () => {
 
 describe('DailyPlannerView — auto-scroll (LAYOUT-03)', () => {
   beforeEach(() => {
+    // jsdom doesn't implement scrollIntoView — define it before spying
+    Element.prototype.scrollIntoView = vi.fn();
     vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(vi.fn());
   });
 
