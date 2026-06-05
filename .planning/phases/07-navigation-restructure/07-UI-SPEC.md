@@ -57,13 +57,13 @@ Exceptions:
 |------|------|--------|-------------|----------------|
 | Body | 14px | 400 regular | 1.5 | `text-sm` |
 | Label / caption | 10–10.5px | 600 semibold | 1.2 | `text-[0.65rem] font-semibold` |
-| Section header (caps) | 10–10.5px | 700 bold | 1.2 | `text-[0.65rem] font-bold uppercase tracking-[0.1em]` |
+| Section header (caps) | 10–10.5px | 600 semibold | 1.2 | `text-[0.65rem] font-semibold uppercase tracking-[0.1em]` |
 | Heading (tab page title) | 16px | 600 semibold | 1.2 | `text-base font-semibold` |
 
 _All sizes drawn from existing `feed/page.tsx`, `InboxPage.tsx`, `DailyPlannerView.tsx` patterns. No new size values introduced._
 
-Tab bar labels: `text-[0.6rem] font-medium uppercase tracking-[0.06em]`
-— kept deliberately smaller than body to read as navigation chrome, not content.
+Tab bar labels: `text-[0.65rem] font-semibold uppercase tracking-[0.08em]`
+— same size tier as label/caption but tighter tracking distinguishes navigation chrome from content.
 
 Day/Week toggle labels: `text-[0.65rem] font-semibold capitalize`
 — matches existing segmented control in feed/page.tsx.
@@ -126,7 +126,7 @@ transition-colors
 
 **Tab icon:** 22×22 SVG, `stroke="currentColor"`, `strokeWidth="1.5"`, `strokeLinecap="round"`, `strokeLinejoin="round"`. Filled only for active state (use `fill="currentColor"` or thicker stroke on active).
 
-**Tab label:** `text-[0.6rem] font-medium uppercase tracking-[0.06em]`
+**Tab label:** `text-[0.65rem] font-semibold uppercase tracking-[0.08em]`
 
 **Active state:** `text-black` (icon + label)
 **Inactive state:** `text-zinc-400` (icon + label)
@@ -136,7 +136,7 @@ transition-colors
 absolute -top-1 -right-1
 w-4 h-4
 bg-black text-white
-text-[0.5rem] font-bold
+text-[0.55rem] font-semibold
 rounded-full
 flex items-center justify-center leading-none
 ```
@@ -166,7 +166,7 @@ pt-[env(safe-area-inset-top)]
 ```
 h-12 px-5 flex items-center justify-between flex-shrink-0 border-b border-zinc-100
 ```
-- Left: `ordrctrl` wordmark — `text-[0.65rem] font-bold tracking-[0.28em] uppercase text-black` (matches existing header)
+- Left: `ordrctrl` wordmark — `text-[0.65rem] font-semibold tracking-[0.28em] uppercase text-black` (matches existing header)
 - Right: `<AccountMenu />` (existing component, already used in FeedPage header)
 
 **Nav item list:**
@@ -194,7 +194,7 @@ transition-colors
 ml-auto
 min-w-[18px] h-[18px] px-1
 bg-black text-white
-text-[0.55rem] font-bold
+text-[0.55rem] font-semibold
 rounded-full
 flex items-center justify-center leading-none
 ```
@@ -265,7 +265,7 @@ flex items-baseline gap-2 px-5 pt-6 pb-4 flex-shrink-0
 
 **Section header (per integration group):**
 ```
-text-[0.65rem] font-bold uppercase tracking-[0.1em] text-zinc-400
+text-[0.65rem] font-semibold uppercase tracking-[0.1em] text-zinc-400
 pb-1 mb-1 border-b border-zinc-100
 ```
 Content: `{ServiceName}` (e.g. "Gmail", "Microsoft To Do", "Apple Calendar")
@@ -283,8 +283,8 @@ Item row sub-anatomy:
   - Existing date (if any): `text-xs text-zinc-400 mt-0.5`
   - Source service dot: 6px circle, service color from palette above, `inline-block mr-1`
 - **Right cluster** (`flex items-center gap-1 shrink-0`):
-  - **"Schedule" CTA** — `px-2 py-1 text-xs font-medium text-white bg-black hover:bg-zinc-800` (no border-radius — matches existing sharp button style)
-  - **"Dismiss" button** — `px-2 py-1 text-xs font-medium text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100`
+  - **"Schedule" CTA** — `px-2 py-1 text-xs font-semibold text-white bg-black hover:bg-zinc-800` (no border-radius — matches existing sharp button style)
+  - **"Dismiss" button** — `px-2 py-1 text-xs font-semibold text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100`
 
 **Date picker affordance for "Schedule":** tapping "Schedule" opens the existing `EditTaskModal` (or a future date-picker sheet) pre-filled with today's date. No inline date picker on the row — modal pattern only.
 
@@ -306,7 +306,7 @@ _(Matches existing IntegrationCard flat style — no border-radius, no shadow)_
 - Service label: `text-sm font-semibold text-zinc-900`
 - Status indicator dot: 8×8px circle, `rounded-full`, color per sync status palette above
 - Status text: `text-xs text-zinc-400 ml-1` → "Connected", "Syncing…", "Error", "Not connected"
-- **"Connect" CTA** (if no accounts): `ml-auto px-3 py-1.5 text-xs font-medium text-white bg-black hover:bg-zinc-800`
+- **"Connect" CTA** (if no accounts): `ml-auto px-3 py-1.5 text-xs font-semibold text-white bg-black hover:bg-zinc-800`
 
 **Connected account row** (within a card, one per account):
 ```
@@ -359,10 +359,10 @@ flex items-center gap-2 py-1.5 border-t border-zinc-100 first:border-t-0
 | Integrations empty state body | Connect Gmail, Microsoft To Do, or Apple Calendar to get started. |
 | Disconnect confirmation | Disconnect {service}? This will stop syncing {service} items. |
 | Disconnect confirm button | Disconnect |
-| Disconnect cancel button | Cancel |
+| Disconnect cancel button | Keep connected |
 | Loading state (all tabs) | Loading… |
 
-_Destructive confirmation pattern: inline confirmation row replacing the "Disconnect" button — shows `"Disconnect {service}?"` text + `[Disconnect]` (red text) + `[Cancel]` (zinc-500 text). No modal dialog. Matches existing `EditTaskModal` inline-confirm pattern in the codebase._
+_Destructive confirmation pattern: inline confirmation row replacing the "Disconnect" button — shows `"Disconnect {service}?"` text + `[Disconnect]` (red text) + `[Keep connected]` (zinc-500 text). No modal dialog. Matches existing `EditTaskModal` inline-confirm pattern in the codebase._
 
 ---
 
@@ -397,11 +397,11 @@ _This phase uses zero third-party component registries. All components are hand-
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: FLAG (non-blocking — focal point recommendations noted)
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved — 0 blockers, 1 flagged dimension (non-blocking)
