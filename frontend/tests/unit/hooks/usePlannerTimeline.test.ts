@@ -132,14 +132,15 @@ describe('usePlannerTimeline', () => {
     expect(result.current.now.getTime()).toBeLessThanOrEqual(after);
   });
 
-  it('treats item with startAt but no endAt as unscheduled', () => {
+  it('schedules item with startAt but no endAt using 30-minute default duration', () => {
     const partialItem = makeItem({
       id: 'h',
       startAt: '2026-06-03T09:00:00.000Z',
       endAt: null,
     });
     const { result } = renderHook(() => usePlannerTimeline({ items: [partialItem] }));
-    expect(result.current.scheduled).toHaveLength(0);
-    expect(result.current.unscheduled).toHaveLength(1);
+    expect(result.current.scheduled).toHaveLength(1);
+    expect(result.current.scheduled[0].durationMinutes).toBe(30);
+    expect(result.current.unscheduled).toHaveLength(0);
   });
 });

@@ -36,7 +36,7 @@ export function usePlannerTimeline({ items, sourceFilter, targetDate }: UsePlann
     const unscheduled: FeedItem[] = [];
 
     for (const item of filtered) {
-      if (item.startAt !== null && item.endAt !== null) {
+      if (item.startAt !== null) {
         if (targetMidnight !== null) {
           const itemMidnight = toLocalMidnight(item.startAt).getTime();
           if (itemMidnight !== targetMidnight) {
@@ -44,8 +44,10 @@ export function usePlannerTimeline({ items, sourceFilter, targetDate }: UsePlann
             continue;
           }
         }
+        // Default to 30-minute duration when endAt is absent
+        const endAt = item.endAt ?? new Date(new Date(item.startAt).getTime() + 30 * 60000).toISOString();
         const durationMinutes =
-          (new Date(item.endAt).getTime() - new Date(item.startAt).getTime()) / 60000;
+          (new Date(endAt).getTime() - new Date(item.startAt).getTime()) / 60000;
         scheduled.push({ ...item, durationMinutes });
       } else {
         unscheduled.push(item);
