@@ -628,22 +628,25 @@ No external dependencies. The backend and frontend dev servers are the only depe
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **`touchAction` toggle placement — scroll container is in `feed/page.tsx`, not in `DailyPlannerView`**
    - What we know: The scroll div `<div className="flex-1 overflow-y-auto ... touch-pan-y">` is in `feed/page.tsx`, above `DailyPlannerView` in the tree.
    - What's unclear: Should we thread `isDragActive` state up via a callback prop, or use a body-level `document.body.style.touchAction` side effect in the hook?
    - Recommendation: Planner should pick Option 1 (callback prop) for architectural cleanliness, as `feed/page.tsx` already has `useState` for many concerns. Add `onDragActiveChange: (active: boolean) => void` prop to `DailyPlannerView`.
+   - **RESOLVED: Option 1 (callback prop)** — Plan 09-04 implements `onDragActiveChange` → `isDragActive` state in `feed/page.tsx` → inline `touchAction` style on scroll container.
 
 2. **Should `DailyPlannerView.onReschedule`/`onResize` be required or optional props?**
    - What we know: `DraggableTimeBlock` needs these callbacks to function. `PlannerTimeBlock` (kept for week view) does not have them.
    - What's unclear: Whether to make them required (TypeScript enforced) or optional with no-op defaults.
    - Recommendation: Make them **required** on `DraggableTimeBlock`, **optional with no-op defaults** on `DailyPlannerView`. This avoids prop-drill TypeScript errors in the existing test while keeping type safety at the component level.
+   - **RESOLVED: Required on `DraggableTimeBlock`, optional with no-op defaults on `DailyPlannerView`** — Plan 09-04 implements this pattern.
 
 3. **Should `usePlannerTimeline` expose the mutation, or should `feed/page.tsx` own it directly?**
    - What we know: `usePlannerTimeline` is a pure read/compute hook with no state ownership. `feed/page.tsx` already owns `useNativeTasks` and `reloadFeed`.
    - What's unclear: The UI-SPEC says to add mutation to `usePlannerTimeline`, but the hook doesn't own items.
    - Recommendation: Add the mutation to **`useNativeTasks.update`** (1-line type change) and call it directly from **`feed/page.tsx`** callbacks. This follows the established pattern (`create`/`update`/`remove` already in useNativeTasks). The `usePlannerTimeline` hook stays a pure read hook.
+   - **RESOLVED: Mutation owned by `useNativeTasks.update` + `feed/page.tsx` callbacks** — Plan 09-02 Task 1 expands the type; Plan 09-04 Task 2 wires the callbacks.
 
 ---
 
