@@ -18,12 +18,12 @@ export function PlannerTimeBlock({ item, hourHeight, compact = false }: PlannerT
 
   return (
     <div
-      className={`absolute border-l-2 border-black bg-white px-1 py-0.5 overflow-hidden ${
+      className={`absolute border-l-[3px] border-blue-500 bg-blue-50 rounded-r px-1 py-0.5 overflow-hidden ${
         compact ? 'left-0 right-0' : 'left-14 right-2 px-2 py-1'
       } ${item.completed ? 'opacity-40' : ''}`}
       style={{ top, height }}
     >
-      <div className={`font-semibold text-black leading-tight truncate ${
+      <div className={`font-semibold text-blue-900 leading-tight truncate ${
         compact ? 'text-[0.6rem]' : 'text-[0.7rem]'
       } ${item.completed ? 'line-through' : ''}`}>
         {item.title}
