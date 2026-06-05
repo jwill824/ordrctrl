@@ -232,7 +232,7 @@ function FeedPageContent() {
           type="button"
           onClick={() => viewMode === 'planner' ? setShowQuickCreate(true) : setShowAddForm(true)}
           aria-label="Add task"
-          className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-6 w-12 h-12 bg-black border-0 cursor-pointer flex items-center justify-center shadow-lg z-20"
+          className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] md:bottom-6 right-6 w-12 h-12 bg-black border-0 cursor-pointer flex items-center justify-center shadow-lg z-20"
         >
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
             <path d="M9 3v12M3 9h12"/>
@@ -278,7 +278,7 @@ function FeedPageContent() {
 
       {/* Cleared completed toast */}
       {clearedCount !== null && (
-        <div className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 flex items-center gap-3 bg-zinc-900 text-white text-sm px-4 py-2.5 shadow-lg z-30">
+        <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] md:bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-zinc-900 text-white text-sm px-4 py-2.5 shadow-lg z-30">
           <span>
             Cleared {clearedCount} completed task{clearedCount !== 1 ? 's' : ''} — find them in{' '}
             <Link to="/feed?showDismissed=true" className="text-zinc-300 underline underline-offset-2 hover:text-white">
@@ -298,7 +298,7 @@ function FeedPageContent() {
 
       {/* Undo toast for dismiss */}
       {undoToast && (
-        <div className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 flex items-center gap-3 bg-zinc-900 text-white text-sm px-4 py-2.5 shadow-lg z-30">
+        <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] md:bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-zinc-900 text-white text-sm px-4 py-2.5 shadow-lg z-30">
           <span>{undoToast.message}</span>
           <button
             type="button"
