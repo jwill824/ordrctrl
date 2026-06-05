@@ -10,6 +10,8 @@
     "test:e2e": "pnpm --filter frontend test:e2e"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "@playwright/test": "^1.60.0",
+    "concurrently": "^8.2.2",
+    "playwright": "^1.60.0"
   }
 }

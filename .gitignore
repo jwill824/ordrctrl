@@ -71,6 +71,12 @@ frontend/.env.android.local
 # ── GSD baseline (auto-generated) ──
 .gsd
 .gsd-id
+
+# UAT runtime artifacts
+.uat-edge-profile/
+.uat-ff-profile/
+uat-auth-state.json
+uat-screenshots/
 .mcp.json
 .bg-shell/
 nul
