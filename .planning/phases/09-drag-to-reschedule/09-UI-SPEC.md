@@ -1,10 +1,11 @@
 ---
 phase: 9
 slug: drag-to-reschedule
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-06-05
+reviewed_at: 2026-06-05
 ---
 
 # Phase 09 — UI Design Contract
@@ -99,9 +100,9 @@ Inherited from Phase 07/08. One temporary error-tint state added.
 | Dominant (60%) | `#ffffff` | `white` / `bg-white` | Timeline surface, block backgrounds |
 | Secondary (30%) | `#f4f4f5` / `#e4e4e7` | `zinc-100` / `zinc-200` | Hour-marker borders, time labels |
 | Accent (10%) | `#18181b` | `black` / `zinc-900` | Block title text, active UI elements |
-| Block fill | `#eff6ff` | `blue-50` | Task block background (Phase 08) |
-| Block accent border | `#3b82f6` | `blue-500` | 3px left border on task blocks (Phase 08) |
-| Block title text | `#1e3a5f` | `blue-900` | Block title text color (Phase 08) |
+| Block fill | `#eff6ff` | `blue-50` | Task block background (Phase 08 execution — contrast fix) |
+| Block accent border | `#3b82f6` | `blue-500` | 3px left border on task blocks (Phase 08 execution — contrast fix) |
+| Block title text | `#1e3a5f` | `blue-900` | Block title text color (Phase 08 execution — contrast fix) |
 | Now indicator | `#ef4444` | `red-500` | Current-time line + dot (Phase 08) |
 | Drag error tint | `#f87171` | `red-400` | Left border color during post-revert error window |
 | Resize handle pill | `#93c5fd` | `blue-300` | Visual pill in resize handle zone |
@@ -509,7 +510,7 @@ through visual affordances (shadow, opacity, border color, animation) rather tha
 | Drag-move active state | *(none)* | Visual: shadow-md + opacity-90 |
 | Resize-active state | *(none)* | Visual: resize pill opacity-100 |
 | Error tint (revert) | *(none)* | Visual: border-red-400 for 1500ms after revert animation |
-| ARIA: block | `"{title}, tap to edit, drag to reschedule"` | `aria-label` on block container |
+| ARIA: block | `"{title}, drag to reschedule"` | `aria-label` on block container — Phase 10 will update to include "tap to edit" when the edit sheet is wired |
 | ARIA: resize handle | `"Drag to resize duration"` | `aria-label` on resize zone div |
 | ARIA: resize value | `"{N} minutes"` | `aria-valuetext` on resize zone (role="slider") |
 
@@ -572,12 +573,18 @@ No changes needed to:
 
 ---
 
+**New colors in Phase 09:** only `red-400` (error tint) and `blue-300` (resize pill) — 2 new colors, within limit. The three blue block colors (`blue-50`, `blue-500`, `blue-900`) are inherited from the Phase 08 execution contrast fix, not introduced here.
+
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
+
+**Approval:** approved 2026-06-05 — 0 blockers, 0 flags
 - [ ] Dimension 5 Spacing: PASS
 - [ ] Dimension 6 Registry Safety: PASS
 

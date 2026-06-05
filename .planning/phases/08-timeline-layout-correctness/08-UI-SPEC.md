@@ -91,14 +91,20 @@ Inherited from Phase 07. No new colors introduced.
 |------|-------|----------------|-------|
 | Dominant (60%) | `#ffffff` | `white` / `bg-white` | Timeline surface, block backgrounds |
 | Secondary (30%) | `#f4f4f5` / `#e4e4e7` | `zinc-100` / `zinc-200` | Hour-marker borders (`border-zinc-100`), time labels (`text-zinc-400`) |
-| Accent (10%) | `#18181b` | `black` / `zinc-900` | Block left border (`border-l-2 border-black`), block titles |
+| Accent (10%) | `#18181b` | `black` / `zinc-900` | Active UI elements, nav chrome |
+| Block fill | `#eff6ff` | `blue-50` | Task block background |
+| Block accent border | `#3b82f6` | `blue-500` | 3px left border on task blocks |
+| Block title text | `#1e3a5f` | `blue-900` | Block title text color |
 | Current-time indicator | `#ef4444` | `red-500` | "Now" line + dot only |
 | Destructive | `#ef4444` | `red-500` | Destructive actions (out of scope for this phase) |
 
+**Block color note (Phase 08 execution fix):** During Phase 08 human verification, block contrast was identified as insufficient with the original `border-black bg-white` spec. The block palette was updated to `bg-blue-50 / border-l-[3px] border-blue-500 / text-blue-900` to provide adequate contrast on the white timeline surface. These three colors (`blue-50`, `blue-500`, `blue-900`) are introduced in Phase 08 execution and form the baseline for Phase 09+.
+
 **Accent reserved for (this phase):**
-1. Task block left border (`border-l-2 border-black`)
-2. Task block title text (`text-black`)
-3. Completed task blocks: `opacity-40` applied to entire block; title gets `line-through`
+1. Task block left border (`border-l-[3px] border-blue-500`)
+2. Task block fill (`bg-blue-50`)
+3. Task block title text (`text-blue-900`)
+4. Completed task blocks: `opacity-40` applied to entire block; title gets `line-through`
 
 **Current-time indicator `red-500` is reserved exclusively for:**
 - The horizontal "now" line: `h-px bg-red-500` spanning from left-12 to right-0
