@@ -5,4 +5,5 @@ export { TimelineGroup } from './TimelineGroup';
 export { TimelineView } from './TimelineView';
 export { DailyPlannerView } from './DailyPlannerView';
 export { PlannerTimeBlock } from './PlannerTimeBlock';
+export { DraggableTimeBlock } from './DraggableTimeBlock';
 export { WeeklyPlannerView } from './WeeklyPlannerView';

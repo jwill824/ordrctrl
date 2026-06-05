@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import type { PlannerItem } from '@/hooks/usePlannerTimeline';
 import type { FeedItem } from '@/services/feed.service';
 import { FeedItemRow } from '@/components/feed/FeedItem';
-import { PlannerTimeBlock } from './PlannerTimeBlock';
+import { DraggableTimeBlock } from './DraggableTimeBlock';
 import { PX_PER_HOUR } from './timelineConstants';
 
 interface DailyPlannerViewProps {
@@ -17,6 +17,9 @@ interface DailyPlannerViewProps {
   sourceFilter?: string | null;
   availableSources?: string[];
   onSourceFilterChange?: (source: string | null) => void;
+  onReschedule?: (taskId: string, newStartAt: string) => Promise<void>;
+  onResize?: (taskId: string, newDurationMinutes: number) => Promise<void>;
+  onDragActiveChange?: (active: boolean) => void;
 }
 
 export function DailyPlannerView({
@@ -29,6 +32,9 @@ export function DailyPlannerView({
   sourceFilter,
   availableSources,
   onSourceFilterChange,
+  onReschedule = async () => {},
+  onResize = async () => {},
+  onDragActiveChange,
 }: DailyPlannerViewProps) {
   const currentTimeRef = useRef<HTMLDivElement>(null);
 
@@ -103,7 +109,14 @@ export function DailyPlannerView({
 
         {/* Scheduled task blocks */}
         {scheduled.map((item) => (
-          <PlannerTimeBlock key={item.id} item={item} hourHeight={PX_PER_HOUR} />
+          <DraggableTimeBlock
+            key={item.id}
+            item={item}
+            hourHeight={PX_PER_HOUR}
+            onReschedule={onReschedule}
+            onResize={onResize}
+            onDragActiveChange={onDragActiveChange}
+          />
         ))}
       </div>
 
