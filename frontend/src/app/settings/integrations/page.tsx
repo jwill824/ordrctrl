@@ -15,7 +15,7 @@ const SERVICE_IDS: ServiceId[] = [
   'microsoft_tasks',
 ];
 
-function IntegrationSettingsContent() {
+export function IntegrationSettingsContent() {
   const { grouped, loading, error, disconnect, updateLabel, pauseAccount, refresh } = useIntegrations();
   const [searchParams] = useSearchParams();
   const [autoOpenServiceId, setAutoOpenServiceId] = useState<ServiceId | null>(null);

@@ -46,7 +46,7 @@ describe('AppShell', () => {
 
   it('renders Sidebar (has "ordrctrl" text when mocked)', () => {
     renderComponent();
-    expect(screen.getByText('ordrctrl')).toBeInTheDocument();
+    expect(screen.getByTestId('sidebar')).toBeInTheDocument();
   });
 
   it('renders <Outlet /> slot (outlet content appears)', () => {
