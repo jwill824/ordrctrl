@@ -84,7 +84,13 @@ Plans:
   2. Saving from the edit sheet updates the task in the timeline immediately and syncs to the backend, reverting on failure
   3. Time input in both the create and edit sheets presents a scroll-wheel picker (hour column and minute column) rather than a text field
   4. Duration input shows a stepper control with + and − buttons in 15-minute increments and a live label of the selected duration
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 10-01-PLAN.md — Write RED tests for useTaskSheet, TaskSheet, onTap in useDragToReschedule, DailyPlannerView Test G update
+- [ ] 10-02-PLAN.md — Install react-mobile-picker; implement useTaskSheet hook, timeSlots utility, TimeSlotPicker adapter (GREEN)
+- [ ] 10-03-PLAN.md — Implement TaskSheet component (rename QuickCreateSheet; integrate picker + stepper; edit mode + delete confirm) (GREEN)
+- [ ] 10-04-PLAN.md — Wire onTap end-to-end: useDragToReschedule → DraggableTimeBlock → DailyPlannerView → feed/page.tsx; remove QuickCreateSheet shim
+- [ ] 10-05-PLAN.md — Human verify: tap-to-edit, scroll-wheel picker, stepper, create mode, drag disambiguation, sync item regression
 **UI hint**: yes
 
 ### Phase 11: Weekly View Navigation
@@ -136,7 +142,7 @@ Plans:
 | 07: Navigation Restructure | v1.1 | 2/2 | Complete | 2026-06-05 |
 | 08: Timeline Layout Correctness | v1.1 | 1/1 | Complete | 2026-06-05 |
 | 09: Drag to Reschedule | v1.1 | 5/5 | Complete | — |
-| 10: Tap to Edit + Quick-Create UX | v1.1 | 0/TBD | Not started | — |
+| 10: Tap to Edit + Quick-Create UX | v1.1 | 0/5 | Not started | — |
 | 11: Weekly View Navigation | v1.1 | 0/TBD | Not started | — |
 | 12: Timeline Visual Polish | v1.1 | 0/TBD | Not started | — |
 | 13: Unified TimelineCanvas | v1.1 | 0/TBD | Not started | — |
