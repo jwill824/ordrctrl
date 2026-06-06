@@ -79,6 +79,7 @@ export interface UseDragToRescheduleProps {
   onReschedule: (taskId: string, newStartAt: string) => Promise<void>;
   onResize: (taskId: string, newDurationMinutes: number) => Promise<void>;
   onDragActiveChange?: (active: boolean) => void;
+  onTap?: () => void;
 }
 
 export interface UseDragToRescheduleReturn {
@@ -99,6 +100,7 @@ export function useDragToReschedule({
   onReschedule,
   onResize,
   onDragActiveChange,
+  onTap,
 }: UseDragToRescheduleProps): UseDragToRescheduleReturn {
   // Derive stable original values from item
   const originalStartMin = item.startAt
@@ -181,6 +183,7 @@ export function useDragToReschedule({
           setDragState('idle');
           setLiveTop(originalTop);
           onDragActiveChange?.(false);
+          onTap?.();
           return;
         }
 
@@ -251,7 +254,7 @@ export function useDragToReschedule({
         signal: controller.signal,
       });
     },
-    [item, onReschedule, onDragActiveChange, originalStartMin, originalTop],
+    [item, onReschedule, onDragActiveChange, onTap, originalStartMin, originalTop],
   );
 
   // -------------------------------------------------------------------------

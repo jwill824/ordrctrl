@@ -14,6 +14,7 @@ interface DailyPlannerViewProps {
   onComplete: (id: string) => void;
   onDismiss?: (id: string) => void;
   onEdit?: (item: FeedItem) => void;
+  onTap?: (item: PlannerItem) => void;
   sourceFilter?: string | null;
   availableSources?: string[];
   onSourceFilterChange?: (source: string | null) => void;
@@ -29,6 +30,7 @@ export function DailyPlannerView({
   onComplete,
   onDismiss,
   onEdit,
+  onTap,
   sourceFilter,
   availableSources,
   onSourceFilterChange,
@@ -116,6 +118,7 @@ export function DailyPlannerView({
             onReschedule={onReschedule}
             onResize={onResize}
             onDragActiveChange={onDragActiveChange}
+            onTap={() => onTap?.(item)}
           />
         ))}
       </div>

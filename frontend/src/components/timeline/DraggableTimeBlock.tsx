@@ -20,6 +20,7 @@ export interface DraggableTimeBlockProps {
   onReschedule: (taskId: string, newStartAt: string) => Promise<void>;
   onResize: (taskId: string, newDurationMinutes: number) => Promise<void>;
   onDragActiveChange?: (active: boolean) => void;
+  onTap?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -33,6 +34,7 @@ export function DraggableTimeBlock({
   onReschedule,
   onResize,
   onDragActiveChange,
+  onTap,
 }: DraggableTimeBlockProps) {
   const blockRef = useRef<HTMLDivElement>(null);
 
@@ -40,7 +42,7 @@ export function DraggableTimeBlock({
   const isNative = item.id.startsWith('native:');
 
   const { dragState, liveTop, liveHeight, revertTransition, startMove, startResize } =
-    useDragToReschedule({ item, onReschedule, onResize, onDragActiveChange });
+    useDragToReschedule({ item, onReschedule, onResize, onDragActiveChange, onTap });
 
   // Derived state flags
   const isDragMove = dragState === 'drag-move';

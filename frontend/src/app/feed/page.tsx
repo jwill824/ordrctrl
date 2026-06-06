@@ -14,12 +14,14 @@ import { CompletedSection } from '@/components/feed/CompletedSection';
 import { IntegrationErrorBanner } from '@/components/feed/IntegrationErrorBanner';
 import { FeedEmptyState } from '@/components/feed/FeedEmptyState';
 import { AddTaskForm } from '@/components/tasks/AddTaskForm';
-import { QuickCreateSheet } from '@/components/tasks/QuickCreateSheet';
+import { TaskSheet } from '@/components/tasks/TaskSheet';
 import { EditTaskModal } from '@/components/tasks/EditTaskModal';
 import { DailyPlannerView, WeeklyPlannerView } from '@/components/timeline';
 import { useWeeklyPlanner } from '@/hooks/useWeeklyPlanner';
+import { useTaskSheet } from '@/hooks/useTaskSheet';
 import { getWeekStart } from '@/utils/dateUtils';
 import type { FeedItem } from '@/services/feed.service';
+import type { PlannerItem } from '@/hooks/usePlannerTimeline';
 import type { TimelineViewMode } from '@/types/timeline';
 
 type PlannerViewMode = Extract<TimelineViewMode, 'planner' | 'week'>;
@@ -97,14 +99,22 @@ function FeedPageContent() {
   });
 
   const [showAddForm, setShowAddForm] = useState(false);
-  const [showQuickCreate, setShowQuickCreate] = useState(false);
   const [editingTask, setEditingTask] = useState<FeedItem | null>(null);
+  const { isOpen: isSheetOpen, task: sheetTask, mode: sheetMode, openCreate, openEdit, close: closeSheet } = useTaskSheet();
 
   const quickCreateDefaultStartAt = (() => {
     const d = new Date();
     d.setMinutes(Math.round(d.getMinutes() / 15) * 15, 0, 0);
     return d.toISOString();
   })();
+
+  const handleBlockTap = useCallback((item: PlannerItem) => {
+    if (item.id.startsWith('native:')) {
+      openEdit(item);
+    } else {
+      setEditingTask(item as FeedItem);
+    }
+  }, [openEdit]);
 
   const hasIntegrations = Object.values(syncStatus).some(
     (s) => s.status === 'connected' || s.status === 'error'
@@ -228,6 +238,7 @@ function FeedPageContent() {
                 onComplete={completeItem}
                 onDismiss={dismissItem}
                 onEdit={handleItemClick}
+                onTap={handleBlockTap}
                 sourceFilter={sourceFilter}
                 availableSources={availableSources}
                 onSourceFilterChange={setSourceFilter}
@@ -244,10 +255,10 @@ function FeedPageContent() {
       </div>
 
       {/* FAB — Add task */}
-      {!showDismissed && !showAddForm && !showQuickCreate && (
+      {!showDismissed && !showAddForm && !isSheetOpen && (
         <button
           type="button"
-          onClick={() => viewMode === 'planner' ? setShowQuickCreate(true) : setShowAddForm(true)}
+          onClick={() => viewMode === 'planner' ? openCreate() : setShowAddForm(true)}
           aria-label="Add task"
           className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] md:bottom-6 right-6 w-12 h-12 bg-black border-0 cursor-pointer flex items-center justify-center shadow-lg z-20"
         >
@@ -257,20 +268,31 @@ function FeedPageContent() {
         </button>
       )}
 
-      {/* Quick-create sheet — planner mode only */}
-      {showQuickCreate && viewMode === 'planner' && (
-        <QuickCreateSheet
-          defaultStartAt={quickCreateDefaultStartAt}
+      {/* TaskSheet — create or edit mode */}
+      {isSheetOpen && viewMode === 'planner' && (
+        <TaskSheet
+          task={sheetTask ?? undefined}
+          defaultStartAt={sheetTask ? undefined : quickCreateDefaultStartAt}
           defaultDuration={30}
-          onSubmit={async (title, startAt, duration) => {
-            await createScheduledTask(title, startAt, duration);
-            setShowQuickCreate(false);
+          onSave={async (title, startAt, durationMinutes) => {
+            if (sheetMode === 'create') {
+              await createScheduledTask(title, startAt, durationMinutes);
+            } else if (sheetTask) {
+              await update(sheetTask.id, { title, startAt, duration: durationMinutes });
+            }
+            closeSheet();
+            reloadFeed();
           }}
-          onCancel={() => setShowQuickCreate(false)}
+          onDelete={sheetTask ? async () => {
+            await remove(sheetTask.id);
+            closeSheet();
+            reloadFeed();
+          } : undefined}
+          onCancel={closeSheet}
         />
       )}
 
-      {/* Edit task modal */}
+      {/* Edit task modal — sync items only */}
       {editingTask && (
         <EditTaskModal
           task={editingTask}
