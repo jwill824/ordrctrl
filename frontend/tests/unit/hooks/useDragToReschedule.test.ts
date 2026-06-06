@@ -395,3 +395,59 @@ describe('revert on rejection — W0-G', () => {
     vi.useRealTimers();
   });
 });
+
+describe('onTap callback', () => {
+  // W0-K: short tap (< 8px, < 200ms) fires onTap once
+  it('W0-K: short tap (< 8px, < 200ms) fires onTap once and does not call onReschedule', async () => {
+    const onTap = vi.fn();
+    const onReschedule = vi.fn().mockResolvedValue(undefined);
+    const onResize = vi.fn().mockResolvedValue(undefined);
+    const item = makePlannerItem(9, 0, 30);
+    const { result } = renderHook(() =>
+      useDragToReschedule({ item, onReschedule, onResize, onTap }),
+    );
+    const blockEl = document.createElement('div');
+    act(() => { result.current.startMove(1, 200, blockEl); });
+    // Immediate pointerUp with tiny movement (< 8px)
+    act(() => {
+      const upEvent = new PointerEvent('pointerup', { pointerId: 1, clientY: 203, bubbles: true });
+      window.dispatchEvent(upEvent);
+    });
+    expect(onTap).toHaveBeenCalledTimes(1);
+    expect(onReschedule).not.toHaveBeenCalled();
+  });
+
+  // W0-L: drag past threshold does NOT fire onTap
+  it('W0-L: drag past threshold does not fire onTap', async () => {
+    const onTap = vi.fn();
+    const onReschedule = vi.fn().mockResolvedValue(undefined);
+    const onResize = vi.fn().mockResolvedValue(undefined);
+    const item = makePlannerItem(9, 0, 30);
+    const { result } = renderHook(() =>
+      useDragToReschedule({ item, onReschedule, onResize, onTap }),
+    );
+    const blockEl = document.createElement('div');
+    act(() => { result.current.startMove(1, 200, blockEl); });
+    // Move past intent threshold (> 8px)
+    act(() => {
+      const moveEvent = new PointerEvent('pointermove', { pointerId: 1, clientY: 240, bubbles: true });
+      window.dispatchEvent(moveEvent);
+    });
+    act(() => {
+      const upEvent = new PointerEvent('pointerup', { pointerId: 1, clientY: 240, bubbles: true });
+      window.dispatchEvent(upEvent);
+    });
+    await waitFor(() => expect(onReschedule).toHaveBeenCalled());
+    expect(onTap).not.toHaveBeenCalled();
+  });
+
+  // W0-M: hook works correctly when onTap is not provided (backward compatibility)
+  it('W0-M: hook functions correctly when onTap is not provided', () => {
+    const onReschedule = vi.fn().mockResolvedValue(undefined);
+    const onResize = vi.fn().mockResolvedValue(undefined);
+    const item = makePlannerItem(9, 0, 30);
+    expect(() =>
+      renderHook(() => useDragToReschedule({ item, onReschedule, onResize })),
+    ).not.toThrow();
+  });
+});

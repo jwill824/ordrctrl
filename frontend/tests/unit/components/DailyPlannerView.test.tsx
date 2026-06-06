@@ -113,6 +113,7 @@ describe('DailyPlannerView — auto-scroll (LAYOUT-03)', () => {
         onComplete={() => {}}
         onReschedule={vi.fn()}
         onResize={vi.fn()}
+        onTap={vi.fn()}
       />
     );
     expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({ block: 'center' });
