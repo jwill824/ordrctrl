@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Timeline & Planner UX Polish
 status: in_progress
-last_updated: "2026-06-06T23:33:00Z"
-last_activity: 2026-06-06 — Phase 12 Plan 02 executed (color/icon wired through backend feed pipeline)
+last_updated: "2026-06-06T23:38:00Z"
+last_activity: 2026-06-06 — Phase 12 Plan 03 executed (color-coded timeline blocks, shadow, icon prefix, animation)
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 21
-  completed_plans: 19
-  percent: 78
+  completed_plans: 20
+  percent: 83
 ---
 
 # Project State
@@ -45,7 +45,7 @@ Migrated from GSD-2. Review PROJECT.md for key decisions.
 
 12-01-A: Granted CREATEDB to ordrctrl DB user for Prisma shadow DB (dev only) — needed for migrate dev shadow database creation.
 
-12-01-B: Accepted dev DB reset to reconcile isAllDay migration drift — isAllDay had been added directly to the DB without a migration; reset brings history into sync with no prod impact.
+12-03-A: PlannerTimeBlock/DraggableTimeBlock use item.color for borderColor and backgroundColor inline styles; shadow-sm; emoji icon prefix; 150ms ease transition on top/height when not dragging/compact; transition suppressed during drag via isDragMove||isDragResize guard.
 
 ### Known Gaps (planned in later phases)
 
@@ -57,8 +57,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-06T23:15:00Z
-Stopped at: Phase 12 Plan 01 complete — NativeTask color/icon schema + migration applied
+Last session: 2026-06-06T23:38:00Z
+Stopped at: Phase 12 Plan 03 complete — color-coded timeline blocks, shadow, icon prefix, smooth animation
 Resume file: None
 
 ## Operator Next Steps
