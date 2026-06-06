@@ -27,7 +27,7 @@ See: `.planning/milestones/v1.0-ROADMAP.md`
 - [x] **Phase 08: Timeline Layout Correctness** — Fix block height proportionality, time-axis positioning, and auto-scroll to current time on open
 - [x] **Phase 09: Drag to Reschedule** — Drag blocks to change startAt, drag bottom edge to resize duration, with pointer-event unification and backend persist
 - [x] **Phase 10: Tap to Edit + Quick-Create UX** — Tap-to-edit bottom sheet, scroll-wheel time picker, duration stepper, all-day tasks
-- [ ] **Phase 11: Weekly View Navigation** — Prev/next week controls and Today button in the weekly planner view
+- [x] **Phase 11: Weekly View Navigation** — Prev/next week controls and Today button in the weekly planner view
 - [ ] **Phase 12: Timeline Visual Polish** — Structured-style per-task color coding, task icons, block elevation, and smooth animations
 - [ ] **Phase 13: Unified TimelineCanvas** — Merge daily and weekly views into a single shared-axis canvas; Day/Week toggle changes column count rather than component; distinct ordrctrl visual identity per column
 
@@ -102,9 +102,9 @@ Plans:
   2. A "Today" button is always visible in the weekly view and returns the user to the current week from any offset in a single tap
 **Plans**: 3 plans
 Plans:
-- [ ] 11-01-PLAN.md — Add formatWeekRange utility to dateUtils.ts + unit tests
-- [ ] 11-02-PLAN.md — Add nav header row to WeeklyPlannerView + wire callbacks in feed/page.tsx
-- [ ] 11-03-PLAN.md — Playwright e2e tests for prev/next/today navigation + human verify
+- [x] 11-01-PLAN.md — Add formatWeekRange utility to dateUtils.ts + unit tests
+- [x] 11-02-PLAN.md — Add nav header row to WeeklyPlannerView + wire callbacks in feed/page.tsx
+- [x] 11-03-PLAN.md — Playwright e2e tests for prev/next/today navigation + human verify
 **UI hint**: yes
 
 ### Phase 12: Timeline Visual Polish
