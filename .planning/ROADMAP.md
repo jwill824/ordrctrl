@@ -26,7 +26,7 @@ See: `.planning/milestones/v1.0-ROADMAP.md`
 - [x] **Phase 07: Navigation Restructure** — Replace 5-tab segmented control with 3-tab bottom nav (Planner | Inbox | Integrations) and responsive sidebar on desktop
 - [x] **Phase 08: Timeline Layout Correctness** — Fix block height proportionality, time-axis positioning, and auto-scroll to current time on open
 - [x] **Phase 09: Drag to Reschedule** — Drag blocks to change startAt, drag bottom edge to resize duration, with pointer-event unification and backend persist
-- [ ] **Phase 10: Tap to Edit + Quick-Create UX** — Tap-to-edit bottom sheet, scroll-wheel time picker, duration stepper
+- [x] **Phase 10: Tap to Edit + Quick-Create UX** — Tap-to-edit bottom sheet, scroll-wheel time picker, duration stepper, all-day tasks
 - [ ] **Phase 11: Weekly View Navigation** — Prev/next week controls and Today button in the weekly planner view
 - [ ] **Phase 12: Timeline Visual Polish** — Structured-style per-task color coding, task icons, block elevation, and smooth animations
 - [ ] **Phase 13: Unified TimelineCanvas** — Merge daily and weekly views into a single shared-axis canvas; Day/Week toggle changes column count rather than component; distinct ordrctrl visual identity per column
@@ -142,7 +142,7 @@ Plans:
 | 07: Navigation Restructure | v1.1 | 2/2 | Complete | 2026-06-05 |
 | 08: Timeline Layout Correctness | v1.1 | 1/1 | Complete | 2026-06-05 |
 | 09: Drag to Reschedule | v1.1 | 5/5 | Complete | — |
-| 10: Tap to Edit + Quick-Create UX | v1.1 | 0/5 | Not started | — |
+| 10: Tap to Edit + Quick-Create UX | v1.1 | 5/5 | Complete | 2026-06-06 |
 | 11: Weekly View Navigation | v1.1 | 0/TBD | Not started | — |
 | 12: Timeline Visual Polish | v1.1 | 0/TBD | Not started | — |
 | 13: Unified TimelineCanvas | v1.1 | 0/TBD | Not started | — |
