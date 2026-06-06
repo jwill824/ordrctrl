@@ -25,7 +25,7 @@ export function nativeTaskToFeedItem(task: NativeTask): FeedItem {
     descriptionOverride: null,
     descriptionUpdatedAt: null,
     sourceUrl: null,
-    color: '#3B82F6',
-    icon: null,
+    color: task.color ?? '#3B82F6',
+    icon: task.icon ?? null,
   };
 }

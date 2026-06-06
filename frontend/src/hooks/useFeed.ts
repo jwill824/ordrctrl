@@ -37,7 +37,7 @@ interface UseFeedReturn {
   clearCompleted: () => Promise<void>;
   clearedCount: number | null;
   clearClearedToast: () => void;
-  createScheduledTask: (title: string, startAt: string, duration: number, isAllDay?: boolean) => Promise<void>;
+  createScheduledTask: (title: string, startAt: string, duration: number, isAllDay?: boolean, color?: string, icon?: string | null) => Promise<void>;
 }
 
 interface UseFeedOptions {
@@ -420,7 +420,7 @@ export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
   );
 
   const createScheduledTask = useCallback(
-    async (title: string, startAt: string, duration: number, isAllDay = false) => {
+    async (title: string, startAt: string, duration: number, isAllDay = false, color = '#3B82F6', icon: string | null = null) => {
       const tempId = `optimistic:${Date.now()}`;
       const endAt = new Date(new Date(startAt).getTime() + duration * 60_000).toISOString();
       const optimisticItem: FeedItem = {
@@ -446,14 +446,14 @@ export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
         descriptionOverride: null,
         descriptionUpdatedAt: null,
         sourceUrl: null,
-        color: '#3B82F6',
-        icon: null,
+        color,
+        icon,
       };
 
       setData((prev) => ({ ...prev, items: [optimisticItem, ...prev.items] }));
 
       try {
-        const task = await createTask(title, null, startAt, duration, isAllDay);
+        const task = await createTask(title, null, startAt, duration, isAllDay, color, icon);
         const realItem = nativeTaskToFeedItem(task);
         setData((prev) => ({
           ...prev,

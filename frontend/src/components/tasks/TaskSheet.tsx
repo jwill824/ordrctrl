@@ -7,11 +7,13 @@ import { timeToSlotValue, slotValueToMinutes } from '@/utils/timeSlots';
 import { useTimeFormat } from '@/hooks/useTimeFormat';
 import type { PlannerItem } from '@/hooks/usePlannerTimeline';
 
+const PALETTE = ['#71717A','#EF4444','#F97316','#F59E0B','#22C55E','#3B82F6','#8B5CF6','#F43F5E'] as const;
+
 interface TaskSheetProps {
   task?: PlannerItem;
   defaultStartAt?: string;
   defaultDuration?: number;
-  onSave: (title: string, startAt: string, durationMinutes: number, isAllDay: boolean) => Promise<void>;
+  onSave: (title: string, startAt: string, durationMinutes: number, isAllDay: boolean, color: string, icon: string | null) => Promise<void>;
   onDelete?: () => Promise<void>;
   onCancel: () => void;
 }
@@ -36,6 +38,9 @@ export function TaskSheet({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [color, setColor] = useState<string>(task?.color ?? '#3B82F6');
+  const [hexInput, setHexInput] = useState<string>(task?.color ?? '#3B82F6');
+  const [icon, setIcon] = useState<string>(task?.icon ?? '');
 
   const touchStartYRef = useRef(0);
 
@@ -59,7 +64,7 @@ export function TaskSheet({
       const totalMinutes = slotValueToMinutes(slotValue);
       const newStartAt = new Date(refDate);
       newStartAt.setHours(Math.floor(totalMinutes / 60), totalMinutes % 60, 0, 0);
-      await onSave(title.trim(), newStartAt.toISOString(), durationMinutes, isAllDay);
+      await onSave(title.trim(), newStartAt.toISOString(), durationMinutes, isAllDay, color, icon.trim() || null);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -123,6 +128,60 @@ export function TaskSheet({
               autoFocus
               className="w-full border border-zinc-300 bg-white py-2.5 px-3 text-[0.9rem] text-black outline-none transition-colors focus:border-black placeholder:text-zinc-400"
             />
+          </div>
+
+          {/* Color palette + icon */}
+          <div>
+            {/* Color swatches */}
+            <div className="flex gap-2 mt-3">
+              {PALETTE.map((hex) => (
+                <button
+                  key={hex}
+                  type="button"
+                  className={`w-7 h-7 rounded-full border-2 border-white ${color === hex ? 'ring-2 ring-offset-1 ring-black' : ''}`}
+                  style={{ backgroundColor: hex }}
+                  onClick={() => { setColor(hex); setHexInput(hex); }}
+                  aria-label={`Select color ${hex}`}
+                  aria-pressed={color === hex}
+                />
+              ))}
+            </div>
+
+            {/* Hex input with preview swatch */}
+            <div className="flex items-center gap-2 mt-2">
+              <div className="w-5 h-5 rounded-sm border border-zinc-200" style={{ backgroundColor: color }} />
+              <input
+                type="text"
+                className="text-sm border border-zinc-200 rounded px-2 py-1 w-28 font-mono"
+                value={hexInput}
+                maxLength={7}
+                placeholder="#3B82F6"
+                onChange={(e) => {
+                  setHexInput(e.target.value);
+                  if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) {
+                    setColor(e.target.value);
+                  }
+                }}
+                onBlur={() => {
+                  if (!/^#[0-9a-fA-F]{6}$/.test(hexInput)) {
+                    setHexInput(color);
+                  }
+                }}
+              />
+            </div>
+
+            {/* Icon emoji field */}
+            <div className="mt-2">
+              <label className="text-xs text-zinc-500 block mb-1">Icon (emoji)</label>
+              <input
+                type="text"
+                className="text-sm border border-zinc-200 rounded px-2 py-1 w-20"
+                value={icon}
+                maxLength={10}
+                placeholder="e.g. 🎯"
+                onChange={(e) => setIcon(e.target.value)}
+              />
+            </div>
           </div>
 
           {/* All-day toggle */}

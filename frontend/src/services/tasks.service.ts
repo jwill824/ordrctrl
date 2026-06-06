@@ -15,6 +15,8 @@ export interface NativeTask {
   completedAt: string | null;
   isDuplicateSuspect: false;
   isAllDay: boolean;
+  color: string;
+  icon: string | null;
 }
 
 export async function createTask(
@@ -22,13 +24,15 @@ export async function createTask(
   dueAt?: string | null,
   startAt?: string | null,
   duration?: number | null,
-  isAllDay?: boolean
+  isAllDay?: boolean,
+  color?: string,
+  icon?: string | null
 ): Promise<NativeTask> {
   const res = await fetch(`${API_URL}/api/tasks`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ title, dueAt: dueAt ?? null, startAt: startAt ?? null, duration: duration ?? null, isAllDay: isAllDay ?? false }),
+    body: JSON.stringify({ title, dueAt: dueAt ?? null, startAt: startAt ?? null, duration: duration ?? null, isAllDay: isAllDay ?? false, ...(color !== undefined && { color }), ...(icon !== undefined && { icon }) }),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
@@ -39,7 +43,7 @@ export async function createTask(
 
 export async function updateTask(
   id: string,
-  fields: { title?: string; dueAt?: string | null; startAt?: string | null; duration?: number | null; isAllDay?: boolean }
+  fields: { title?: string; dueAt?: string | null; startAt?: string | null; duration?: number | null; isAllDay?: boolean; color?: string; icon?: string | null }
 ): Promise<NativeTask> {
   // Strip the "native:" prefix
   const rawId = id.replace('native:', '');

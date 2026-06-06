@@ -279,11 +279,11 @@ function FeedPageContent() {
           task={sheetTask ?? undefined}
           defaultStartAt={sheetTask ? undefined : quickCreateDefaultStartAt}
           defaultDuration={30}
-          onSave={async (title, startAt, durationMinutes, isAllDay) => {
+          onSave={async (title, startAt, durationMinutes, isAllDay, color, icon) => {
             if (sheetMode === 'create') {
-              await createScheduledTask(title, startAt, durationMinutes, isAllDay);
+              await createScheduledTask(title, startAt, durationMinutes, isAllDay, color, icon);
             } else if (sheetTask) {
-              await update(sheetTask.id, { title, startAt, duration: durationMinutes, isAllDay });
+              await update(sheetTask.id, { title, startAt, duration: durationMinutes, isAllDay, color, icon });
             }
             closeSheet();
             reloadFeed();
