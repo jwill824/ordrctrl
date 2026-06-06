@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { TimeSlotPicker } from '@/components/tasks/TimeSlotPicker';
+import { DurationPicker } from '@/components/tasks/DurationPicker';
 import { timeToSlotValue, slotValueToMinutes } from '@/utils/timeSlots';
 import type { PlannerItem } from '@/hooks/usePlannerTimeline';
 
@@ -79,14 +80,6 @@ export function TaskSheet({
     }
   };
 
-  const decreaseDuration = () => {
-    setDurationMinutes((d) => Math.max(15, d - 15));
-  };
-
-  const increaseDuration = () => {
-    setDurationMinutes((d) => Math.min(480, d + 15));
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center">
       {/* Backdrop */}
@@ -136,34 +129,12 @@ export function TaskSheet({
             <TimeSlotPicker value={slotValue} onChange={setSlotValue} />
           </div>
 
-          {/* Duration stepper */}
+          {/* Duration picker */}
           <div>
             <label className="block text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-zinc-400 mb-1.5">
               Duration
             </label>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                aria-label="Decrease duration"
-                onClick={decreaseDuration}
-                disabled={durationMinutes <= 15}
-                className="w-9 h-9 flex items-center justify-center border border-zinc-300 bg-white text-black text-lg cursor-pointer hover:border-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                −
-              </button>
-              <span className="text-[0.9rem] font-medium text-black min-w-[4rem] text-center">
-                {durationMinutes} min
-              </span>
-              <button
-                type="button"
-                aria-label="Increase duration"
-                onClick={increaseDuration}
-                disabled={durationMinutes >= 480}
-                className="w-9 h-9 flex items-center justify-center border border-zinc-300 bg-white text-black text-lg cursor-pointer hover:border-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                +
-              </button>
-            </div>
+            <DurationPicker value={durationMinutes} onChange={setDurationMinutes} />
           </div>
 
           {error && (

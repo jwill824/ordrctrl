@@ -10,6 +10,16 @@ vi.mock('@/components/tasks/TimeSlotPicker', () => ({
   ),
 }));
 
+// Mock DurationPicker to prevent react-mobile-picker from breaking jsdom
+vi.mock('@/components/tasks/DurationPicker', () => ({
+  DurationPicker: (props: Record<string, unknown>) => (
+    <div data-testid="duration-picker" data-value={props.value as number}>
+      <button type="button" aria-label="Decrease duration" onClick={() => (props.onChange as (v: number) => void)(Math.max(1, (props.value as number) - 5))}>−</button>
+      <button type="button" aria-label="Increase duration" onClick={() => (props.onChange as (v: number) => void)((props.value as number) + 5)}>+</button>
+    </div>
+  ),
+}));
+
 const task: PlannerItem = {
   id: 'native:abc123',
   source: 'ordrctrl',
@@ -69,8 +79,8 @@ describe('TaskSheet — create mode', () => {
     expect(picker).toBeDefined();
   });
 
-  // W0-G: renders duration stepper buttons
-  it('W0-G: renders duration stepper +/- buttons in create mode', () => {
+  // W0-G: renders duration picker
+  it('W0-G: renders duration picker in create mode', () => {
     render(
       <TaskSheet
         onSave={onSave}
@@ -79,10 +89,8 @@ describe('TaskSheet — create mode', () => {
         defaultDuration={30}
       />
     );
-    const decrease = screen.getByLabelText('Decrease duration');
-    const increase = screen.getByLabelText('Increase duration');
-    expect(decrease).toBeDefined();
-    expect(increase).toBeDefined();
+    const picker = screen.getByTestId('duration-picker');
+    expect(picker).toBeDefined();
   });
 
   // W0-H: no delete button in create mode
