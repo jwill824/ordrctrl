@@ -131,3 +131,28 @@ export function formatLocalTime(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
+
+/**
+ * Format a week range label for the WeeklyPlannerView nav header.
+ * Caller must pass the Monday (week start) date — use getWeekStart() to obtain it.
+ *
+ * Same-month:   "Jun 1–7"       (no spaces around en-dash)
+ * Cross-month:  "Jun 30 – Jul 6" (spaces around en-dash)
+ * Cross-year:   "Dec 29 – Jan 4" (spaces around en-dash)
+ */
+export function formatWeekRange(weekStart: Date): string {
+  const end = addDays(weekStart, 6);
+  const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const startStr = fmt(weekStart);
+  const endStr = fmt(end);
+  if (weekStart.getMonth() === end.getMonth()) {
+    // Same month: "Jun 1–7" — share month prefix, no spaces around en-dash
+    const month = weekStart.toLocaleDateString('en-US', { month: 'short' });
+    const startDay = weekStart.getDate();
+    const endDay = end.getDate();
+    return `${month} ${startDay}\u2013${endDay}`;
+  } else {
+    // Cross-month or cross-year: spaces around en-dash
+    return `${startStr} \u2013 ${endStr}`;
+  }
+}
