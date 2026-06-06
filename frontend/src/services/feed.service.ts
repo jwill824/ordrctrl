@@ -27,6 +27,8 @@ export interface FeedItem {
   descriptionOverride: string | null;
   descriptionUpdatedAt: string | null;
   sourceUrl: string | null;
+  color: string;
+  icon: string | null;
 }
 
 export interface SyncStatusEntry {

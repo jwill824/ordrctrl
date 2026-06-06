@@ -8,9 +8,10 @@ interface PlannerTimeBlockProps {
   item: PlannerItem;
   hourHeight: number;
   compact?: boolean;
+  isDragging?: boolean;
 }
 
-export function PlannerTimeBlock({ item, hourHeight, compact = false }: PlannerTimeBlockProps) {
+export function PlannerTimeBlock({ item, hourHeight, compact = false, isDragging = false }: PlannerTimeBlockProps) {
   const start = new Date(item.startAt!);
   const totalMinutes = start.getHours() * 60 + start.getMinutes();
   const top = (totalMinutes / 60) * hourHeight;
@@ -18,14 +19,21 @@ export function PlannerTimeBlock({ item, hourHeight, compact = false }: PlannerT
 
   return (
     <div
-      className={`absolute border-l-[3px] border-blue-500 bg-blue-50 rounded-r px-1 py-0.5 overflow-hidden ${
-        compact ? 'left-0 right-0' : 'left-14 right-2 px-2 py-1'
+      className={`absolute border-l-[3px] rounded-r shadow-sm overflow-hidden ${
+        compact ? 'left-0 right-0 px-1 py-0.5' : 'left-14 right-2 px-2 py-1'
       } ${item.completed ? 'opacity-40' : ''}`}
-      style={{ top, height }}
+      style={{
+        top,
+        height,
+        borderColor: item.color,
+        backgroundColor: item.color + '20',
+        ...(!compact && !isDragging ? { transition: 'top 150ms ease, height 150ms ease' } : {}),
+      }}
     >
-      <div className={`font-semibold text-blue-900 leading-tight truncate ${
+      <div className={`font-semibold text-zinc-900 leading-tight truncate ${
         compact ? 'text-[0.6rem]' : 'text-[0.7rem]'
       } ${item.completed ? 'line-through' : ''}`}>
+        {item.icon ? <span className="mr-0.5">{item.icon}</span> : null}
         {item.title}
       </div>
       {!compact && height >= 36 && (

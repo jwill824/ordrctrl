@@ -77,14 +77,15 @@ export function DraggableTimeBlock({
     height: liveHeight,
     zIndex: isDragMove ? 50 : isDragResize ? 20 : 10,
     touchAction: isDragMove || isDragResize ? 'none' : undefined,
-    transition: isReverting ? revertTransition : 'none',
+    transition: isDragMove || isDragResize ? 'none' : (isReverting ? revertTransition : 'top 150ms ease, height 150ms ease'),
     cursor: isDragMove ? 'grabbing' : undefined,
+    borderColor: isErrorTint ? '#F87171' : item.color,
+    backgroundColor: item.color + '20',
   };
 
   const containerClasses = [
-    'absolute border-l-[3px] rounded-r px-2 py-1 overflow-hidden bg-blue-50 group select-none cursor-grab',
+    'absolute border-l-[3px] rounded-r px-2 py-1 overflow-hidden shadow-sm group select-none cursor-grab',
     compact ? 'left-0 right-0' : 'left-14 right-2',
-    isErrorTint ? 'border-red-400' : 'border-blue-500',
     isDragMove ? 'shadow-md opacity-90' : '',
     isDragResize ? 'shadow-sm' : '',
     item.completed ? 'opacity-40' : '',
@@ -107,10 +108,11 @@ export function DraggableTimeBlock({
     >
       {/* Title */}
       <p
-        className={`font-semibold text-blue-900 leading-tight truncate ${
+        className={`font-semibold text-zinc-900 leading-tight truncate ${
           compact ? 'text-[0.6rem]' : 'text-[0.7rem]'
         } ${item.completed ? 'line-through' : ''}`}
       >
+        {item.icon ? <span className="mr-0.5">{item.icon}</span> : null}
         {item.title}
       </p>
 

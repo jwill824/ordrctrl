@@ -446,6 +446,8 @@ export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
         descriptionOverride: null,
         descriptionUpdatedAt: null,
         sourceUrl: null,
+        color: '#3B82F6',
+        icon: null,
       };
 
       setData((prev) => ({ ...prev, items: [optimisticItem, ...prev.items] }));
