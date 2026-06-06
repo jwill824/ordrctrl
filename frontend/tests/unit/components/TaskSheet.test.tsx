@@ -79,8 +79,8 @@ describe('TaskSheet — create mode', () => {
     expect(picker).toBeDefined();
   });
 
-  // W0-G: renders duration picker
-  it('W0-G: renders duration picker in create mode', () => {
+  // W0-G: renders duration picker and shows time range label
+  it('W0-G: renders duration picker and time range label in create mode', () => {
     render(
       <TaskSheet
         onSave={onSave}
@@ -91,6 +91,9 @@ describe('TaskSheet — create mode', () => {
     );
     const picker = screen.getByTestId('duration-picker');
     expect(picker).toBeDefined();
+    const rangeLabel = screen.getByTestId('time-range-label');
+    // defaultStartAt = '2025-01-01T09:30:00.000Z' → local slot 9:30, +30 min → 10:00
+    expect(rangeLabel.textContent).toMatch(/\d+:\d{2}\s*–\s*\d+:\d{2}/);
   });
 
   // W0-H: no delete button in create mode

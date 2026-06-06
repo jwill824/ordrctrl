@@ -35,6 +35,16 @@ export function TaskSheet({
 
   const touchStartYRef = useRef(0);
 
+  const formatTime = (totalMins: number) => {
+    const h = Math.floor(totalMins / 60) % 24;
+    const m = totalMins % 60;
+    return `${h}:${String(m).padStart(2, '0')}`;
+  };
+
+  const startMinutes = slotValueToMinutes(slotValue);
+  const endMinutes = startMinutes + durationMinutes;
+  const timeRangeLabel = `${formatTime(startMinutes)} – ${formatTime(endMinutes)}`;
+
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartYRef.current = e.touches[0].clientY;
   };
@@ -131,9 +141,17 @@ export function TaskSheet({
 
           {/* Duration picker */}
           <div>
-            <label className="block text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-zinc-400 mb-1.5">
-              Duration
-            </label>
+            <div className="flex items-baseline justify-between mb-1.5">
+              <label className="text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+                Duration
+              </label>
+              <span
+                data-testid="time-range-label"
+                className="text-[0.75rem] font-medium text-zinc-500 tabular-nums"
+              >
+                {timeRangeLabel}
+              </span>
+            </div>
             <DurationPicker value={durationMinutes} onChange={setDurationMinutes} />
           </div>
 
