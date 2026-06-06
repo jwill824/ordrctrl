@@ -100,7 +100,11 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. The weekly view has visible prev and next controls; tapping each moves the view back or forward by exactly one week
   2. A "Today" button is always visible in the weekly view and returns the user to the current week from any offset in a single tap
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 11-01-PLAN.md — Add formatWeekRange utility to dateUtils.ts + unit tests
+- [ ] 11-02-PLAN.md — Add nav header row to WeeklyPlannerView + wire callbacks in feed/page.tsx
+- [ ] 11-03-PLAN.md — Playwright e2e tests for prev/next/today navigation + human verify
 **UI hint**: yes
 
 ### Phase 12: Timeline Visual Polish
@@ -143,6 +147,6 @@ Plans:
 | 08: Timeline Layout Correctness | v1.1 | 1/1 | Complete | 2026-06-05 |
 | 09: Drag to Reschedule | v1.1 | 5/5 | Complete | — |
 | 10: Tap to Edit + Quick-Create UX | v1.1 | 5/5 | Complete | 2026-06-06 |
-| 11: Weekly View Navigation | v1.1 | 0/TBD | Not started | — |
+| 11: Weekly View Navigation | v1.1 | 0/3 | Not started | — |
 | 12: Timeline Visual Polish | v1.1 | 0/TBD | Not started | — |
 | 13: Unified TimelineCanvas | v1.1 | 0/TBD | Not started | — |
