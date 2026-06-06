@@ -92,7 +92,7 @@ function FeedPageContent() {
   };
 
   // ── Planner timeline (T04) ────────────────────────────────────────────────
-  const { scheduled, unscheduled, now } = usePlannerTimeline({
+  const { scheduled, unscheduled, allDay, now } = usePlannerTimeline({
     items,
     sourceFilter,
     targetDate: viewMode === 'planner' ? plannerDate : undefined,
@@ -234,6 +234,7 @@ function FeedPageContent() {
               <DailyPlannerView
                 scheduled={scheduled}
                 unscheduled={unscheduled}
+                allDay={allDay}
                 now={now}
                 onComplete={completeItem}
                 onDismiss={dismissItem}
@@ -274,11 +275,11 @@ function FeedPageContent() {
           task={sheetTask ?? undefined}
           defaultStartAt={sheetTask ? undefined : quickCreateDefaultStartAt}
           defaultDuration={30}
-          onSave={async (title, startAt, durationMinutes) => {
+          onSave={async (title, startAt, durationMinutes, isAllDay) => {
             if (sheetMode === 'create') {
-              await createScheduledTask(title, startAt, durationMinutes);
+              await createScheduledTask(title, startAt, durationMinutes, isAllDay);
             } else if (sheetTask) {
-              await update(sheetTask.id, { title, startAt, duration: durationMinutes });
+              await update(sheetTask.id, { title, startAt, duration: durationMinutes, isAllDay });
             }
             closeSheet();
             reloadFeed();

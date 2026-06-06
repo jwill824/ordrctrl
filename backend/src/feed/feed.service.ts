@@ -22,6 +22,7 @@ export interface FeedItem {
   isDuplicateSuspect: boolean;
   dismissed: boolean;
   hasUserDueAt: boolean;            // true when user-assigned due date is the effective date
+  isAllDay: boolean;                // true for native tasks marked as all-day
   // Task content enhancement fields (null for native tasks)
   originalBody: string | null;
   description: string | null;
@@ -120,6 +121,7 @@ export async function buildFeed(
       isDuplicateSuspect: false, // populated below
       dismissed: false,
       hasUserDueAt,
+      isAllDay: false,
       originalBody,
       description,
       hasDescriptionOverride,
@@ -148,6 +150,7 @@ export async function buildFeed(
     isDuplicateSuspect: false,
     dismissed: false,
     hasUserDueAt: false,
+    isAllDay: task.isAllDay,
     originalBody: null,
     description: null,
     hasDescriptionOverride: false,
@@ -720,6 +723,7 @@ export async function buildDismissedFeed(userId: string): Promise<{ items: FeedI
       isDuplicateSuspect: false,
       dismissed: true,
       hasUserDueAt,
+      isAllDay: false,
       originalBody: (item as { body?: string | null }).body ?? null,
       description: (item as { body?: string | null }).body ?? null,
       hasDescriptionOverride: false,
@@ -747,6 +751,7 @@ export async function buildDismissedFeed(userId: string): Promise<{ items: FeedI
     isDuplicateSuspect: false,
     dismissed: true,
     hasUserDueAt: false,
+    isAllDay: task.isAllDay,
     originalBody: null,
     description: null,
     hasDescriptionOverride: false,
@@ -928,6 +933,7 @@ async function buildSingleSyncFeedItem(syncCacheItemId: string, userId: string):
     isDuplicateSuspect: false,
     dismissed: false,
     hasUserDueAt,
+    isAllDay: false,
     originalBody,
     description: descriptionOverride ?? originalBody,
     hasDescriptionOverride: !!descOverride,

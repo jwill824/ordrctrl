@@ -100,6 +100,7 @@ model NativeTask {
   dismissed   Boolean   @default(false)
   duration    Int?
   startAt     DateTime?
+  isAllDay    Boolean   @default(false)
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])

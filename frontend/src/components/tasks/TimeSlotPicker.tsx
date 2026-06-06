@@ -1,7 +1,7 @@
 'use client';
 
 import Picker from 'react-mobile-picker';
-import { generateTimeSlots, slotValueToMinutes } from '@/utils/timeSlots';
+import { generateTimeSlots, slotValueToMinutes, formatMins } from '@/utils/timeSlots';
 
 const SLOTS = generateTimeSlots();
 
@@ -9,15 +9,10 @@ interface TimeSlotPickerProps {
   value: string;
   onChange: (value: string) => void;
   durationMinutes?: number;
+  use12h?: boolean;
 }
 
-function formatMins(totalMins: number): string {
-  const h = Math.floor(totalMins / 60) % 24;
-  const m = totalMins % 60;
-  return `${h}:${String(m).padStart(2, '0')}`;
-}
-
-export function TimeSlotPicker({ value, onChange, durationMinutes }: TimeSlotPickerProps) {
+export function TimeSlotPicker({ value, onChange, durationMinutes, use12h = false }: TimeSlotPickerProps) {
   return (
     <div data-testid="time-slot-picker">
       <Picker
@@ -32,8 +27,8 @@ export function TimeSlotPicker({ value, onChange, durationMinutes }: TimeSlotPic
             const startMins = slotValueToMinutes(slot.value);
             const label =
               durationMinutes != null
-                ? `${formatMins(startMins)} – ${formatMins(startMins + durationMinutes)}`
-                : slot.label;
+                ? `${formatMins(startMins, use12h)} – ${formatMins(startMins + durationMinutes, use12h)}`
+                : formatMins(startMins, use12h);
             return (
               <Picker.Item key={slot.value} value={slot.value}>
                 {label}

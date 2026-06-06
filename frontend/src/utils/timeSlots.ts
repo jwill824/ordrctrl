@@ -3,6 +3,17 @@ export interface TimeSlot {
   label: string;
 }
 
+export function formatMins(totalMins: number, use12h: boolean): string {
+  const h = Math.floor(totalMins / 60) % 24;
+  const m = totalMins % 60;
+  if (use12h) {
+    const period = h < 12 ? 'AM' : 'PM';
+    const displayH = h % 12 === 0 ? 12 : h % 12;
+    return `${displayH}:${String(m).padStart(2, '0')} ${period}`;
+  }
+  return `${h}:${String(m).padStart(2, '0')}`;
+}
+
 export function generateTimeSlots(): TimeSlot[] {
   const slots: TimeSlot[] = [];
   for (let totalMinutes = 0; totalMinutes < 24 * 60; totalMinutes += 15) {

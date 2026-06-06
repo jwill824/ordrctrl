@@ -18,6 +18,7 @@ const makeItem = (id: string, title: string): FeedItem => ({
   isDuplicateSuspect: false,
   dismissed: false,
   hasUserDueAt: false,
+    isAllDay: false,
 });
 
 describe('CompletedSection', () => {

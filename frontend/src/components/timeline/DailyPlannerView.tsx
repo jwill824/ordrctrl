@@ -10,6 +10,7 @@ import { PX_PER_HOUR } from './timelineConstants';
 interface DailyPlannerViewProps {
   scheduled: PlannerItem[];
   unscheduled: FeedItem[];
+  allDay?: FeedItem[];
   now: Date;
   onComplete: (id: string) => void;
   onDismiss?: (id: string) => void;
@@ -26,6 +27,7 @@ interface DailyPlannerViewProps {
 export function DailyPlannerView({
   scheduled,
   unscheduled,
+  allDay = [],
   now,
   onComplete,
   onDismiss,
@@ -78,6 +80,36 @@ export function DailyPlannerView({
               {src}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* All-day items banner */}
+      {allDay.length > 0 && (
+        <div className="mb-3 border border-zinc-100 bg-zinc-50 px-3 py-2">
+          <div className="text-[0.6rem] font-semibold uppercase tracking-[0.1em] text-zinc-400 mb-1.5">
+            All day
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {allDay.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center gap-1.5 border border-zinc-200 bg-white px-2.5 py-1 text-[0.7rem] font-medium text-black"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-black shrink-0" />
+                <span>{item.title}</span>
+                {onEdit && (
+                  <button
+                    type="button"
+                    onClick={() => onEdit(item)}
+                    className="ml-1 text-zinc-400 hover:text-black transition-colors"
+                    aria-label={`Edit ${item.title}`}
+                  >
+                    ✎
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

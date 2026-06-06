@@ -18,6 +18,7 @@ export function nativeTaskToFeedItem(task: NativeTask): FeedItem {
     isDuplicateSuspect: false,
     dismissed: false,
     hasUserDueAt: false,
+    isAllDay: task.isAllDay,
     originalBody: null,
     description: null,
     hasDescriptionOverride: false,

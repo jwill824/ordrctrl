@@ -17,13 +17,14 @@ export interface UsePlannerTimelineOptions {
 export interface UsePlannerTimelineResult {
   scheduled: PlannerItem[];
   unscheduled: FeedItem[];
+  allDay: FeedItem[];
   now: Date;
 }
 
 export function usePlannerTimeline({ items, sourceFilter, targetDate }: UsePlannerTimelineOptions): UsePlannerTimelineResult {
   const now = useLiveDate();
 
-  const { scheduled, unscheduled } = useMemo(() => {
+  const { scheduled, unscheduled, allDay } = useMemo(() => {
     const filtered = sourceFilter
       ? items.filter((i) => i.serviceId === sourceFilter || i.source === sourceFilter)
       : items;
@@ -34,8 +35,13 @@ export function usePlannerTimeline({ items, sourceFilter, targetDate }: UsePlann
 
     const scheduled: PlannerItem[] = [];
     const unscheduled: FeedItem[] = [];
+    const allDay: FeedItem[] = [];
 
     for (const item of filtered) {
+      if (item.isAllDay) {
+        allDay.push(item);
+        continue;
+      }
       if (item.startAt !== null) {
         if (targetMidnight !== null) {
           const itemMidnight = toLocalMidnight(item.startAt).getTime();
@@ -56,8 +62,8 @@ export function usePlannerTimeline({ items, sourceFilter, targetDate }: UsePlann
 
     scheduled.sort((a, b) => new Date(a.startAt!).getTime() - new Date(b.startAt!).getTime());
 
-    return { scheduled, unscheduled };
+    return { scheduled, unscheduled, allDay };
   }, [items, sourceFilter, targetDate]);
 
-  return { scheduled, unscheduled, now };
+  return { scheduled, unscheduled, allDay, now };
 }

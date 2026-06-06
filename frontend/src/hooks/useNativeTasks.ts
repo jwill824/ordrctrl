@@ -18,6 +18,7 @@ export function useNativeTasks(onRefresh: () => Promise<void>) {
       dueAt?: string | null;
       startAt?: string | null;
       duration?: number | null;
+      isAllDay?: boolean;
     }) => {
       await tasksService.updateTask(id, fields);
       await onRefresh();

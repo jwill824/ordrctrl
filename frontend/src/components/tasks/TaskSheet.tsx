@@ -4,13 +4,14 @@ import { useState, useRef } from 'react';
 import { TimeSlotPicker } from '@/components/tasks/TimeSlotPicker';
 import { DurationPicker } from '@/components/tasks/DurationPicker';
 import { timeToSlotValue, slotValueToMinutes } from '@/utils/timeSlots';
+import { useTimeFormat } from '@/hooks/useTimeFormat';
 import type { PlannerItem } from '@/hooks/usePlannerTimeline';
 
 interface TaskSheetProps {
   task?: PlannerItem;
   defaultStartAt?: string;
   defaultDuration?: number;
-  onSave: (title: string, startAt: string, durationMinutes: number) => Promise<void>;
+  onSave: (title: string, startAt: string, durationMinutes: number, isAllDay: boolean) => Promise<void>;
   onDelete?: () => Promise<void>;
   onCancel: () => void;
 }
@@ -26,9 +27,12 @@ export function TaskSheet({
   const isEditMode = !!task;
   const refStartAt = task?.startAt ?? defaultStartAt ?? new Date().toISOString();
 
+  const { use12h, toggle: toggleTimeFormat } = useTimeFormat();
+
   const [title, setTitle] = useState(task?.title ?? '');
   const [slotValue, setSlotValue] = useState(() => timeToSlotValue(refStartAt));
   const [durationMinutes, setDurationMinutes] = useState(task?.durationMinutes ?? defaultDuration);
+  const [isAllDay, setIsAllDay] = useState(task?.isAllDay ?? false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -47,7 +51,7 @@ export function TaskSheet({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
-    if (durationMinutes < 15) return;
+    if (!isAllDay && durationMinutes < 1) return;
     setError(null);
     setLoading(true);
     try {
@@ -55,7 +59,7 @@ export function TaskSheet({
       const totalMinutes = slotValueToMinutes(slotValue);
       const newStartAt = new Date(refDate);
       newStartAt.setHours(Math.floor(totalMinutes / 60), totalMinutes % 60, 0, 0);
-      await onSave(title.trim(), newStartAt.toISOString(), durationMinutes);
+      await onSave(title.trim(), newStartAt.toISOString(), durationMinutes, isAllDay);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -121,21 +125,59 @@ export function TaskSheet({
             />
           </div>
 
-          {/* Start time / time slot picker */}
-          <div>
-            <label className="block text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-zinc-400 mb-1.5">
-              Time slot
-            </label>
-            <TimeSlotPicker value={slotValue} onChange={setSlotValue} durationMinutes={durationMinutes} />
+          {/* All-day toggle */}
+          <div className="flex items-center justify-between">
+            <span className="text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+              All day
+            </span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={isAllDay}
+              aria-label="Toggle all-day task"
+              onClick={() => setIsAllDay((v) => !v)}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                isAllDay ? 'bg-black' : 'bg-zinc-200'
+              }`}
+            >
+              <span
+                className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${
+                  isAllDay ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                }`}
+              />
+            </button>
           </div>
 
-          {/* Duration picker */}
-          <div>
-            <label className="block text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-zinc-400 mb-1.5">
-              Duration
-            </label>
-            <DurationPicker value={durationMinutes} onChange={setDurationMinutes} />
-          </div>
+          {/* Time slot + duration (hidden when all-day) */}
+          {!isAllDay && (
+            <>
+              {/* Start time / time slot picker */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+                    Time slot
+                  </label>
+                  <button
+                    type="button"
+                    onClick={toggleTimeFormat}
+                    className="text-[0.6rem] font-semibold uppercase tracking-[0.08em] px-2 py-0.5 border border-zinc-200 bg-white text-zinc-500 hover:border-zinc-400 transition-colors"
+                    aria-label={use12h ? 'Switch to 24-hour format' : 'Switch to 12-hour format'}
+                  >
+                    {use12h ? '12h' : '24h'}
+                  </button>
+                </div>
+                <TimeSlotPicker value={slotValue} onChange={setSlotValue} durationMinutes={durationMinutes} use12h={use12h} />
+              </div>
+
+              {/* Duration picker */}
+              <div>
+                <label className="block text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-zinc-400 mb-1.5">
+                  Duration
+                </label>
+                <DurationPicker value={durationMinutes} onChange={setDurationMinutes} />
+              </div>
+            </>
+          )}
 
           {error && (
             <p className="border-l-2 border-red-500 py-1 pl-3 text-[0.8rem] text-red-600">

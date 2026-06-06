@@ -8,6 +8,7 @@ export interface CreateTaskInput {
   dueAt?: Date | null;
   startAt?: Date | null;
   duration?: number | null;
+  isAllDay?: boolean;
 }
 
 export interface UpdateTaskInput {
@@ -15,6 +16,7 @@ export interface UpdateTaskInput {
   dueAt?: Date | null;
   startAt?: Date | null;
   duration?: number | null;
+  isAllDay?: boolean;
 }
 
 export interface NativeTaskResult {
@@ -29,6 +31,7 @@ export interface NativeTaskResult {
   completed: boolean;
   completedAt: string | null;
   isDuplicateSuspect: false;
+  isAllDay: boolean;
 }
 
 function toFeedItem(task: {
@@ -39,6 +42,7 @@ function toFeedItem(task: {
   duration: number | null;
   completed: boolean;
   completedAt: Date | null;
+  isAllDay: boolean;
 }): NativeTaskResult {
   return {
     id: `native:${task.id}`,
@@ -54,6 +58,7 @@ function toFeedItem(task: {
     completed: task.completed,
     completedAt: task.completedAt?.toISOString() ?? null,
     isDuplicateSuspect: false,
+    isAllDay: task.isAllDay,
   };
 }
 
@@ -68,6 +73,7 @@ export async function createTask(
       dueAt: input.dueAt ?? null,
       startAt: input.startAt ?? null,
       duration: input.duration ?? null,
+      isAllDay: input.isAllDay ?? false,
     },
   });
   return toFeedItem(task);
@@ -92,6 +98,7 @@ export async function updateTask(
       ...(input.dueAt !== undefined && { dueAt: input.dueAt }),
       ...(input.startAt !== undefined && { startAt: input.startAt }),
       ...(input.duration !== undefined && { duration: input.duration }),
+      ...(input.isAllDay !== undefined && { isAllDay: input.isAllDay }),
     },
   });
   return toFeedItem(task);

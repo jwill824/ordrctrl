@@ -18,6 +18,7 @@ const baseItem: FeedItem = {
   isDuplicateSuspect: false,
   dismissed: false,
   hasUserDueAt: false,
+    isAllDay: false,
   originalBody: null,
   description: null,
   hasDescriptionOverride: false,

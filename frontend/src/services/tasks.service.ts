@@ -14,19 +14,21 @@ export interface NativeTask {
   completed: boolean;
   completedAt: string | null;
   isDuplicateSuspect: false;
+  isAllDay: boolean;
 }
 
 export async function createTask(
   title: string,
   dueAt?: string | null,
   startAt?: string | null,
-  duration?: number | null
+  duration?: number | null,
+  isAllDay?: boolean
 ): Promise<NativeTask> {
   const res = await fetch(`${API_URL}/api/tasks`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ title, dueAt: dueAt ?? null, startAt: startAt ?? null, duration: duration ?? null }),
+    body: JSON.stringify({ title, dueAt: dueAt ?? null, startAt: startAt ?? null, duration: duration ?? null, isAllDay: isAllDay ?? false }),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
@@ -37,7 +39,7 @@ export async function createTask(
 
 export async function updateTask(
   id: string,
-  fields: { title?: string; dueAt?: string | null; startAt?: string | null; duration?: number | null }
+  fields: { title?: string; dueAt?: string | null; startAt?: string | null; duration?: number | null; isAllDay?: boolean }
 ): Promise<NativeTask> {
   // Strip the "native:" prefix
   const rawId = id.replace('native:', '');

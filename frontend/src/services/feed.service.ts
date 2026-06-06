@@ -19,6 +19,7 @@ export interface FeedItem {
   isJustReopened?: boolean;
   dismissed: boolean;
   hasUserDueAt: boolean;
+  isAllDay: boolean;
   // Task content enhancement fields
   originalBody: string | null;
   description: string | null;
