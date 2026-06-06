@@ -9,6 +9,8 @@ export interface CreateTaskInput {
   startAt?: Date | null;
   duration?: number | null;
   isAllDay?: boolean;
+  color?: string | null;
+  icon?: string | null;
 }
 
 export interface UpdateTaskInput {
@@ -17,6 +19,8 @@ export interface UpdateTaskInput {
   startAt?: Date | null;
   duration?: number | null;
   isAllDay?: boolean;
+  color?: string | null;
+  icon?: string | null;
 }
 
 export interface NativeTaskResult {
@@ -32,6 +36,8 @@ export interface NativeTaskResult {
   completedAt: string | null;
   isDuplicateSuspect: false;
   isAllDay: boolean;
+  color: string;
+  icon: string | null;
 }
 
 function toFeedItem(task: {
@@ -43,6 +49,8 @@ function toFeedItem(task: {
   completed: boolean;
   completedAt: Date | null;
   isAllDay: boolean;
+  color: string | null;
+  icon: string | null;
 }): NativeTaskResult {
   return {
     id: `native:${task.id}`,
@@ -59,6 +67,8 @@ function toFeedItem(task: {
     completedAt: task.completedAt?.toISOString() ?? null,
     isDuplicateSuspect: false,
     isAllDay: task.isAllDay,
+    color: task.color ?? '#3B82F6',
+    icon: task.icon ?? null,
   };
 }
 
@@ -74,6 +84,8 @@ export async function createTask(
       startAt: input.startAt ?? null,
       duration: input.duration ?? null,
       isAllDay: input.isAllDay ?? false,
+      color: input.color ?? '#3B82F6',
+      icon: input.icon ?? null,
     },
   });
   return toFeedItem(task);
@@ -99,6 +111,8 @@ export async function updateTask(
       ...(input.startAt !== undefined && { startAt: input.startAt }),
       ...(input.duration !== undefined && { duration: input.duration }),
       ...(input.isAllDay !== undefined && { isAllDay: input.isAllDay }),
+      ...(input.color !== undefined && { color: input.color }),
+      ...(input.icon !== undefined && { icon: input.icon }),
     },
   });
   return toFeedItem(task);

@@ -23,6 +23,7 @@ import {
   setUserDueAt,
   setDescriptionOverride,
   setTitleOverride,
+  setColorIconOverride,
 } from '../feed/feed.service.js';
 import { dismissParamSchema, dismissedQuerySchema } from './schemas/feed.schemas.js';
 
@@ -381,6 +382,65 @@ export async function registerFeedRoutes(app: FastifyInstance): Promise<void> {
         }
         throw err;
       }
+    }
+  );
+
+  // PATCH /api/feed/:itemId/override — upsert/delete COLOR or ICON SyncOverride for sync items
+  const overrideSchema = z.object({
+    type: z.enum(['COLOR', 'ICON']),
+    value: z.string().nullable(),
+  });
+
+  app.patch(
+    '/api/feed/:itemId/override',
+    async (
+      request: FastifyRequest<{ Params: { itemId: string } }>,
+      reply
+    ) => {
+      const userId = requireAuth(request, reply);
+      if (!userId) return;
+
+      const { itemId } = request.params;
+
+      if (!itemId.startsWith('sync:')) {
+        return reply.status(400).send({
+          error: 'Bad Request',
+          message: 'Override route is for integration items (sync: prefix) only',
+        });
+      }
+
+      const syncCacheItemId = itemId.replace(/^sync:/, '');
+
+      const parsed = overrideSchema.safeParse(request.body);
+      if (!parsed.success) {
+        return reply.status(422).send({
+          error: 'Validation Error',
+          details: parsed.error.flatten(),
+        });
+      }
+
+      const { type, value } = parsed.data;
+
+      if (type === 'COLOR' && value !== null) {
+        if (!/^#[0-9a-fA-F]{6}$/.test(value)) {
+          return reply.status(400).send({
+            error: 'Bad Request',
+            message: 'Color value must be a valid 6-character hex color (e.g. #3B82F6)',
+          });
+        }
+      }
+
+      if (type === 'ICON' && value !== null) {
+        if (value.length > 10) {
+          return reply.status(400).send({
+            error: 'Bad Request',
+            message: 'Icon value must be 10 characters or fewer',
+          });
+        }
+      }
+
+      await setColorIconOverride(userId, syncCacheItemId, type, value);
+      return reply.status(200).send({ ok: true });
     }
   );
 }

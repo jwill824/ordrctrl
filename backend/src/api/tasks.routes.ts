@@ -27,6 +27,8 @@ const createTaskSchema = z.object({
   startAt: z.string().datetime().optional().nullable(),
   duration: z.number().int().min(1).optional().nullable(),
   isAllDay: z.boolean().optional(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().nullable(),
+  icon: z.string().max(10).optional().nullable(),
 });
 
 const updateTaskSchema = z.object({
@@ -35,6 +37,8 @@ const updateTaskSchema = z.object({
   startAt: z.string().datetime().optional().nullable(),
   duration: z.number().int().min(1).optional().nullable(),
   isAllDay: z.boolean().optional(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().nullable(),
+  icon: z.string().max(10).optional().nullable(),
 });
 
 export async function registerTaskRoutes(app: FastifyInstance): Promise<void> {
@@ -51,7 +55,7 @@ export async function registerTaskRoutes(app: FastifyInstance): Promise<void> {
       });
     }
 
-    const { title, dueAt, startAt, duration, isAllDay } = result.data;
+    const { title, dueAt, startAt, duration, isAllDay, color } = result.data;
 
     // All-day tasks: anchor to today midnight, clear duration
     const resolvedStartAt = isAllDay
@@ -64,6 +68,7 @@ export async function registerTaskRoutes(app: FastifyInstance): Promise<void> {
       startAt: resolvedStartAt,
       duration: isAllDay ? null : (duration ?? null),
       isAllDay: isAllDay ?? false,
+      color: color ?? '#3B82F6',
     });
 
     return reply.status(201).send(task);
@@ -86,7 +91,7 @@ export async function registerTaskRoutes(app: FastifyInstance): Promise<void> {
         });
       }
 
-      const { title, dueAt, startAt, duration, isAllDay } = result.data;
+      const { title, dueAt, startAt, duration, isAllDay, color, icon } = result.data;
 
       try {
         const task = await updateTask(userId, id, {
@@ -95,6 +100,8 @@ export async function registerTaskRoutes(app: FastifyInstance): Promise<void> {
           ...(startAt !== undefined && { startAt: startAt ? new Date(startAt) : null }),
           ...(duration !== undefined && { duration: isAllDay ? null : (duration ?? null) }),
           ...(isAllDay !== undefined && { isAllDay }),
+          ...(color !== undefined && { color: color ?? null }),
+          ...(icon !== undefined && { icon: icon ?? null }),
         });
         return reply.send(task);
       } catch (err) {
