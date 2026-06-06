@@ -117,7 +117,13 @@ Plans:
   3. Task blocks optionally display an emoji/icon prefix before the title
   4. Blocks have a subtle drop shadow that elevates them off the timeline grid
   5. Block position and height changes (from drag or save) animate smoothly with a short CSS transition
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 12-01-PLAN.md — Schema: add NativeTask.color/icon + OverrideType.COLOR_OVERRIDE/ICON_OVERRIDE, run migration
+- [ ] 12-02-PLAN.md — Backend: feed service color/icon resolution, task service/routes, new override route
+- [ ] 12-03-PLAN.md — Frontend: FeedItem type + PlannerTimeBlock + DraggableTimeBlock color/shadow/animation/icon
+- [ ] 12-04-PLAN.md — Frontend: TaskSheet color swatch palette, hex input, icon emoji field, wire to API
+- [ ] 12-05-PLAN.md — Tests + human verify: unit tests, contract tests, visual sign-off
 **UI hint**: yes
 
 ### Phase 13: Unified TimelineCanvas
