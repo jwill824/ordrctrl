@@ -74,12 +74,12 @@ This file is the explicit capability and coverage contract for milestone v1.1.
   - Why it matters: Color-coded blocks are the primary visual differentiator of Structured — they let users scan the day at a glance and recognize task categories without reading titles
   - Source: user
 
-- [ ] **VIS-02** — Each task has a `color` field (hex string); users can set it from a color palette in the create/edit sheet; new tasks receive a default color
+- [x] **VIS-02** — Each task has a `color` field (hex string); users can set it from a color palette in the create/edit sheet; new tasks receive a default color
   - Class: core-capability
   - Why it matters: Colors must be persistent and user-controlled — a random per-render color would be noise, not signal
   - Source: user
 
-- [ ] **VIS-03** — Task blocks optionally display an emoji or short icon prefix before the title when the task has an `icon` field set
+- [x] **VIS-03** — Task blocks optionally display an emoji or short icon prefix before the title when the task has an `icon` field set
   - Class: secondary
   - Why it matters: Icons reinforce category at a glance, matching the Structured pattern of glanceable visual density
   - Source: user
@@ -192,8 +192,8 @@ This file is the explicit capability and coverage contract for milestone v1.1.
 | WEEK-01 | Prev/next week navigation | Phase 11 | Pending |
 | WEEK-02 | Today button in weekly view | Phase 11 | Pending |
 | VIS-01 | Color-coded block fill + left accent | Phase 12 | Pending |
-| VIS-02 | Task color field + palette picker | Phase 12 | Pending |
-| VIS-03 | Emoji/icon prefix on blocks | Phase 12 | Pending |
+| VIS-02 | Task color field + palette picker | Phase 12 | ✅ Complete |
+| VIS-03 | Emoji/icon prefix on blocks | Phase 12 | ✅ Complete |
 | VIS-04 | Drop shadow on task blocks | Phase 12 | Pending |
 | VIS-05 | 150ms CSS transition on block changes | Phase 12 | Pending |
 | CANVAS-01 | Single TimelineCanvas replaces both views | Phase 13 | Pending |
