@@ -19,7 +19,7 @@ import { EditTaskModal } from '@/components/tasks/EditTaskModal';
 import { DailyPlannerView, WeeklyPlannerView } from '@/components/timeline';
 import { useWeeklyPlanner } from '@/hooks/useWeeklyPlanner';
 import { useTaskSheet } from '@/hooks/useTaskSheet';
-import { getWeekStart } from '@/utils/dateUtils';
+import { getWeekStart, addDays } from '@/utils/dateUtils';
 import type { FeedItem } from '@/services/feed.service';
 import type { PlannerItem } from '@/hooks/usePlannerTimeline';
 import type { TimelineViewMode } from '@/types/timeline';
@@ -157,6 +157,10 @@ function FeedPageContent() {
               dayMap={dayMap}
               plannerDate={plannerDate}
               onDayTap={handleDayTap}
+              weekStart={weekStart}
+              onPrevWeek={() => setWeekStart(addDays(weekStart, -7))}
+              onNextWeek={() => setWeekStart(addDays(weekStart, 7))}
+              onToday={() => setWeekStart(getWeekStart(new Date()))}
               sourceFilter={sourceFilter}
               availableSources={availableSources}
               onSourceFilterChange={setSourceFilter}
