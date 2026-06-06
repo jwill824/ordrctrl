@@ -139,7 +139,7 @@ export function WeeklyPlannerView({
           return (
             <div
               key={key}
-              className="flex-shrink-0 w-28"
+              className="flex-1 min-w-28"
               style={{ scrollSnapAlign: 'start' }}
             >
               {/* Column header */}
