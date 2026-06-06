@@ -6,7 +6,7 @@ import type { PlannerItem } from '@/hooks/usePlannerTimeline';
 // Mock TimeSlotPicker to prevent react-mobile-picker from breaking jsdom
 vi.mock('@/components/tasks/TimeSlotPicker', () => ({
   TimeSlotPicker: (props: Record<string, unknown>) => (
-    <div data-testid="time-slot-picker" data-value={props.value as string} />
+    <div data-testid="time-slot-picker" data-value={props.value as string} data-duration={props.durationMinutes as number} />
   ),
 }));
 
@@ -79,8 +79,8 @@ describe('TaskSheet — create mode', () => {
     expect(picker).toBeDefined();
   });
 
-  // W0-G: renders duration picker and shows time range label
-  it('W0-G: renders duration picker and time range label in create mode', () => {
+  // W0-G: renders duration picker; slot picker receives durationMinutes prop
+  it('W0-G: renders duration picker and passes durationMinutes to slot picker', () => {
     render(
       <TaskSheet
         onSave={onSave}
@@ -89,11 +89,9 @@ describe('TaskSheet — create mode', () => {
         defaultDuration={30}
       />
     );
-    const picker = screen.getByTestId('duration-picker');
-    expect(picker).toBeDefined();
-    const rangeLabel = screen.getByTestId('time-range-label');
-    // defaultStartAt = '2025-01-01T09:30:00.000Z' → local slot 9:30, +30 min → 10:00
-    expect(rangeLabel.textContent).toMatch(/\d+:\d{2}\s*–\s*\d+:\d{2}/);
+    expect(screen.getByTestId('duration-picker')).toBeDefined();
+    const slotPicker = screen.getByTestId('time-slot-picker');
+    expect(slotPicker.getAttribute('data-duration')).toBe('30');
   });
 
   // W0-H: no delete button in create mode
