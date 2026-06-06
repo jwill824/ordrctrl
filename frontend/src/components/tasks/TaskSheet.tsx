@@ -131,27 +131,27 @@ export function TaskSheet({
             />
           </div>
 
-          {/* Start time picker */}
+          {/* Start time / time slot picker */}
           <div>
-            <label className="block text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-zinc-400 mb-1.5">
-              Start time
-            </label>
+            <div className="flex items-baseline justify-between mb-1.5">
+              <label className="text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-zinc-400">
+                Time slot
+              </label>
+              <span
+                data-testid="time-range-label"
+                className="text-[0.75rem] font-semibold text-black tabular-nums"
+              >
+                {timeRangeLabel}
+              </span>
+            </div>
             <TimeSlotPicker value={slotValue} onChange={setSlotValue} />
           </div>
 
           {/* Duration picker */}
           <div>
-            <div className="flex items-baseline justify-between mb-1.5">
-              <label className="text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-zinc-400">
-                Duration
-              </label>
-              <span
-                data-testid="time-range-label"
-                className="text-[0.75rem] font-medium text-zinc-500 tabular-nums"
-              >
-                {timeRangeLabel}
-              </span>
-            </div>
+            <label className="block text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-zinc-400 mb-1.5">
+              Duration
+            </label>
             <DurationPicker value={durationMinutes} onChange={setDurationMinutes} />
           </div>
 
