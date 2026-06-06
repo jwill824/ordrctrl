@@ -3,15 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Timeline & Planner UX Polish
 status: in_progress
-stopped_at: Phase 11 Plan 03 Task 1 complete — awaiting human checkpoint (Task 2)
-last_updated: "2026-06-06T19:59:21Z"
-last_activity: 2026-06-06 — Phase 11 Plan 03 Task 1 executed (Playwright e2e tests TC-WN-01–04)
+last_updated: "2026-06-06T23:15:00Z"
+last_activity: 2026-06-06 — Phase 12 Plan 01 executed (NativeTask color/icon schema + migration)
 progress:
   total_phases: 7
-  completed_phases: 4
-  total_plans: 13
-  completed_plans: 13
-  percent: 57
+  completed_phases: 5
+  total_plans: 21
+  completed_plans: 18
+  percent: 74
 ---
 
 # Project State
@@ -44,6 +43,10 @@ Migrated from GSD-2. Review PROJECT.md for key decisions.
 
 10-01: TaskSheet unified create+edit bottom sheet. useTaskSheet hook for open/close state. TimeSlotPicker + DurationPicker both use react-mobile-picker. TimeSlotPicker rows show live time range (start–end). DurationPicker: platform-aware (scroll wheel on mobile, chips+number input on desktop), custom duration 1–719 min. 12hr/24hr toggle via useTimeFormat (localStorage, locale-default). All-day tasks: isAllDay field on NativeTask, DailyPlannerView shows all-day banner above timeline.
 
+12-01-A: Granted CREATEDB to ordrctrl DB user for Prisma shadow DB (dev only) — needed for migrate dev shadow database creation.
+
+12-01-B: Accepted dev DB reset to reconcile isAllDay migration drift — isAllDay had been added directly to the DB without a migration; reset brings history into sync with no prod impact.
+
 ### Known Gaps (planned in later phases)
 
 - Week view showing full month instead of current week → Phase 11
@@ -54,9 +57,9 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-06T19:54:47Z
-Stopped at: Phase 11 Plan 03 Task 1 complete — awaiting human checkpoint (Task 2 browser verification)
-Resume file: .planning/phases/11-weekly-view-navigation/11-03-PLAN.md
+Last session: 2026-06-06T23:15:00Z
+Stopped at: Phase 12 Plan 01 complete — NativeTask color/icon schema + migration applied
+Resume file: None
 
 ## Operator Next Steps
 
