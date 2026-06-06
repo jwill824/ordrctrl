@@ -93,7 +93,17 @@ The plan noted that auth firing before validation meant 422 was unreachable with
 
 ## Human Checkpoint
 
-**PENDING** — Visual verification checkpoint (VIS-01 through VIS-05) is awaiting human approval. See checkpoint details below.
+**APPROVED** — Visual verification checkpoint (VIS-01 through VIS-05) approved by human on 2026-06-06.
+
+### VIS Criteria Confirmed
+
+| Criterion | Description | Status |
+|-----------|-------------|--------|
+| VIS-01 | Color-coded blocks with border + semi-transparent fill | ✅ Approved |
+| VIS-02 | TaskSheet palette (8 swatches + hex input + emoji field) | ✅ Approved |
+| VIS-03 | Block reflects saved color + icon emoji prefix | ✅ Approved |
+| VIS-04 | shadow-sm drop elevation on blocks | ✅ Approved |
+| VIS-05 | 150ms ease animation on drag release, no lag during drag | ✅ Approved |
 
 ## Known Stubs
 

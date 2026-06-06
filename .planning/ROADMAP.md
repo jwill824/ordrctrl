@@ -28,7 +28,7 @@ See: `.planning/milestones/v1.0-ROADMAP.md`
 - [x] **Phase 09: Drag to Reschedule** — Drag blocks to change startAt, drag bottom edge to resize duration, with pointer-event unification and backend persist
 - [x] **Phase 10: Tap to Edit + Quick-Create UX** — Tap-to-edit bottom sheet, scroll-wheel time picker, duration stepper, all-day tasks
 - [x] **Phase 11: Weekly View Navigation** — Prev/next week controls and Today button in the weekly planner view
-- [ ] **Phase 12: Timeline Visual Polish** — Structured-style per-task color coding, task icons, block elevation, and smooth animations
+- [x] **Phase 12: Timeline Visual Polish** — Structured-style per-task color coding, task icons, block elevation, and smooth animations
 - [ ] **Phase 13: Unified TimelineCanvas** — Merge daily and weekly views into a single shared-axis canvas; Day/Week toggle changes column count rather than component; distinct ordrctrl visual identity per column
 
 ## Phase Details
@@ -119,11 +119,11 @@ Plans:
   5. Block position and height changes (from drag or save) animate smoothly with a short CSS transition
 **Plans**: 5 plans
 Plans:
-- [ ] 12-01-PLAN.md — Schema: add NativeTask.color/icon + OverrideType.COLOR_OVERRIDE/ICON_OVERRIDE, run migration
-- [ ] 12-02-PLAN.md — Backend: feed service color/icon resolution, task service/routes, new override route
-- [ ] 12-03-PLAN.md — Frontend: FeedItem type + PlannerTimeBlock + DraggableTimeBlock color/shadow/animation/icon
-- [ ] 12-04-PLAN.md — Frontend: TaskSheet color swatch palette, hex input, icon emoji field, wire to API
-- [ ] 12-05-PLAN.md — Tests + human verify: unit tests, contract tests, visual sign-off
+- [x] 12-01-PLAN.md — Schema: add NativeTask.color/icon + OverrideType.COLOR_OVERRIDE/ICON_OVERRIDE, run migration
+- [x] 12-02-PLAN.md — Backend: feed service color/icon resolution, task service/routes, new override route
+- [x] 12-03-PLAN.md — Frontend: FeedItem type + PlannerTimeBlock + DraggableTimeBlock color/shadow/animation/icon
+- [x] 12-04-PLAN.md — Frontend: TaskSheet color swatch palette, hex input, icon emoji field, wire to API
+- [x] 12-05-PLAN.md — Tests + human verify: unit tests, contract tests, visual sign-off
 **UI hint**: yes
 
 ### Phase 13: Unified TimelineCanvas
@@ -154,5 +154,5 @@ Plans:
 | 09: Drag to Reschedule | v1.1 | 5/5 | Complete | — |
 | 10: Tap to Edit + Quick-Create UX | v1.1 | 5/5 | Complete | 2026-06-06 |
 | 11: Weekly View Navigation | v1.1 | 0/3 | Not started | — |
-| 12: Timeline Visual Polish | v1.1 | 0/TBD | Not started | — |
+| 12: Timeline Visual Polish | v1.1 | 5/5 | Complete | 2026-06-06 |
 | 13: Unified TimelineCanvas | v1.1 | 0/TBD | Not started | — |
