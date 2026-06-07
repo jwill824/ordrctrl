@@ -87,4 +87,12 @@ test.describe('Weekly view navigation — authenticated', () => {
     const expectedRange = formatWeekRange(currentWeekStart);
     await expect(page.locator(`button:has-text("${expectedRange}")`)).toBeVisible();
   });
+
+  test('TC-WN-05: week mode shows day column headers (Mon–Sun)', async ({ page }) => {
+    await switchToWeekView(page);
+    // Each day column header contains a day abbreviation + date number
+    // Check Mon and Fri are visible (they appear in any week)
+    await expect(page.locator('text=/Mon \\d+/')).toBeVisible();
+    await expect(page.locator('text=/Fri \\d+/')).toBeVisible();
+  });
 });
