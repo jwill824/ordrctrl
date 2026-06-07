@@ -138,9 +138,9 @@ Plans:
   5. Toggling between Day and Week modes animates the column layout (expand/collapse) with a 200ms transition
 **Plans**: 4 plans
 Plans:
-- [ ] 13-01-PLAN.md — Write RED tests for TimelineCanvas (unit tests covering CANVAS-01 through CANVAS-04)
-- [ ] 13-02-PLAN.md — Build TimelineCanvas component, update constants/thresholds (GREEN)
-- [ ] 13-03-PLAN.md — Wire feed/page.tsx, structural flex conversion, delete old views
+- [x] 13-01-PLAN.md — Write RED tests for TimelineCanvas (unit tests covering CANVAS-01 through CANVAS-04)
+- [x] 13-02-PLAN.md — Build TimelineCanvas component, update constants/thresholds (GREEN)
+- [x] 13-03-PLAN.md — Wire feed/page.tsx, structural flex conversion, delete old views
 - [ ] 13-04-PLAN.md — E2e test update + human verify all 5 CANVAS success criteria
 **UI hint**: yes
 
