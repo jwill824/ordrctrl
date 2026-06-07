@@ -3,7 +3,7 @@
 ## Milestones
 
 - ✅ **v1.0 Timeline Visual Planner** — Phases 01–06 (shipped 2026-06-05)
-- 🚧 **v1.1 Timeline & Planner UX Polish** — Phases 07–11 (in progress)
+- 🚧 **v1.1 Timeline & Planner UX Polish** — Phases 07–13 (in progress)
 
 ## Phases
 
@@ -29,7 +29,7 @@ See: `.planning/milestones/v1.0-ROADMAP.md`
 - [x] **Phase 10: Tap to Edit + Quick-Create UX** — Tap-to-edit bottom sheet, scroll-wheel time picker, duration stepper, all-day tasks
 - [x] **Phase 11: Weekly View Navigation** — Prev/next week controls and Today button in the weekly planner view
 - [x] **Phase 12: Timeline Visual Polish** — Structured-style per-task color coding, task icons, block elevation, and smooth animations
-- [ ] **Phase 13: Unified TimelineCanvas** — Merge daily and weekly views into a single shared-axis canvas; Day/Week toggle changes column count rather than component; distinct ordrctrl visual identity per column
+- [x] **Phase 13: Unified TimelineCanvas** — Merge daily and weekly views into a single shared-axis canvas; Day/Week toggle changes column count rather than component; distinct ordrctrl visual identity per column
 
 ## Phase Details
 
@@ -141,7 +141,7 @@ Plans:
 - [x] 13-01-PLAN.md — Write RED tests for TimelineCanvas (unit tests covering CANVAS-01 through CANVAS-04)
 - [x] 13-02-PLAN.md — Build TimelineCanvas component, update constants/thresholds (GREEN)
 - [x] 13-03-PLAN.md — Wire feed/page.tsx, structural flex conversion, delete old views
-- [ ] 13-04-PLAN.md — E2e test update + human verify all 5 CANVAS success criteria
+- [x] 13-04-PLAN.md — E2e test update + human verify all 5 CANVAS success criteria
 **UI hint**: yes
 
 ## Progress
@@ -160,4 +160,4 @@ Plans:
 | 10: Tap to Edit + Quick-Create UX | v1.1 | 5/5 | Complete | 2026-06-06 |
 | 11: Weekly View Navigation | v1.1 | 0/3 | Not started | — |
 | 12: Timeline Visual Polish | v1.1 | 5/5 | Complete | 2026-06-06 |
-| 13: Unified TimelineCanvas | v1.1 | 0/4 | Not started | — |
+| 13: Unified TimelineCanvas | v1.1 | 4/4 | Complete | 2026-06-07 |
