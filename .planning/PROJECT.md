@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A multi-source task aggregation and visual planning app built with React 18 + Vite + Tailwind, deployed via Capacitor (mobile) and Tauri (desktop). Pulls tasks and events from Gmail, Microsoft To Do, and Apple Calendar alongside native task creation. The feed page offers a bucketed list view (Overdue/Today/This Week/Later/Unscheduled) **and** a time-axis visual planner with daily and weekly timeline views, quick-create, and a segmented view toggle.
+A multi-source task aggregation and visual planning app built with React 18 + Vite + Tailwind, deployed via Capacitor (mobile) and Tauri (desktop). Pulls tasks and events from Gmail, Microsoft To Do, and Apple Calendar alongside native task creation. The feed page offers a bucketed list view (Overdue/Today/This Week/Later/Unscheduled) **and** a time-axis visual planner with a unified `TimelineCanvas` component for Day and Week views, drag-to-reschedule, tap-to-edit, per-task color coding, and weekly navigation.
 
 ## Core Value
 
@@ -15,42 +15,43 @@ An ADHD-friendly visual time planner where your day is a spatial, navigable time
 
 ## Current State
 
-**Shipped: v1.0 (2026-06-05)**
+**Shipped: v1.1 (2026-06-07)**
+
+- Backend: Fastify + Prisma + PostgreSQL with auth, task CRUD (startAt/duration/endAt/color/icon), sync scheduler, feed/inbox services — ~250 passing backend tests
+- Frontend: React 18 + Vite + Tailwind, 3-tab bottom nav (Planner | Inbox | Integrations), unified `TimelineCanvas` (Day/Week), drag-to-reschedule, tap-to-edit TaskSheet, scroll-wheel time picker, per-task color/icon — 211 passing frontend tests
+- Integrations: Gmail, Microsoft Tasks, Apple Calendar adapters with sync cache
+- Capacitor (iOS/Android) + Tauri (desktop) targets — verified at mobile (430×932) and desktop (1280×800) viewports
+
+<details>
+<summary>v1.0 state (2026-06-05)</summary>
 
 - Backend: Fastify + Prisma + PostgreSQL with auth, task CRUD (startAt/duration/endAt), sync scheduler, feed/inbox services — 254 passing backend tests
 - Frontend: React 18 + Vite + Tailwind, 5-tab segmented control (Feed / Timeline / Planner / List / Week), DailyPlannerView, WeeklyPlannerView, QuickCreateSheet — 145 passing frontend tests
 - Integrations: Gmail, Microsoft Tasks, Apple Calendar adapters with sync cache
 - Capacitor (iOS/Android) + Tauri (desktop) targets — verified at mobile (430×932) and desktop (1280×800) viewports
 
+</details>
+
 ## Architecture / Key Patterns
 
 - Monorepo: `backend/` (Fastify + Prisma), `frontend/` (React + Vite + Tailwind), `docs/`, `specs/`
 - Backend: Route modules (`api/*.routes.ts`), service layer (`feed/`, `inbox/`, `sync/`, `integrations/`), Prisma ORM
 - Frontend: Page components, custom hooks (`useFeed`, `useTimeline`), Tailwind utility classes, vanilla pointer-event gestures
+- Timeline: `TimelineCanvas` (columns=1 Day, columns=7 Week), `DraggableTimeBlock`, `useDragToReschedule`, `PX_PER_HOUR=80`
 - Auth: Session-based with Apple/Google OAuth providers
 - Sync: Scheduler-driven integration sync with cache layer (`SyncCacheItem`)
 - Build: pnpm workspaces, Vite, Capacitor + Tauri for cross-platform
 
 ## Capability Contract
 
-See `.planning/REQUIREMENTS.md` for the explicit capability contract, requirement status, and coverage mapping.
-
-## Current Milestone: v1.1 Timeline & Planner UX Polish
-
-**Goal:** Make the planner feel like Structured — correct layout, drag-to-reschedule, inline editing, and polished interactions across all views.
-
-**Target features:**
-- Timeline layout fixes: block height proportional to duration, correct time-axis positioning, current-time auto-scroll on open
-- Drag to reschedule task blocks on the time axis
-- Tap-to-edit inline (title, startAt, duration)
-- Quick-create improvements (time picker, duration picker)
-- Weekly view: prev/next week navigation, column polish
-- Feed/list view cleanup and grouping improvements
+Requirements are archived per milestone. See `.planning/milestones/v1.1-REQUIREMENTS.md` for the v1.1 capability contract.
+Fresh requirements for the next milestone are defined during `/gsd-new-milestone`.
 
 ## Milestone Sequence
 
 - [x] v1.0: Timeline Visual Planner — ADHD-friendly visual time planner with daily/weekly views, schedulable native tasks, quick-create, and consistent UI theme *(shipped 2026-06-05)*
-- [ ] v1.1: Timeline & Planner UX Polish — Structured-like planner behavior, drag-to-reschedule, inline editing, view polish across all tabs
+- [x] v1.1: Timeline & Planner UX Polish — Structured-like planner behavior, drag-to-reschedule, inline editing, unified TimelineCanvas, view polish across all tabs *(shipped 2026-06-07)*
+- [ ] v1.2: TBD — define via `/gsd-new-milestone`
 
 ## Evolution
 
@@ -70,4 +71,5 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-05 after v1.0 milestone, v1.1 started*
+*Last updated: 2026-06-07 after v1.1 milestone shipped*
+
