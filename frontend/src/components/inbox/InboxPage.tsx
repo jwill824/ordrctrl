@@ -22,23 +22,7 @@ export function InboxPage() {
   } = useInbox();
 
   return (
-    <div className="h-[100dvh] bg-white flex flex-col pt-[env(safe-area-inset-top)] overflow-hidden">
-      {/* Top nav */}
-      <header className="border-b border-zinc-100 px-5 h-12 flex items-center justify-between flex-shrink-0 bg-white z-10">
-        <span className="text-[0.65rem] font-bold tracking-[0.28em] uppercase text-black">
-          ordrctrl
-        </span>
-        <a
-          href="/feed"
-          className="text-xs text-zinc-500 hover:text-zinc-800"
-        >
-          ← Back to feed
-        </a>
-      </header>
-
-      {/* Main content */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden touch-pan-y">
-        <main className="max-w-[40rem] w-full mx-auto px-5 pt-6 pb-24">
+    <main className="max-w-[40rem] w-full mx-auto px-5 pt-6 pb-4">
         <div className="flex items-baseline gap-2 mb-6">
           <h1 className="text-base font-semibold text-zinc-900">Inbox</h1>
           {!loading && total > 0 && (
@@ -91,7 +75,5 @@ export function InboxPage() {
           </div>
         )}
       </main>
-      </div>
-    </div>
   );
 }

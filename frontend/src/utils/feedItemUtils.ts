@@ -18,11 +18,14 @@ export function nativeTaskToFeedItem(task: NativeTask): FeedItem {
     isDuplicateSuspect: false,
     dismissed: false,
     hasUserDueAt: false,
+    isAllDay: task.isAllDay,
     originalBody: null,
     description: null,
     hasDescriptionOverride: false,
     descriptionOverride: null,
     descriptionUpdatedAt: null,
     sourceUrl: null,
+    color: task.color ?? '#3B82F6',
+    icon: task.icon ?? null,
   };
 }

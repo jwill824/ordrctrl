@@ -22,6 +22,9 @@ export interface FeedItem {
   isDuplicateSuspect: boolean;
   dismissed: boolean;
   hasUserDueAt: boolean;            // true when user-assigned due date is the effective date
+  isAllDay: boolean;                // true for native tasks marked as all-day
+  color: string;                    // hex color e.g. "#3B82F6"; default blue when none set
+  icon: string | null;              // emoji or short string; null when none set
   // Task content enhancement fields (null for native tasks)
   originalBody: string | null;
   description: string | null;
@@ -66,7 +69,7 @@ export async function buildFeed(
     ? await prisma.syncOverride.findMany({
         where: {
           userId,
-          overrideType: { in: ['DESCRIPTION_OVERRIDE', 'TITLE_OVERRIDE'] },
+          overrideType: { in: ['DESCRIPTION_OVERRIDE', 'TITLE_OVERRIDE', 'COLOR_OVERRIDE', 'ICON_OVERRIDE'] },
           syncCacheItemId: { in: cacheItemIds },
         },
         select: { syncCacheItemId: true, overrideType: true, value: true, updatedAt: true },
@@ -80,6 +83,16 @@ export async function buildFeed(
   const titleOverrideMap = new Map(
     allOverrides
       .filter((o) => o.overrideType === 'TITLE_OVERRIDE')
+      .map((o) => [o.syncCacheItemId, o])
+  );
+  const colorOverrideMap = new Map(
+    allOverrides
+      .filter((o) => o.overrideType === 'COLOR_OVERRIDE')
+      .map((o) => [o.syncCacheItemId, o])
+  );
+  const iconOverrideMap = new Map(
+    allOverrides
+      .filter((o) => o.overrideType === 'ICON_OVERRIDE')
       .map((o) => [o.syncCacheItemId, o])
   );
 
@@ -120,6 +133,9 @@ export async function buildFeed(
       isDuplicateSuspect: false, // populated below
       dismissed: false,
       hasUserDueAt,
+      isAllDay: false,
+      color: colorOverrideMap.get(item.id)?.value ?? '#3B82F6',
+      icon: iconOverrideMap.get(item.id)?.value ?? null,
       originalBody,
       description,
       hasDescriptionOverride,
@@ -148,6 +164,9 @@ export async function buildFeed(
     isDuplicateSuspect: false,
     dismissed: false,
     hasUserDueAt: false,
+    isAllDay: task.isAllDay,
+    color: task.color ?? '#3B82F6',
+    icon: task.icon ?? null,
     originalBody: null,
     description: null,
     hasDescriptionOverride: false,
@@ -720,6 +739,9 @@ export async function buildDismissedFeed(userId: string): Promise<{ items: FeedI
       isDuplicateSuspect: false,
       dismissed: true,
       hasUserDueAt,
+      isAllDay: false,
+      color: '#3B82F6',
+      icon: null,
       originalBody: (item as { body?: string | null }).body ?? null,
       description: (item as { body?: string | null }).body ?? null,
       hasDescriptionOverride: false,
@@ -747,6 +769,9 @@ export async function buildDismissedFeed(userId: string): Promise<{ items: FeedI
     isDuplicateSuspect: false,
     dismissed: true,
     hasUserDueAt: false,
+    isAllDay: task.isAllDay,
+    color: task.color ?? '#3B82F6',
+    icon: task.icon ?? null,
     originalBody: null,
     description: null,
     hasDescriptionOverride: false,
@@ -928,6 +953,9 @@ async function buildSingleSyncFeedItem(syncCacheItemId: string, userId: string):
     isDuplicateSuspect: false,
     dismissed: false,
     hasUserDueAt,
+    isAllDay: false,
+    color: '#3B82F6',
+    icon: null,
     originalBody,
     description: descriptionOverride ?? originalBody,
     hasDescriptionOverride: !!descOverride,
@@ -990,4 +1018,34 @@ export async function setTitleOverride(
   }
 
   return buildSingleSyncFeedItem(syncCacheItemId, userId);
+}
+
+// ─── Color / Icon Override ────────────────────────────────────────────────────
+
+/**
+ * Sets or clears a COLOR_OVERRIDE or ICON_OVERRIDE for a synced cache item.
+ * - Non-null value: upserts the SyncOverride record
+ * - Null value: deletes the SyncOverride record (deleteMany avoids not-found error)
+ */
+export async function setColorIconOverride(
+  userId: string,
+  syncCacheItemId: string,
+  type: 'COLOR' | 'ICON',
+  value: string | null
+): Promise<void> {
+  const overrideType = type === 'COLOR' ? 'COLOR_OVERRIDE' : 'ICON_OVERRIDE';
+
+  if (value !== null) {
+    await prisma.syncOverride.upsert({
+      where: {
+        syncCacheItemId_overrideType: { syncCacheItemId, overrideType },
+      },
+      create: { userId, syncCacheItemId, overrideType, value },
+      update: { value },
+    });
+  } else {
+    await prisma.syncOverride.deleteMany({
+      where: { syncCacheItemId, overrideType },
+    });
+  }
 }

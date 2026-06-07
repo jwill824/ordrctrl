@@ -13,7 +13,15 @@ export function useNativeTasks(onRefresh: () => Promise<void>) {
   );
 
   const update = useCallback(
-    async (id: string, fields: { title?: string; dueAt?: string | null }) => {
+    async (id: string, fields: {
+      title?: string;
+      dueAt?: string | null;
+      startAt?: string | null;
+      duration?: number | null;
+      isAllDay?: boolean;
+      color?: string;
+      icon?: string | null;
+    }) => {
       await tasksService.updateTask(id, fields);
       await onRefresh();
     },

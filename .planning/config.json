@@ -3,5 +3,8 @@
   "git": {
     "branching_strategy": "milestone",
     "milestone_branch_template": "milestone/{milestone}-{slug}"
+  },
+  "workflow": {
+    "_auto_chain_active": false
   }
 }

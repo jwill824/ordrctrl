@@ -14,6 +14,7 @@ const mockTask = {
   completed: false,
   completedAt: null,
   isDuplicateSuspect: false as const,
+  isAllDay: false,
 };
 
 describe('tasks.service', () => {
@@ -30,7 +31,7 @@ describe('tasks.service', () => {
         expect.objectContaining({
           method: 'POST',
           credentials: 'include',
-          body: JSON.stringify({ title: 'My task', dueAt: '2025-06-01', startAt: null, duration: null }),
+          body: JSON.stringify({ title: 'My task', dueAt: '2025-06-01', startAt: null, duration: null, isAllDay: false }),
         })
       );
     });

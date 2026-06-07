@@ -100,6 +100,9 @@ model NativeTask {
   dismissed   Boolean   @default(false)
   duration    Int?
   startAt     DateTime?
+  isAllDay    Boolean   @default(false)
+  color       String?
+  icon        String?
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -162,4 +165,6 @@ enum OverrideType {
   DISMISSED
   DESCRIPTION_OVERRIDE
   TITLE_OVERRIDE
+  COLOR_OVERRIDE
+  ICON_OVERRIDE
 }

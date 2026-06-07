@@ -26,6 +26,9 @@ const createTaskSchema = z.object({
   dueAt: z.string().datetime().optional().nullable(),
   startAt: z.string().datetime().optional().nullable(),
   duration: z.number().int().min(1).optional().nullable(),
+  isAllDay: z.boolean().optional(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().nullable(),
+  icon: z.string().max(10).optional().nullable(),
 });
 
 const updateTaskSchema = z.object({
@@ -33,6 +36,9 @@ const updateTaskSchema = z.object({
   dueAt: z.string().datetime().optional().nullable(),
   startAt: z.string().datetime().optional().nullable(),
   duration: z.number().int().min(1).optional().nullable(),
+  isAllDay: z.boolean().optional(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().nullable(),
+  icon: z.string().max(10).optional().nullable(),
 });
 
 export async function registerTaskRoutes(app: FastifyInstance): Promise<void> {
@@ -49,12 +55,20 @@ export async function registerTaskRoutes(app: FastifyInstance): Promise<void> {
       });
     }
 
-    const { title, dueAt, startAt, duration } = result.data;
+    const { title, dueAt, startAt, duration, isAllDay, color } = result.data;
+
+    // All-day tasks: anchor to today midnight, clear duration
+    const resolvedStartAt = isAllDay
+      ? (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })()
+      : startAt ? new Date(startAt) : null;
+
     const task = await createTask(userId, {
       title,
       dueAt: dueAt ? new Date(dueAt) : null,
-      startAt: startAt ? new Date(startAt) : null,
-      duration: duration ?? null,
+      startAt: resolvedStartAt,
+      duration: isAllDay ? null : (duration ?? null),
+      isAllDay: isAllDay ?? false,
+      color: color ?? '#3B82F6',
     });
 
     return reply.status(201).send(task);
@@ -77,14 +91,17 @@ export async function registerTaskRoutes(app: FastifyInstance): Promise<void> {
         });
       }
 
-      const { title, dueAt, startAt, duration } = result.data;
+      const { title, dueAt, startAt, duration, isAllDay, color, icon } = result.data;
 
       try {
         const task = await updateTask(userId, id, {
           ...(title !== undefined && { title }),
           ...(dueAt !== undefined && { dueAt: dueAt ? new Date(dueAt) : null }),
           ...(startAt !== undefined && { startAt: startAt ? new Date(startAt) : null }),
-          ...(duration !== undefined && { duration: duration ?? null }),
+          ...(duration !== undefined && { duration: isAllDay ? null : (duration ?? null) }),
+          ...(isAllDay !== undefined && { isAllDay }),
+          ...(color !== undefined && { color: color ?? null }),
+          ...(icon !== undefined && { icon: icon ?? null }),
         });
         return reply.send(task);
       } catch (err) {

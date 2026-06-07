@@ -25,6 +25,7 @@ const completedItem: feedService.FeedItem = {
   isDuplicateSuspect: false,
   dismissed: false,
   hasUserDueAt: false,
+    isAllDay: false,
 };
 
 describe('useFeed — clearCompleted', () => {
