@@ -85,7 +85,7 @@ export function DraggableTimeBlock({
 
   const containerClasses = [
     'absolute border-l-[3px] rounded-r px-2 py-1 overflow-hidden shadow-sm group select-none cursor-grab',
-    compact ? 'left-0 right-0' : 'left-14 right-2',
+    compact ? 'left-0 right-0' : 'left-0 right-2',
     isDragMove ? 'shadow-md opacity-90' : '',
     isDragResize ? 'shadow-sm' : '',
     item.completed ? 'opacity-40' : '',

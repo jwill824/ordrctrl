@@ -1,15 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+// Phase 13 NOTE: DailyPlannerView removed in Phase 13.
+// Auto-scroll test (Test G) migrated to TimelineCanvas.test.tsx (Test H).
+// Pixel-math tests A–F retained here as they test PlannerTimeBlock directly.
+
+import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import type { PlannerItem } from '@/hooks/usePlannerTimeline';
 import { PlannerTimeBlock } from '@/components/timeline/PlannerTimeBlock';
-import { DailyPlannerView } from '@/components/timeline/DailyPlannerView';
 import { PX_PER_HOUR, BLOCK_MIN_HEIGHT, TIMELINE_HEIGHT } from '@/components/timeline/timelineConstants';
 
-/**
- * Constructs a minimal PlannerItem using local-time constructor to avoid UTC offset drift.
- * new Date(year, month, day, hour, minute) → local time; `.toISOString()` → UTC string.
- * When the component calls `new Date(startAt).getHours()`, it recovers the original local hour.
- */
 function makePlannerItem(
   startLocalHour: number,
   startLocalMinute: number,
@@ -41,6 +39,8 @@ function makePlannerItem(
     descriptionUpdatedAt: null,
     sourceUrl: null,
     durationMinutes,
+    color: '#000000',
+    icon: null,
   };
 }
 
@@ -89,34 +89,5 @@ describe('timelineConstants', () => {
     expect(PX_PER_HOUR).toBe(80);
     expect(BLOCK_MIN_HEIGHT).toBe(24);
     expect(TIMELINE_HEIGHT).toBe(1920);
-  });
-});
-
-describe('DailyPlannerView — auto-scroll (LAYOUT-03)', () => {
-  beforeEach(() => {
-    // jsdom doesn't implement scrollIntoView — define it before spying
-    Element.prototype.scrollIntoView = vi.fn();
-    vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(vi.fn());
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  // Test G — LAYOUT-03: opening the planner auto-scrolls current-time indicator into view
-  it('Test G (LAYOUT-03): scrolls current time into view on mount', () => {
-    const scheduled = [makePlannerItem(9, 0, 60)];
-    render(
-      <DailyPlannerView
-        scheduled={scheduled}
-        unscheduled={[]}
-        now={new Date(2026, 5, 5, 9, 0, 0)}
-        onComplete={() => {}}
-        onReschedule={vi.fn()}
-        onResize={vi.fn()}
-        onTap={vi.fn()}
-      />
-    );
-    expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({ block: 'center' });
   });
 });

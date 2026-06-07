@@ -16,15 +16,69 @@ import { FeedEmptyState } from '@/components/feed/FeedEmptyState';
 import { AddTaskForm } from '@/components/tasks/AddTaskForm';
 import { TaskSheet } from '@/components/tasks/TaskSheet';
 import { EditTaskModal } from '@/components/tasks/EditTaskModal';
-import { DailyPlannerView, WeeklyPlannerView } from '@/components/timeline';
+import { TimelineCanvas } from '@/components/timeline';
+import { PX_PER_HOUR, WEEKLY_HOUR_HEIGHT } from '@/components/timeline/timelineConstants';
 import { useWeeklyPlanner } from '@/hooks/useWeeklyPlanner';
 import { useTaskSheet } from '@/hooks/useTaskSheet';
-import { getWeekStart, addDays } from '@/utils/dateUtils';
-import type { FeedItem } from '@/services/feed.service';
+import { getWeekStart, addDays, formatWeekRange } from '@/utils/dateUtils';import type { FeedItem } from '@/services/feed.service';
 import type { PlannerItem } from '@/hooks/usePlannerTimeline';
 import type { TimelineViewMode } from '@/types/timeline';
 
 type PlannerViewMode = Extract<TimelineViewMode, 'planner' | 'week'>;
+
+function WeekNavHeader({
+  weekStart,
+  onPrevWeek,
+  onNextWeek,
+  onToday,
+}: {
+  weekStart: Date;
+  onPrevWeek: () => void;
+  onNextWeek: () => void;
+  onToday: () => void;
+}) {
+  const currentWeekStart = getWeekStart(new Date());
+  const isCurrentWeek =
+    weekStart.getFullYear() === currentWeekStart.getFullYear() &&
+    weekStart.getMonth() === currentWeekStart.getMonth() &&
+    weekStart.getDate() === currentWeekStart.getDate();
+
+  return (
+    <div className="flex items-center justify-between mb-3">
+      <button
+        type="button"
+        onClick={onPrevWeek}
+        aria-label="Previous week"
+        className="w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-black transition-colors"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M10 12L6 8l4-4"/>
+        </svg>
+      </button>
+      <button
+        type="button"
+        onClick={onToday}
+        className={`text-[0.75rem] px-2 py-1 transition-colors ${
+          isCurrentWeek
+            ? 'text-zinc-300 font-normal cursor-default'
+            : 'text-zinc-700 font-medium hover:text-black'
+        }`}
+      >
+        {isCurrentWeek ? formatWeekRange(weekStart) : 'Today'}
+      </button>
+      <button
+        type="button"
+        onClick={onNextWeek}
+        aria-label="Next week"
+        className="w-8 h-8 flex items-center justify-center text-zinc-400 hover:text-black transition-colors"
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 4l4 4-4 4"/>
+        </svg>
+      </button>
+    </div>
+  );
+}
 
 function FeedPageContent() {
   const [searchParams] = useSearchParams();
@@ -146,28 +200,10 @@ function FeedPageContent() {
       )}
 
       {/* Main content */}
-      <div className={`flex-1 overflow-y-auto ${viewMode === 'week' ? 'overflow-x-auto' : 'overflow-x-hidden'} touch-pan-y`}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden touch-pan-y"
         style={{ touchAction: isDragActive ? 'none' : undefined }}
       >
-        {/* Weekly view renders full-width outside the narrow main wrapper */}
-        {!showDismissed && !loading && viewMode === 'week' && (
-          <div className="px-3 pt-4 pb-4">
-            <WeeklyPlannerView
-              weekDays={weekDays}
-              dayMap={dayMap}
-              plannerDate={plannerDate}
-              onDayTap={handleDayTap}
-              weekStart={weekStart}
-              onPrevWeek={() => setWeekStart(addDays(weekStart, -7))}
-              onNextWeek={() => setWeekStart(addDays(weekStart, 7))}
-              onToday={() => setWeekStart(getWeekStart(new Date()))}
-              sourceFilter={sourceFilter}
-              availableSources={availableSources}
-              onSourceFilterChange={setSourceFilter}
-            />
-          </div>
-        )}
-        {viewMode !== 'week' && <main className="max-w-[40rem] w-full mx-auto px-5 pt-4 pb-4">
+        <main className={viewMode === 'week' ? 'px-3 pt-4 pb-4' : 'max-w-[40rem] w-full mx-auto px-5 pt-4 pb-4'}>
         {error && (
           <div className="border-l-2 border-red-500 py-1 pl-3 text-[0.8rem] text-red-600 mb-4">
             {error}
@@ -232,31 +268,47 @@ function FeedPageContent() {
         {/* Normal planner view */}
         {!showDismissed && !loading && (
           <>
-            {isEmpty && <FeedEmptyState hasIntegrations={hasIntegrations} />}
+            {isEmpty && viewMode !== 'week' && <FeedEmptyState hasIntegrations={hasIntegrations} />}
 
-            {items.length > 0 && (
-              <DailyPlannerView
-                scheduled={scheduled}
-                unscheduled={unscheduled}
-                allDay={allDay}
-                now={now}
-                onComplete={completeItem}
-                onDismiss={dismissItem}
-                onEdit={handleItemClick}
-                onTap={handleBlockTap}
-                sourceFilter={sourceFilter}
-                availableSources={availableSources}
-                onSourceFilterChange={setSourceFilter}
-                onReschedule={handleReschedule}
-                onResize={handleResize}
-                onDragActiveChange={setIsDragActive}
-              />
+            {(items.length > 0 || viewMode === 'week') && (
+              <>
+                {/* Week nav controls (week mode only, D-15) */}
+                {viewMode === 'week' && (
+                  <WeekNavHeader
+                    weekStart={weekStart}
+                    onPrevWeek={() => setWeekStart(addDays(weekStart, -7))}
+                    onNextWeek={() => setWeekStart(addDays(weekStart, 7))}
+                    onToday={() => setWeekStart(getWeekStart(new Date()))}
+                  />
+                )}
+                <TimelineCanvas
+                  columns={viewMode === 'week' ? 7 : 1}
+                  hourHeight={viewMode === 'week' ? WEEKLY_HOUR_HEIGHT : PX_PER_HOUR}
+                  now={now}
+                  scheduled={scheduled}
+                  unscheduled={unscheduled}
+                  allDay={allDay}
+                  weekDays={viewMode === 'week' ? weekDays : undefined}
+                  dayMap={viewMode === 'week' ? dayMap : undefined}
+                  onDayTap={handleDayTap}
+                  onComplete={completeItem}
+                  onDismiss={dismissItem}
+                  onEdit={handleItemClick}
+                  onTap={handleBlockTap}
+                  sourceFilter={sourceFilter}
+                  availableSources={availableSources}
+                  onSourceFilterChange={setSourceFilter}
+                  onReschedule={handleReschedule}
+                  onResize={handleResize}
+                  onDragActiveChange={setIsDragActive}
+                />
+              </>
             )}
 
             <CompletedSection items={completed} onUncomplete={uncompleteItem} onClear={clearCompleted} />
           </>
         )}
-      </main>}
+      </main>
       </div>
 
       {/* FAB — Add task */}

@@ -20,7 +20,7 @@ export function PlannerTimeBlock({ item, hourHeight, compact = false, isDragging
   return (
     <div
       className={`absolute border-l-[3px] rounded-r shadow-sm overflow-hidden ${
-        compact ? 'left-0 right-0 px-1 py-0.5' : 'left-14 right-2 px-2 py-1'
+        compact ? 'left-0 right-0 px-1 py-0.5' : 'left-0 right-2 px-2 py-1'
       } ${item.completed ? 'opacity-40' : ''}`}
       style={{
         top,
