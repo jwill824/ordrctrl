@@ -2,13 +2,21 @@
 // NOTE: Tests D–H are RED until Plan 02 creates TimelineCanvas.
 // Test B is RED until Plan 02 changes PlannerTimeBlock threshold from 36 → 28.
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { PlannerItem } from '@/hooks/usePlannerTimeline';
 import { TimelineCanvas } from '@/components/timeline/TimelineCanvas';
 import { PlannerTimeBlock } from '@/components/timeline/PlannerTimeBlock';
 import { PX_PER_HOUR, BLOCK_MIN_HEIGHT, TIMELINE_HEIGHT } from '@/components/timeline/timelineConstants';
+
+// jsdom doesn't implement scrollIntoView — mock it globally for this suite
+beforeAll(() => {
+  Element.prototype.scrollIntoView = vi.fn();
+});
+afterAll(() => {
+  vi.restoreAllMocks();
+});
 
 function makePlannerItem(
   startLocalHour: number,
@@ -181,12 +189,13 @@ describe('TimelineCanvas — week mode (CANVAS-03)', () => {
 
 describe('TimelineCanvas — auto-scroll on mount (CANVAS-01 / LAYOUT-03)', () => {
   beforeEach(() => {
-    Element.prototype.scrollIntoView = vi.fn();
     vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(vi.fn());
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    // Re-apply the global no-op after restoreAllMocks
+    Element.prototype.scrollIntoView = vi.fn();
   });
 
   // Test H — auto-scroll fires on mount in day mode

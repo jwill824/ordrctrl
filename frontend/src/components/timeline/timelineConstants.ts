@@ -8,3 +8,7 @@ export const SNAP_PX = (SNAP_MINUTES / 60) * PX_PER_HOUR; // 20px
 export const DRAG_INTENT_THRESHOLD_PX = 8;
 export const RESIZE_HANDLE_HEIGHT_PX = 20;
 export const MIN_DRAG_DURATION_MINUTES = 15;
+
+export const WEEKLY_HOUR_HEIGHT = 40;
+// Sparse hour markers shown in week columns (midnight, 6am, noon, 6pm)
+export const WEEK_HOUR_MARKERS = [0, 6, 12, 18];

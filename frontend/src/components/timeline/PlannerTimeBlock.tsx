@@ -36,7 +36,7 @@ export function PlannerTimeBlock({ item, hourHeight, compact = false, isDragging
         {item.icon ? <span className="mr-0.5">{item.icon}</span> : null}
         {item.title}
       </div>
-      {!compact && height >= 36 && (
+      {!compact && height >= 28 && (
         <div className="text-[0.65rem] text-zinc-400 leading-tight mt-0.5">
           {formatLocalTime(item.startAt!)}
           {item.endAt ? ` – ${formatLocalTime(item.endAt)}` : ''}

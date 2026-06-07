@@ -96,7 +96,7 @@ export function DraggableTimeBlock({
   // -------------------------------------------------------------------------
   // Time range display (same pattern as PlannerTimeBlock)
   // -------------------------------------------------------------------------
-  const showTimeRange = !compact && liveHeight >= 36;
+  const showTimeRange = !compact && liveHeight >= 28;
 
   return (
     <div
