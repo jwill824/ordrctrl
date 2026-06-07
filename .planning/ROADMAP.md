@@ -136,7 +136,12 @@ Plans:
   3. In week mode, each day column has a distinct header showing the weekday abbreviation and date; the current day's column is visually highlighted
   4. Task blocks in narrow week columns gracefully degrade: title truncates, time label hides below a minimum block height
   5. Toggling between Day and Week modes animates the column layout (expand/collapse) with a 200ms transition
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 13-01-PLAN.md — Write RED tests for TimelineCanvas (unit tests covering CANVAS-01 through CANVAS-04)
+- [ ] 13-02-PLAN.md — Build TimelineCanvas component, update constants/thresholds (GREEN)
+- [ ] 13-03-PLAN.md — Wire feed/page.tsx, structural flex conversion, delete old views
+- [ ] 13-04-PLAN.md — E2e test update + human verify all 5 CANVAS success criteria
 **UI hint**: yes
 
 ## Progress
@@ -155,4 +160,4 @@ Plans:
 | 10: Tap to Edit + Quick-Create UX | v1.1 | 5/5 | Complete | 2026-06-06 |
 | 11: Weekly View Navigation | v1.1 | 0/3 | Not started | — |
 | 12: Timeline Visual Polish | v1.1 | 5/5 | Complete | 2026-06-06 |
-| 13: Unified TimelineCanvas | v1.1 | 0/TBD | Not started | — |
+| 13: Unified TimelineCanvas | v1.1 | 0/4 | Not started | — |
